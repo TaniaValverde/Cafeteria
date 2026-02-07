@@ -1,13 +1,25 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package Model;
 
 /**
+ * Represents a beverage product.
  *
- * @author Valverde
+ * <p>This class extends {@link Producto} to satisfy the inheritance requirement
+ * (Producto -> Bebida) described in the project specification.</p>
+ *
+ * <p>Currently, the PDF does not require extra beverage attributes (e.g., size, ml, hot/cold).
+ * If your team decides to add them later, they should be added here.</p>
  */
-public class Bebida {
-    
+public class Bebida extends Producto {
+
+    /**
+     * Creates a beverage product.
+     *
+     * @param codigo unique product code (non-empty)
+     * @param categoria beverage category (non-empty)
+     * @param precio product price (>= 0)
+     * @param stock available units (>= 0)
+     */
+    public Bebida(String codigo, String categoria, double precio, int stock) {
+        super(codigo, categoria, precio, stock);
+    }
 }
