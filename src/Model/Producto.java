@@ -13,17 +13,20 @@ public class Producto {
     private String categoria;
     private double precio;
     private int stock;
+    private final String nombre;
 
     /**
      * Creates a new product.
      *
      * @param codigo unique product code (non-empty)
+     * @param nombre
      * @param categoria product category (non-empty)
      * @param precio product price (>= 0)
      * @param stock available units (>= 0)
      * @throws IllegalArgumentException if any argument is invalid
      */
-    public Producto(String codigo, String categoria, double precio, int stock) {
+    public Producto(String codigo,String nombre, String categoria, double precio, int stock) {
+        this.nombre=nombre;
         setCodigo(codigo);
         setCategoria(categoria);
         setPrecio(precio);
@@ -48,6 +51,9 @@ public class Producto {
     /** @return available stock */
     public int getStock() {
         return stock;
+    }
+    public String getNombre() {
+        return nombre;
     }
 
     /**

@@ -15,11 +15,13 @@ public class Bebida extends Producto {
      * Creates a beverage product.
      *
      * @param codigo unique product code (non-empty)
+     * @param nombre
      * @param categoria beverage category (non-empty)
      * @param precio product price (>= 0)
      * @param stock available units (>= 0)
      */
-    public Bebida(String codigo, String categoria, double precio, int stock) {
-        super(codigo, categoria, precio, stock);
-    }
+    public Bebida(String codigo, String nombre, String categoria, double precio, int stock) {
+    super(codigo, nombre, categoria, precio, stock);
+}
+
 }

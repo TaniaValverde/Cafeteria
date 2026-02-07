@@ -1,8 +1,5 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-package model;
+
+package Model;
 
 import Interfases.Imprimible;
 import Interfases.Persistible;
@@ -13,12 +10,12 @@ import java.util.List;
 
 public class Factura implements Imprimible, Persistible {
 
-    private String idFactura;
-    private Pedido pedido;
-    private Cliente cliente;
-    private Mesa mesa;
-    private boolean paraLlevar;
-    private LocalDateTime fecha;
+    private final String idFactura;
+    private final Pedido pedido;
+    private final Cliente cliente;
+    private final Mesa mesa;
+    private final boolean paraLlevar;
+    private final LocalDateTime fecha;
     private double subtotal;
     private double impuesto;
     private double total;
