@@ -12,7 +12,7 @@ import java.util.ArrayList;
  */
 public class ReporteController {
 
-    private VentaDAO ventaDAO;
+    private final VentaDAO ventaDAO;
     // private VistaReporte vista;
 
     /**
