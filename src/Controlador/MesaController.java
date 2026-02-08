@@ -42,7 +42,6 @@ public class MesaController {
         Mesa mesa = obtenerMesa(numeroMesa);
 
         mesa.asignarPedido(pedido);
-
     }
 
     public void liberarMesa(int numeroMesa) {
