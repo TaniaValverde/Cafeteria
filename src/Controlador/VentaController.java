@@ -8,9 +8,8 @@ import Model.Producto;
 import Model.Venta;
 import Persistencia.ProductoDAO;
 import Persistencia.VentaDAO;
-import java.io.IOException;
-import vista.vistaPedido;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,7 +23,6 @@ public class VentaController {
     private Pedido pedidoActual;
     private final VentaDAO ventaDAO;
     private final ProductoDAO productoDAO;
-    private final vistaPedido vista;
 
     /**
      * Constructor del controlador de ventas.
@@ -32,7 +30,7 @@ public class VentaController {
     public VentaController() {
         this.ventaDAO = new VentaDAO();
         this.productoDAO = new ProductoDAO("data/productos.txt");
-        this.vista = new vistaPedido();
+        // OJO: Ya NO creamos vistaPedido aquí (eso lo hace la vistaMesas)
     }
 
     /**
@@ -45,12 +43,7 @@ public class VentaController {
     public void iniciarPedido(int codigoPedido, String tipoPedido, Integer numeroMesa) {
         try {
             pedidoActual = new Pedido(codigoPedido, tipoPedido, numeroMesa);
-
-            // Si tu vista tiene método para mostrar mensajes, lo puedes activar:
-            // vista.mostrarMensaje("Pedido iniciado correctamente");
-
         } catch (Exception e) {
-            // vista.mostrarMensaje("Error al iniciar pedido: " + e.getMessage());
             System.out.println("Error al iniciar pedido: " + e.getMessage());
         }
     }
@@ -64,23 +57,17 @@ public class VentaController {
     public void agregarProductoAlPedido(Producto producto, int cantidad) {
         try {
             if (pedidoActual == null) {
-                // vista.mostrarMensaje("No hay pedido activo");
                 System.out.println("No hay pedido activo");
                 return;
             }
 
             // Descuenta stock del objeto Producto
-            // (Si no hay stock suficiente, descontarStock debería lanzar excepción)
             producto.descontarStock(cantidad);
 
             // Agrega el producto al pedido
             pedidoActual.agregarProducto(producto, cantidad);
 
-            // vista.mostrarMensaje("Producto agregado al pedido");
-            // System.out.println("Producto agregado al pedido");
-
         } catch (Exception e) {
-            // vista.mostrarMensaje("Error al agregar producto: " + e.getMessage());
             System.out.println("Error al agregar producto: " + e.getMessage());
         }
     }
@@ -96,7 +83,6 @@ public class VentaController {
     public void finalizarVenta(Cliente cliente, Mesa mesa, boolean paraLlevar) {
         try {
             if (pedidoActual == null) {
-                // vista.mostrarMensaje("No hay pedido para finalizar");
                 System.out.println("No hay pedido para finalizar");
                 return;
             }
@@ -120,24 +106,37 @@ public class VentaController {
             // Crear factura
             Factura factura = new Factura(pedidoActual, cliente, mesa, paraLlevar);
 
-            // 1) Guardar la venta (persistencia RF-08)
+            // 1) Guardar la venta
             ventaDAO.guardarVenta(venta);
 
-            // 2) Guardar productos para que el stock quede persistido en archivo
-            // (forma simple: cargar lista del archivo y volver a guardar)
+            // 2) Guardar productos para persistir el stock actualizado
             List<Producto> productos = productoDAO.cargar();
             productoDAO.guardar(productos);
 
-            // Mostrar factura si tu vista lo permite
-            // vista.mostrarFactura(factura.generarImpresion());
+            // (Opcional) imprimir en consola para probar
             // System.out.println(factura.generarImpresion());
 
             // Limpiar pedido actual
             pedidoActual = null;
 
         } catch (IOException e) {
-            // vista.mostrarMensaje("Error al finalizar venta: " + e.getMessage());
             System.out.println("Error al finalizar venta: " + e.getMessage());
         }
+    }
+
+    /**
+     * Devuelve el pedido actual (por si otra parte del programa necesita consultarlo).
+     * @return 
+     */
+    public Pedido getPedidoActual() {
+        return pedidoActual;
+    }
+
+    /**
+     * Permite asignar un pedido actual desde afuera (por ejemplo desde otra vista/controlador).
+     * @param pedidoActual
+     */
+    public void setPedidoActual(Pedido pedidoActual) {
+        this.pedidoActual = pedidoActual;
     }
 }

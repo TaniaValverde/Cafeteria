@@ -1,7 +1,6 @@
 package Persistencia;
 
 import Model.Cliente;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
