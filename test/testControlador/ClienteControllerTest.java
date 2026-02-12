@@ -1,9 +1,7 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/UnitTests/JUnit4TestClass.java to edit this template
- */
-package Controlador;
 
+package testControlador;
+
+import Controlador.ClienteController;
 import Model.Cliente;
 import java.util.List;
 import org.junit.After;
