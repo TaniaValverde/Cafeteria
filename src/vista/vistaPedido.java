@@ -12,24 +12,32 @@ import Model.Producto;
 
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 public class vistaPedido extends JFrame {
 
     private final Pedido pedido;
     private final PedidoController pedidoController;
     private final ProductoController productoController;
-
-    // NUEVO: para finalizar venta y liberar mesa
     private final VentaController ventaController;
     private final MesaController mesaController;
 
     private final JLabel lblInfo;
-    private final JTextField txtCodigoProducto;
+
+    // ✅ NUEVO: buscador por nombre + lista filtrada
+    private final JTextField txtBuscarProducto;
+    private final DefaultListModel<String> modeloLista;
+    private final JList<String> listaProductos;
+    private List<Producto> productos; // cache local
+
     private final JTextField txtCantidad;
 
     private final JButton btnAgregar;
-    private final JButton btnFinalizar; // NUEVO
+    private final JButton btnFinalizar;
 
     public vistaPedido(Pedido pedido,
                        PedidoController pedidoController,
@@ -44,7 +52,7 @@ public class vistaPedido extends JFrame {
         this.mesaController = mesaController;
 
         setTitle("Pedido");
-        setSize(550, 280);
+        setSize(780, 360);
         setLocationRelativeTo(null);
 
         Font fuente = new Font("Arial", Font.BOLD, 16);
@@ -52,26 +60,64 @@ public class vistaPedido extends JFrame {
         lblInfo = new JLabel("Pedido: " + pedido.getCodigoPedido() + " | Tipo: " + pedido.getTipoPedido());
         lblInfo.setFont(fuente);
 
-        txtCodigoProducto = new JTextField();
+        // ✅ Buscador
+        txtBuscarProducto = new JTextField();
+        txtBuscarProducto.setFont(fuente);
+
+        // ✅ Lista de productos (filtrada)
+        modeloLista = new DefaultListModel<>();
+        listaProductos = new JList<>(modeloLista);
+        listaProductos.setFont(fuente);
+        listaProductos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        // Doble click = agregar
+        listaProductos.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    agregarProducto();
+                }
+            }
+        });
+
         txtCantidad = new JTextField();
+        txtCantidad.setFont(fuente);
 
         btnAgregar = new JButton("Agregar Producto");
         btnAgregar.setFont(fuente);
         btnAgregar.addActionListener(e -> agregarProducto());
 
-        // NUEVO BOTÓN
         btnFinalizar = new JButton("Finalizar Pedido");
         btnFinalizar.setFont(fuente);
         btnFinalizar.addActionListener(e -> finalizarPedido());
 
+        // Cargar lista inicial
+        cargarProductos();
+        refrescarListaConFiltro("");
+
+        // Filtrar al escribir
+        txtBuscarProducto.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { filtrar(); }
+            @Override public void removeUpdate(DocumentEvent e) { filtrar(); }
+            @Override public void changedUpdate(DocumentEvent e) { filtrar(); }
+
+            private void filtrar() {
+                refrescarListaConFiltro(txtBuscarProducto.getText());
+            }
+        });
+
+        // Layout (5 filas x 2 columnas)
         JPanel panel = new JPanel(new GridLayout(5, 2, 10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         panel.add(lblInfo);
         panel.add(new JLabel(""));
 
-        panel.add(new JLabel("Código Producto:"));
-        panel.add(txtCodigoProducto);
+        panel.add(new JLabel("Buscar producto (por nombre):"));
+        panel.add(txtBuscarProducto);
+
+        panel.add(new JLabel("Selecciona producto:"));
+        panel.add(new JScrollPane(listaProductos));
 
         panel.add(new JLabel("Cantidad:"));
         panel.add(txtCantidad);
@@ -83,21 +129,67 @@ public class vistaPedido extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     }
 
+    private void cargarProductos() {
+        // Requiere que ProductoController tenga obtenerTodos()
+        this.productos = new ArrayList<>(productoController.listar());
+
+        if (productos.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No hay productos cargados.",
+                    "Aviso", JOptionPane.WARNING_MESSAGE);
+            btnAgregar.setEnabled(false);
+            txtBuscarProducto.setEnabled(false);
+        }
+    }
+
+    private void refrescarListaConFiltro(String filtro) {
+        modeloLista.clear();
+
+        String f = (filtro == null) ? "" : filtro.trim().toLowerCase();
+
+        for (Producto p : productos) {
+            String nombre = p.getNombre();
+            if (f.isEmpty() || nombre.toLowerCase().contains(f)) {
+                modeloLista.addElement(nombre);
+            }
+        }
+
+        if (modeloLista.size() > 0) {
+            listaProductos.setSelectedIndex(0);
+        }
+    }
+
+    private Producto obtenerProductoSeleccionado() {
+        String nombreSeleccionado = listaProductos.getSelectedValue();
+        if (nombreSeleccionado == null) return null;
+
+        for (Producto p : productos) {
+            if (p.getNombre().equalsIgnoreCase(nombreSeleccionado)) {
+                return p;
+            }
+        }
+        return null;
+    }
+
     private void agregarProducto() {
         try {
-            String codigo = txtCodigoProducto.getText().trim();
+            Producto producto = obtenerProductoSeleccionado();
+            if (producto == null) {
+                JOptionPane.showMessageDialog(this, "Selecciona un producto de la lista.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             int cantidad = Integer.parseInt(txtCantidad.getText().trim());
+            if (cantidad <= 0) {
+                JOptionPane.showMessageDialog(this, "La cantidad debe ser mayor a 0.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
 
-            // 1) Buscar producto
-            Producto producto = productoController.buscarPorCodigo(codigo);
-
-            // 2) Agregar al pedido
             pedidoController.agregarProductoAPedido(pedido.getCodigoPedido(), producto, cantidad);
 
             JOptionPane.showMessageDialog(this, "Producto agregado al pedido ✅");
-
-            txtCodigoProducto.setText("");
             txtCantidad.setText("");
+            txtBuscarProducto.requestFocus();
 
         } catch (NumberFormatException nfe) {
             JOptionPane.showMessageDialog(this, "Cantidad debe ser un número entero.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -108,55 +200,41 @@ public class vistaPedido extends JFrame {
 
     private void finalizarPedido() {
         try {
-            // A) Validación rápida: que haya productos
             if (pedido.getProductos().isEmpty()) {
                 JOptionPane.showMessageDialog(this, "No puedes finalizar un pedido vacío.", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            // B) Pedir datos del cliente (simple)
             Cliente cliente = pedirCliente();
-            if (cliente == null) return; // canceló
+            if (cliente == null) return;
 
-            // C) Determinar si es para llevar o mesa
             boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
 
-            Integer numMesa = pedido.getNumeroMesa(); // null si PARA_LLEVAR
+            Integer numMesa = pedido.getNumeroMesa();
             Mesa mesa = null;
 
             if (!paraLlevar) {
-                // Si es mesa, obtenemos el objeto Mesa desde MesaController
                 mesa = mesaController.obtenerMesa(numMesa);
             }
 
-            // D) IMPORTANTE:
-            // VentaController maneja "pedidoActual" internamente, entonces:
-            // 1) iniciamos un pedido dentro de VentaController (misma info del pedido real)
             ventaController.iniciarPedido(pedido.getCodigoPedido(), pedido.getTipoPedido(), numMesa);
 
-            // 2) pasamos los productos del pedido real al pedido del VentaController
-            // y aquí es donde se descuenta stock (producto.descontarStock)
             for (Producto p : pedido.getProductos()) {
                 int cant = pedido.getCantidadDeProducto(p);
                 ventaController.agregarProductoAlPedido(p, cant);
             }
 
-            // 3) finalizamos venta (genera factura, guarda venta, guarda stock actualizado)
             ventaController.finalizarVenta(cliente, mesa, paraLlevar);
 
-            // E) (Opcional) Mostrar “factura” en un dialog (texto)
-            // La Factura puede generarse con tu pedido real (para mostrar al usuario)
             Factura facturaPreview = new Factura(pedido, cliente, mesa, paraLlevar);
             JTextArea area = new JTextArea(facturaPreview.generarImpresion());
             area.setEditable(false);
             JOptionPane.showMessageDialog(this, new JScrollPane(area), "Factura", JOptionPane.INFORMATION_MESSAGE);
 
-            // F) Liberar mesa si era mesa
             if (!paraLlevar) {
                 mesaController.liberarMesa(numMesa);
             }
 
-            // G) Cerrar ventana
             dispose();
 
         } catch (Exception ex) {
@@ -165,8 +243,6 @@ public class vistaPedido extends JFrame {
     }
 
     private Cliente pedirCliente() {
-        // Si el usuario cancela cualquier paso, devolvemos null.
-
         String id = JOptionPane.showInputDialog(this, "ID del cliente:");
         if (id == null) return null;
 
@@ -191,7 +267,6 @@ public class vistaPedido extends JFrame {
 
         Cliente.TipoCliente tipo = (sel == 0) ? Cliente.TipoCliente.FRECUENTE : Cliente.TipoCliente.VISITANTE;
 
-        // Constructor de Cliente (id, nombre, telefono, tipo) :contentReference[oaicite:4]{index=4}
         return new Cliente(id.trim(), nombre.trim(), telefono.trim(), tipo);
     }
 }

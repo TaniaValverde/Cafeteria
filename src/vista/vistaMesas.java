@@ -3,6 +3,7 @@ package vista;
 import Controlador.MesaController;
 import Controlador.PedidoController;
 import Controlador.ProductoController;
+import Controlador.VentaController;   // ✅ NUEVO
 import Model.Mesa;
 import Model.Pedido;
 
@@ -16,6 +17,7 @@ public class vistaMesas extends JFrame {
     private final MesaController mesaController;
     private final PedidoController pedidoController;
     private final ProductoController productoController;
+    private final VentaController ventaController; // ✅ NUEVO
 
     private final JButton[] botonesMesas;
     private final JButton btnParaLlevar;
@@ -27,7 +29,10 @@ public class vistaMesas extends JFrame {
         this.pedidoController = new PedidoController();
 
         // OJO: tu ProductoController pide la ruta del archivo en el constructor
-        this.productoController = new ProductoController("data/productos.txt"); // :contentReference[oaicite:7]{index=7}
+        this.productoController = new ProductoController("data/productos.txt");
+
+        // ✅ NUEVO: VentaController para finalizar pedido / generar factura / etc.
+        this.ventaController = new VentaController();
 
         this.botonesMesas = new JButton[5];
 
@@ -62,14 +67,14 @@ public class vistaMesas extends JFrame {
 
     private void manejarClickMesa(int numeroMesa) {
         try {
-            Mesa mesa = mesaController.obtenerMesa(numeroMesa); // :contentReference[oaicite:8]{index=8}
+            Mesa mesa = mesaController.obtenerMesa(numeroMesa);
 
             // Si está libre, creamos pedido y lo asignamos
             if (mesa.estaLibre()) {
-                Pedido pedido = pedidoController.crearPedido(contadorPedidos, Pedido.MESA, numeroMesa); // :contentReference[oaicite:9]{index=9}
+                Pedido pedido = pedidoController.crearPedido(contadorPedidos, Pedido.MESA, numeroMesa);
                 contadorPedidos++;
 
-                mesaController.asignarPedido(numeroMesa, pedido); // :contentReference[oaicite:10]{index=10}
+                mesaController.asignarPedido(numeroMesa, pedido);
             }
 
             // SEA LIBRE U OCUPADA: abrimos la vista de pedido con el pedidoActual
@@ -79,7 +84,14 @@ public class vistaMesas extends JFrame {
                 return;
             }
 
-            vistaPedido vp = new vistaPedido(pedidoActual, pedidoController, productoController);
+            // ✅ CAMBIO: ahora se pasan 5 parámetros
+            vistaPedido vp = new vistaPedido(
+                    pedidoActual,
+                    pedidoController,
+                    productoController,
+                    ventaController,
+                    mesaController
+            );
             vp.setVisible(true);
 
             actualizarBotones();
@@ -91,10 +103,17 @@ public class vistaMesas extends JFrame {
 
     private void manejarClickParaLlevar() {
         try {
-            Pedido pedido = pedidoController.crearPedido(contadorPedidos, Pedido.PARA_LLEVAR, null); // :contentReference[oaicite:11]{index=11}
+            Pedido pedido = pedidoController.crearPedido(contadorPedidos, Pedido.PARA_LLEVAR, null);
             contadorPedidos++;
 
-            vistaPedido vp = new vistaPedido(pedido, pedidoController, productoController);
+            // ✅ CAMBIO: ahora se pasan 5 parámetros
+            vistaPedido vp = new vistaPedido(
+                    pedido,
+                    pedidoController,
+                    productoController,
+                    ventaController,
+                    mesaController
+            );
             vp.setVisible(true);
 
         } catch (Exception ex) {
