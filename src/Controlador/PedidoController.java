@@ -7,7 +7,7 @@ import java.util.List;
 
 public class PedidoController {
 
-    private List<Pedido> pedidos;
+    private final List<Pedido> pedidos;
 
     public PedidoController() {
         pedidos = new ArrayList<>();

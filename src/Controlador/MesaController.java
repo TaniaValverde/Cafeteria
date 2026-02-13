@@ -33,23 +33,36 @@ public class MesaController {
         return mesa.estaLibre();
 
     }
+    public void liberarMesa(int numeroMesa) {
+
+    // reutiliza tu validación central
+    Mesa mesa = obtenerMesa(numeroMesa);
+
+    if (mesa.estaLibre()) {
+        throw new IllegalStateException("Table is already free.");
+    }
+
+    mesa.liberar();
+}
+
 
     public void asignarPedido(int numeroMesa, Pedido pedido) {
 
-        if (pedido == null) {
-            throw new IllegalArgumentException("Pedido no existe");
-        }
-        Mesa mesa = obtenerMesa(numeroMesa);
-
-        mesa.asignarPedido(pedido);
+    if (numeroMesa <= 0) {
+        throw new IllegalArgumentException("Numero Incorrecto de mesa.");
     }
 
-    public void liberarMesa(int numeroMesa) {
-
-        Mesa mesa = obtenerMesa(numeroMesa);
-
-        mesa.liberar();
-
+    if (pedido == null) {
+        throw new IllegalArgumentException("Pedido no existe");
     }
 
+    if (pedido.getNumeroMesa() == null || !pedido.getNumeroMesa().equals(numeroMesa)) {
+        throw new IllegalArgumentException("Mesa no coincide con el pedido");
+    }
+
+    Mesa mesa = obtenerMesa(numeroMesa);
+    mesa.asignarPedido(pedido);
+}
+
+   
 }
