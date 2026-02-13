@@ -9,6 +9,7 @@ import Model.Cliente;
 import Model.Mesa;
 import Model.Pedido;
 import Model.Producto;
+import java.io.IOException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -74,7 +75,7 @@ public class VentaControllerTest {
      * Test of finalizarVenta method, of class VentaController.
      */
     @Test
-    public void testFinalizarVenta() {
+    public void testFinalizarVenta() throws IOException {
         System.out.println("finalizarVenta");
         Cliente cliente = null;
         Mesa mesa = null;
