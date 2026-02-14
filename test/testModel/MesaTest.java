@@ -1,122 +1,157 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/UnitTests/JUnit4TestClass.java to edit this template
- */
 package testModel;
 
 import Model.Mesa;
 import Model.Pedido;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
+ * Unit tests for {@link Mesa}.
  *
- * @author Valverde
+ * <p>Covers core business rules: valid table range, assign/release workflow,
+ * and defensive behavior against invalid operations.</p>
  */
 public class MesaTest {
-    
-    public MesaTest() {
-    }
-    
-    @BeforeClass
-    public static void setUpClass() {
-    }
-    
-    @AfterClass
-    public static void tearDownClass() {
-    }
-    
-    @Before
-    public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
+
+    private Pedido pedidoMesa(int cod, int mesa) {
+        return new Pedido(cod, Pedido.MESA, mesa);
     }
 
-    /**
-     * Test of getNumero method, of class Mesa.
-     */
+    /** Valid table is created as free and without an active order. */
     @Test
-    public void testGetNumero() {
-        System.out.println("getNumero");
-        Mesa instance = null;
-        int expResult = 0;
-        int result = instance.getNumero();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void ctorOk() {
+        Mesa m = new Mesa(1);
+        assertEquals(1, m.getNumero());
+        assertNotNull(m.getEstado());
+        assertNull(m.getPedidoActual());
+        assertTrue(m.estaLibre());
     }
 
-    /**
-     * Test of getEstado method, of class Mesa.
-     */
+    /** Invalid table numbers must be rejected. */
     @Test
-    public void testGetEstado() {
-        System.out.println("getEstado");
-        Mesa instance = null;
-        String expResult = "";
-        String result = instance.getEstado();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void ctorNumBad() {
+        IllegalArgumentException ex1 = assertThrows(
+                IllegalArgumentException.class,
+                () -> new Mesa(0)
+        );
+        assertEquals("Numero de mesa invalido", ex1.getMessage());
+
+        IllegalArgumentException ex2 = assertThrows(
+                IllegalArgumentException.class,
+                () -> new Mesa(6)
+        );
+        assertEquals("Numero de mesa invalido", ex2.getMessage());
     }
 
-    /**
-     * Test of getPedidoActual method, of class Mesa.
-     */
+    /** A new table starts free. */
     @Test
-    public void testGetPedidoActual() {
-        System.out.println("getPedidoActual");
-        Mesa instance = null;
-        Pedido expResult = null;
-        Pedido result = instance.getPedidoActual();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void libreAlInicio() {
+        Mesa m = new Mesa(2);
+        assertTrue(m.estaLibre());
+        assertNull(m.getPedidoActual());
     }
 
-    /**
-     * Test of estaLibre method, of class Mesa.
-     */
+    /* -------- asignarPedido -------- */
+
+    /** Assigning a matching table-order occupies the table. */
     @Test
-    public void testEstaLibre() {
-        System.out.println("estaLibre");
-        Mesa instance = null;
-        boolean expResult = false;
-        boolean result = instance.estaLibre();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void asignarOk() {
+        Mesa m = new Mesa(2);
+        Pedido p = pedidoMesa(10, 2);
+
+        m.asignarPedido(p);
+
+        assertFalse(m.estaLibre());
+        assertNotNull(m.getPedidoActual());
+        assertEquals(10, m.getPedidoActual().getCodigoPedido());
     }
 
-    /**
-     * Test of asignarPedido method, of class Mesa.
-     */
+    /** Null orders are not allowed. */
     @Test
-    public void testAsignarPedido() {
-        System.out.println("asignarPedido");
-        Pedido pedido = null;
-        Mesa instance = null;
-        instance.asignarPedido(pedido);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void asignarNull() {
+        Mesa m = new Mesa(1);
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> m.asignarPedido(null)
+        );
+
+        assertEquals("Invalid order.", ex.getMessage());
+        assertTrue(m.estaLibre());
+        assertNull(m.getPedidoActual());
     }
 
-    /**
-     * Test of liberar method, of class Mesa.
-     */
+    /** Order table must match this table number; state must remain unchanged on failure. */
     @Test
-    public void testLiberar() {
-        System.out.println("liberar");
-        Mesa instance = null;
-        instance.liberar();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void asignarMesaNoCoincide() {
+        Mesa m = new Mesa(3);
+        Pedido p = pedidoMesa(11, 2); // pedido es para mesa 2
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> m.asignarPedido(p)
+        );
+
+        assertEquals("Mesa no coincide con el pedido", ex.getMessage());
+        assertTrue(m.estaLibre());
+        assertNull(m.getPedidoActual());
     }
-    
+
+    /** Re-assigning when occupied must fail. */
+    @Test
+    public void asignarDoble() {
+        Mesa m = new Mesa(1);
+        m.asignarPedido(pedidoMesa(1, 1));
+
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> m.asignarPedido(pedidoMesa(2, 1))
+        );
+
+        assertEquals("Table is occupied.", ex.getMessage());
+    }
+
+    /** "Para llevar" orders cannot be assigned to a table. */
+    @Test
+    public void asignarParaLlevar() {
+        Mesa m = new Mesa(1);
+        Pedido p = new Pedido(5, Pedido.PARA_LLEVAR, null);
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> m.asignarPedido(p)
+        );
+
+        assertEquals("Mesa no coincide con el pedido", ex.getMessage());
+        assertTrue(m.estaLibre());
+        assertNull(m.getPedidoActual());
+    }
+
+    /* -------- liberar -------- */
+
+    /** Releasing an occupied table frees it and clears the order. */
+    @Test
+    public void liberarOk() {
+        Mesa m = new Mesa(4);
+        m.asignarPedido(pedidoMesa(20, 4));
+
+        m.liberar();
+
+        assertTrue(m.estaLibre());
+        assertNull(m.getPedidoActual());
+    }
+
+    /** Releasing an already free table must fail. */
+    @Test
+    public void liberarLibre() {
+        Mesa m = new Mesa(5);
+
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> m.liberar()
+        );
+
+        assertEquals("Table is already free.", ex.getMessage());
+        assertTrue(m.estaLibre());
+    }
 }

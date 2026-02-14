@@ -1,140 +1,169 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/UnitTests/JUnit4TestClass.java to edit this template
- */
 package testModel;
 
 import Model.Pedido;
 import Model.Producto;
 import java.util.List;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-/**
- *
- * @author Valverde
- */
 public class PedidoTest {
-    
-    public PedidoTest() {
-    }
-    
-    @BeforeClass
-    public static void setUpClass() {
-    }
-    
-    @AfterClass
-    public static void tearDownClass() {
-    }
-    
-    @Before
-    public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
+
+    private Producto cafe() {
+        return new Producto("P1", "Cafe", "Bebida", 2000, 10);
     }
 
-    /**
-     * Test of agregarProducto method, of class Pedido.
-     */
-    @Test
-    public void testAgregarProducto() {
-        System.out.println("agregarProducto");
-        Producto producto = null;
-        int cantidad = 0;
-        Pedido instance = null;
-        instance.agregarProducto(producto, cantidad);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    private Producto sandwich() {
+        return new Producto("P2", "Sandwich", "Comida", 3500, 5);
     }
 
-    /**
-     * Test of getCodigoPedido method, of class Pedido.
-     */
-    @Test
-    public void testGetCodigoPedido() {
-        System.out.println("getCodigoPedido");
-        Pedido instance = null;
-        int expResult = 0;
-        int result = instance.getCodigoPedido();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    private Pedido mesa(int cod, int num) {
+        return new Pedido(cod, Pedido.MESA, num);
     }
 
-    /**
-     * Test of setCodigoPedido method, of class Pedido.
-     */
-    @Test
-    public void testSetCodigoPedido() {
-        System.out.println("setCodigoPedido");
-        int codigoPedido = 0;
-        Pedido instance = null;
-        instance.setCodigoPedido(codigoPedido);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    private Pedido llevar(int cod) {
+        return new Pedido(cod, Pedido.PARA_LLEVAR, null);
     }
 
-    /**
-     * Test of getTipoPedido method, of class Pedido.
-     */
+    // -------- constructor --------
+
     @Test
-    public void testGetTipoPedido() {
-        System.out.println("getTipoPedido");
-        Pedido instance = null;
-        String expResult = "";
-        String result = instance.getTipoPedido();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void ctorMesaOk() {
+        Pedido p = mesa(1, 1);
+        assertEquals(1, p.getCodigoPedido());
+        assertEquals(Pedido.MESA, p.getTipoPedido());
+        assertEquals(Integer.valueOf(1), p.getNumeroMesa());
     }
 
-    /**
-     * Test of getNumeroMesa method, of class Pedido.
-     */
     @Test
-    public void testGetNumeroMesa() {
-        System.out.println("getNumeroMesa");
-        Pedido instance = null;
-        Integer expResult = null;
-        Integer result = instance.getNumeroMesa();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void ctorLlevarOk() {
+        Pedido p = llevar(2);
+        assertEquals(Pedido.PARA_LLEVAR, p.getTipoPedido());
+        assertNull(p.getNumeroMesa());
     }
 
-    /**
-     * Test of getProductos method, of class Pedido.
-     */
     @Test
-    public void testGetProductos() {
-        System.out.println("getProductos");
-        Pedido instance = null;
-        List<Producto> expResult = null;
-        List<Producto> result = instance.getProductos();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void ctorCodNeg() {
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> new Pedido(-1, Pedido.MESA, 1)
+        );
+        assertEquals("Codigo de pedido invalido", ex.getMessage());
     }
 
-    /**
-     * Test of getCantidadDeProducto method, of class Pedido.
-     */
     @Test
-    public void testGetCantidadDeProducto() {
-        System.out.println("getCantidadDeProducto");
-        Producto producto = null;
-        Pedido instance = null;
-        int expResult = 0;
-        int result = instance.getCantidadDeProducto(producto);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void ctorTipoNull() {
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> new Pedido(1, null, 1)
+        );
+        assertEquals("No hay pedido", ex.getMessage());
     }
-    
+
+    @Test
+    public void ctorTipoBad() {
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> new Pedido(1, "DOMICILIO", 1)
+        );
+        assertEquals("Tipo de pedido incorrecto", ex.getMessage());
+    }
+
+    @Test
+    public void ctorMesaBad() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new Pedido(1, Pedido.MESA, 0));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new Pedido(1, Pedido.MESA, 6));
+    }
+
+    @Test
+    public void ctorLlevarConMesa() {
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> new Pedido(1, Pedido.PARA_LLEVAR, 1)
+        );
+        assertEquals("Pedido para llevar no debe tener mesa", ex.getMessage());
+    }
+
+    // -------- agregarProducto --------
+
+    @Test
+    public void addOk() {
+        Pedido p = mesa(1, 1);
+        Producto c = cafe();
+
+        p.agregarProducto(c, 2);
+
+        assertEquals(1, p.getProductos().size());
+        assertEquals(2, p.getCantidadDeProducto(c));
+    }
+
+    @Test
+    public void addSuma() {
+        Pedido p = mesa(1, 1);
+        Producto c = cafe();
+
+        p.agregarProducto(c, 2);
+        p.agregarProducto(c, 3);
+
+        assertEquals(5, p.getCantidadDeProducto(c));
+    }
+
+    @Test
+    public void addNull() {
+        Pedido p = mesa(1, 1);
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> p.agregarProducto(null, 1)
+        );
+
+        assertEquals("Producto no puede ser null", ex.getMessage());
+    }
+
+    @Test
+    public void addCantBad() {
+        Pedido p = mesa(1, 1);
+        Producto c = cafe();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> p.agregarProducto(c, 0));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> p.agregarProducto(c, -5));
+    }
+
+    // -------- getters --------
+
+    @Test
+    public void getProductosCopia() {
+        Pedido p = mesa(1, 1);
+        p.agregarProducto(cafe(), 1);
+
+        List<Producto> lista = p.getProductos();
+        lista.clear(); // usuario revienta
+
+        assertEquals(1, p.getProductos().size());
+    }
+
+    @Test
+    public void getCantNoExiste() {
+        Pedido p = mesa(1, 1);
+        p.agregarProducto(cafe(), 1);
+
+        assertEquals(0, p.getCantidadDeProducto(sandwich()));
+    }
+
+    @Test
+    public void getCantNull() {
+        Pedido p = mesa(1, 1);
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> p.getCantidadDeProducto(null)
+        );
+
+        assertEquals("Producto no puede ser null", ex.getMessage());
+    }
 }

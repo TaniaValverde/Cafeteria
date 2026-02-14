@@ -67,17 +67,23 @@ public class Mesa {
      */
     public void asignarPedido(Pedido pedido) {
 
-        if (pedido == null) {
-            throw new IllegalArgumentException("Invalid order.");
-        }
-
-        if (!estaLibre()) {
-            throw new IllegalStateException("Table is occupied.");
-        }
-
-        pedidoActual = pedido;
-        estado = OCUPADA;
+    if (pedido == null) {
+        throw new IllegalArgumentException("Invalid order.");
     }
+
+    // 🔥 Validación de negocio faltante
+    if (pedido.getNumeroMesa() == null || pedido.getNumeroMesa() != this.numero) {
+        throw new IllegalArgumentException("Mesa no coincide con el pedido");
+    }
+
+    if (!estaLibre()) {
+        throw new IllegalStateException("Table is occupied.");
+    }
+
+    pedidoActual = pedido;
+    estado = OCUPADA;
+}
+
 
     /**
      * Releases the table and marks it as free.
