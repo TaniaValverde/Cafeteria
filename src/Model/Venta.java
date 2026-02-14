@@ -10,21 +10,15 @@ import java.util.Objects;
 /**
  * Represents a sale (venta) performed by the cafeteria system.
  *
- * <p>
- * A sale may be associated to a table (1..5) or be "para llevar".</p>
- * <p>
- * Includes line items, tax calculation and total amount.</p>
+ * <p>A sale may be associated to a table (1..5) or be "para llevar" (0).</p>
+ * <p>Includes line items, tax calculation and total amount.</p>
  */
 public class Venta {
 
-    /**
-     * Use table number 0 to represent "para llevar".
-     */
+    /** Use table number 0 to represent "para llevar". */
     public static final int PARA_LLEVAR = 0;
 
-    /**
-     * Default tax rate (modifiable via constructor).
-     */
+    /** Default tax rate (modifiable via constructor). */
     public static final double DEFAULT_TAX_RATE = 0.13;
 
     private static final DateTimeFormatter DT_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
@@ -34,133 +28,56 @@ public class Venta {
     private int mesaNumero; // 1..5 or 0 for carryout
     private double taxRate;
 
-    private final List<LineaVenta> lineas;
+    private final List<LineaVenta> lineas = new ArrayList<>();
 
     /**
-     * Sale line item: product + quantity + unit price snapshot. Storing unit
-     * price here helps keep historical accuracy if prices change later.
+     * Sale line item: product + quantity + unit price snapshot.
+     * Storing unit price helps preserve historical accuracy if product price changes later.
      */
     public static class LineaVenta {
-
         private final Producto producto;
         private final int cantidad;
         private final double precioUnitario;
 
-        /**
-         * @param producto product (non-null)
-         * @param cantidad quantity (> 0)
-         * @param precioUnitario unit price (>= 0)
-         */
         public LineaVenta(Producto producto, int cantidad, double precioUnitario) {
-            if (producto == null) {
-                throw new IllegalArgumentException("Product cannot be null.");
-            }
-            if (cantidad <= 0) {
-                throw new IllegalArgumentException("Quantity must be > 0.");
-            }
-            if (precioUnitario < 0) {
-                throw new IllegalArgumentException("Unit price cannot be negative.");
-            }
+            if (producto == null) throw new IllegalArgumentException("Product cannot be null.");
+            if (cantidad <= 0) throw new IllegalArgumentException("Quantity must be > 0.");
+            if (precioUnitario < 0) throw new IllegalArgumentException("Unit price cannot be negative.");
 
             this.producto = producto;
             this.cantidad = cantidad;
             this.precioUnitario = precioUnitario;
         }
 
-        /**
-         * @return product
-         */
-        public Producto getProducto() {
-            return producto;
-        }
-
-        /**
-         * @return quantity
-         */
-        public int getCantidad() {
-            return cantidad;
-        }
-
-        /**
-         * @return unit price snapshot
-         */
-        public double getPrecioUnitario() {
-            return precioUnitario;
-        }
-
-        /**
-         * @return line subtotal (unit price * quantity)
-         */
-        public double getSubtotal() {
-            return precioUnitario * cantidad;
-        }
+        public Producto getProducto() { return producto; }
+        public int getCantidad() { return cantidad; }
+        public double getPrecioUnitario() { return precioUnitario; }
+        public double getSubtotal() { return precioUnitario * cantidad; }
     }
 
-    /**
-     * Creates a sale with default tax rate.
-     *
-     * @param id sale identifier (non-empty)
-     * @param fechaHora sale date-time (non-null)
-     * @param mesaNumero 1..5 for table, or 0 for "para llevar"
-     */
     public Venta(String id, LocalDateTime fechaHora, int mesaNumero) {
         this(id, fechaHora, mesaNumero, DEFAULT_TAX_RATE);
     }
 
-    /**
-     * Creates a sale specifying tax rate.
-     *
-     * @param id sale identifier (non-empty)
-     * @param fechaHora sale date-time (non-null)
-     * @param mesaNumero 1..5 for table, or 0 for "para llevar"
-     * @param taxRate tax rate (>= 0) e.g. 0.13 for 13%
-     */
     public Venta(String id, LocalDateTime fechaHora, int mesaNumero, double taxRate) {
         setId(id);
         setFechaHora(fechaHora);
         setMesaNumero(mesaNumero);
         setTaxRate(taxRate);
-        this.lineas = new ArrayList<>();
     }
 
-    /**
-     * @return sale id
-     */
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
+    public LocalDateTime getFechaHora() { return fechaHora; }
+    public int getMesaNumero() { return mesaNumero; }
+    public double getTaxRate() { return taxRate; }
 
     /**
-     * @return sale date-time
-     */
-    public LocalDateTime getFechaHora() {
-        return fechaHora;
-    }
-
-    /**
-     * @return table number (1..5) or 0 for carryout
-     */
-    public int getMesaNumero() {
-        return mesaNumero;
-    }
-
-    /**
-     * @return tax rate used by this sale
-     */
-    public double getTaxRate() {
-        return taxRate;
-    }
-
-    /**
-     * @return unmodifiable list of line items
+     * Returns an unmodifiable view of the line items (cannot be changed externally).
      */
     public List<LineaVenta> getLineas() {
         return Collections.unmodifiableList(lineas);
     }
 
-    /**
-     * @param id non-empty sale id
-     */
     public final void setId(String id) {
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("Sale id cannot be empty.");
@@ -168,9 +85,6 @@ public class Venta {
         this.id = id.trim();
     }
 
-    /**
-     * @param fechaHora non-null date-time
-     */
     public final void setFechaHora(LocalDateTime fechaHora) {
         if (fechaHora == null) {
             throw new IllegalArgumentException("Sale date-time cannot be null.");
@@ -179,9 +93,7 @@ public class Venta {
     }
 
     /**
-     * Sets the table number.
-     *
-     * @param mesaNumero 1..5 or 0 for carryout
+     * Sets table number: 1..5 or 0 for carryout.
      */
     public final void setMesaNumero(int mesaNumero) {
         if (mesaNumero != PARA_LLEVAR && (mesaNumero < 1 || mesaNumero > 5)) {
@@ -190,9 +102,6 @@ public class Venta {
         this.mesaNumero = mesaNumero;
     }
 
-    /**
-     * @param taxRate tax rate (>= 0)
-     */
     public final void setTaxRate(double taxRate) {
         if (taxRate < 0) {
             throw new IllegalArgumentException("Tax rate cannot be negative.");
@@ -200,24 +109,23 @@ public class Venta {
         this.taxRate = taxRate;
     }
 
-    /**
-     * Adds a product line using the product's current price. You may want to
-     * call {@link Producto#descontarStock(int)} outside this method (e.g., in a
-     * controller/service), depending on your architecture decisions.
-     *
-     * @param producto product (non-null)
-     * @param cantidad quantity (> 0)
-     */
-    public void agregarLinea(Producto producto, int cantidad) {
-        if (producto == null) {
-            throw new IllegalArgumentException("Product cannot be null.");
-        }
-        lineas.add(new LineaVenta(producto, cantidad, producto.getPrecio()));
+    public boolean esParaLlevar() {
+        return mesaNumero == PARA_LLEVAR;
     }
 
     /**
-     * @return subtotal (sum of line subtotals)
+     * Adds a sale line using the current price of the product.
+     *
+     * <p>Note: stock discount is usually handled in controller/service (not here),
+     * but you can enforce it externally.</p>
      */
+    public void agregarLinea(Producto producto, int cantidad) {
+        if (producto == null) throw new IllegalArgumentException("Product cannot be null.");
+        if (cantidad <= 0) throw new IllegalArgumentException("Quantity must be > 0.");
+
+        lineas.add(new LineaVenta(producto, cantidad, producto.getPrecio()));
+    }
+
     public double getSubtotal() {
         double sum = 0.0;
         for (LineaVenta lv : lineas) {
@@ -226,45 +134,31 @@ public class Venta {
         return sum;
     }
 
-    /**
-     * @return tax amount (subtotal * taxRate)
-     */
     public double getImpuesto() {
         return getSubtotal() * taxRate;
     }
 
-    /**
-     * @return total (subtotal + tax)
-     */
     public double getTotal() {
         return getSubtotal() + getImpuesto();
     }
 
     /**
-     * @return true if this sale is carryout
-     */
-    public boolean esParaLlevar() {
-        return mesaNumero == PARA_LLEVAR;
-    }
-
-    /**
-     * Serializes this sale to a single CSV line for persistence.
+     * Serializes this sale into a single CSV line.
      *
-     * Format: id,fechaHora,mesaNumero,taxRate,items
+     * Format:
+     * id,fechaHora,mesaNumero,taxRate,items
      *
-     * items format (semicolon separated):
+     * items (semicolon separated):
      * codigo:cantidad:precioUnitario;codigo:cantidad:precioUnitario
      */
     public String toCsv() {
         StringBuilder items = new StringBuilder();
         for (int i = 0; i < lineas.size(); i++) {
             LineaVenta lv = lineas.get(i);
-            if (i > 0) {
-                items.append(";");
-            }
+            if (i > 0) items.append(";");
             items.append(escape(lv.getProducto().getCodigo()))
-                    .append(":").append(lv.getCantidad())
-                    .append(":").append(lv.getPrecioUnitario());
+                 .append(":").append(lv.getCantidad())
+                 .append(":").append(lv.getPrecioUnitario());
         }
 
         return String.join(",",
@@ -276,53 +170,54 @@ public class Venta {
     }
 
     /**
-     * Builds a Venta from a CSV line produced by {@link #toCsv()}.
+     * Parses a CSV line produced by {@link #toCsv()}.
      *
-     * <p>
-     * Note: products are reconstructed only with code (category/price/stock
-     * should be resolved from your product catalog if needed).</p>
-     *
-     * @param line csv line
-     * @return parsed sale
+     * <p>Reconstructs products minimally with code and name "N/A" (category "N/A").</p>
      */
     public static Venta fromCsv(String line) {
         if (line == null || line.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid CSV line.");
         }
 
-        String[] parts = splitCsv(line);
-        if (parts.length < 5) {
-            throw new IllegalArgumentException("Incomplete sale CSV: " + line);
-        }
-
-        String id = unescape(parts[0]);
-        LocalDateTime dt = LocalDateTime.parse(unescape(parts[1]), DT_FORMAT);
-        int mesa = Integer.parseInt(parts[2].trim());
-        double tax = Double.parseDouble(parts[3].trim());
-        String items = unescape(parts[4]);
-
-        Venta v = new Venta(id, dt, mesa, tax);
-
-        if (!items.trim().isEmpty()) {
-            String[] itemParts = items.split(";");
-            for (String it : itemParts) {
-                String[] fields = it.split(":");
-                if (fields.length != 3) {
-                    continue;
-                }
-
-                String codigoProd = unescape(fields[0]);
-                int cantidad = Integer.parseInt(fields[1].trim());
-                double precioUnit = Double.parseDouble(fields[2].trim());
-
-                // Minimal product reconstruction (code only).
-                Producto p = new Producto(codigoProd, "N/A", "N/A", precioUnit, 0);
-
-                v.lineas.add(new LineaVenta(p, cantidad, precioUnit));
+        try {
+            String[] parts = splitCsv(line);
+            if (parts.length < 5) {
+                throw new IllegalArgumentException("Incomplete sale CSV.");
             }
-        }
 
-        return v;
+            String id = unescape(parts[0]);
+            LocalDateTime dt = LocalDateTime.parse(unescape(parts[1]), DT_FORMAT);
+            int mesa = Integer.parseInt(parts[2].trim());
+            double tax = Double.parseDouble(parts[3].trim());
+            String items = unescape(parts[4]);
+
+            Venta v = new Venta(id, dt, mesa, tax);
+
+            if (!items.trim().isEmpty()) {
+                String[] itemParts = items.split(";");
+                for (String it : itemParts) {
+                    if (it.trim().isEmpty()) continue;
+
+                    String[] fields = it.split(":");
+                    if (fields.length != 3) {
+                        throw new IllegalArgumentException("Invalid item format in sale CSV.");
+                    }
+
+                    String codigoProd = unescape(fields[0]);
+                    int cantidad = Integer.parseInt(fields[1].trim());
+                    double precioUnit = Double.parseDouble(fields[2].trim());
+
+                    // Minimal product reconstruction
+                    Producto p = new Producto(codigoProd, "N/A", "N/A", precioUnit, 0);
+                    v.lineas.add(new LineaVenta(p, cantidad, precioUnit));
+                }
+            }
+
+            return v;
+
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Invalid sale CSV format.", ex);
+        }
     }
 
     private static String escape(String s) {
@@ -357,7 +252,7 @@ public class Venta {
             }
         }
         out.add(cur.toString());
-        return out.toArray(String[]::new);
+        return out.toArray(new String[0]);
     }
 
     @Override
@@ -369,12 +264,8 @@ public class Venta {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof Venta)) {
-            return false;
-        }
+        if (this == o) return true;
+        if (!(o instanceof Venta)) return false;
         Venta venta = (Venta) o;
         return id.equals(venta.id);
     }

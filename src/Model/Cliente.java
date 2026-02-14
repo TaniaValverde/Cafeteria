@@ -1,5 +1,7 @@
 package Model;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -9,10 +11,6 @@ import java.util.Objects;
  */
 public class Cliente {
 
-    /**
-     * Customer type according to the specification:
-     * frequent customers and visitors.
-     */
     public enum TipoCliente {
         FRECUENTE,
         VISITANTE
@@ -28,7 +26,7 @@ public class Cliente {
      *
      * @param id customer identifier (non-empty)
      * @param nombre customer name (non-empty)
-     * @param telefono phone number (optional, can be empty)
+     * @param telefono phone number (nullable → becomes empty string)
      * @param tipo customer type (non-null)
      */
     public Cliente(String id, String nombre, String telefono, TipoCliente tipo) {
@@ -38,30 +36,11 @@ public class Cliente {
         setTipo(tipo);
     }
 
-    /** @return customer id */
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
+    public String getNombre() { return nombre; }
+    public String getTelefono() { return telefono; }
+    public TipoCliente getTipo() { return tipo; }
 
-    /** @return customer name */
-    public String getNombre() {
-        return nombre;
-    }
-
-    /** @return customer phone number (may be empty) */
-    public String getTelefono() {
-        return telefono;
-    }
-
-    /** @return customer type */
-    public TipoCliente getTipo() {
-        return tipo;
-    }
-
-    /**
-     * Updates the customer id.
-     * @param id non-empty customer id
-     */
     public final void setId(String id) {
         if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("Customer id cannot be empty.");
@@ -69,10 +48,6 @@ public class Cliente {
         this.id = id.trim();
     }
 
-    /**
-     * Updates the customer name.
-     * @param nombre non-empty customer name
-     */
     public final void setNombre(String nombre) {
         if (nombre == null || nombre.trim().isEmpty()) {
             throw new IllegalArgumentException("Customer name cannot be empty.");
@@ -81,17 +56,12 @@ public class Cliente {
     }
 
     /**
-     * Updates the phone number.
-     * @param telefono phone number (nullable; stored as empty if null)
+     * Phone is optional. If null → becomes empty string.
      */
     public final void setTelefono(String telefono) {
         this.telefono = (telefono == null) ? "" : telefono.trim();
     }
 
-    /**
-     * Updates the customer type.
-     * @param tipo non-null type
-     */
     public final void setTipo(TipoCliente tipo) {
         if (tipo == null) {
             throw new IllegalArgumentException("Customer type cannot be null.");
@@ -100,11 +70,14 @@ public class Cliente {
     }
 
     /**
-     * Serializes the customer into a simple CSV line for persistence.
+     * Serializes the customer into a CSV line.
+     * Format: id,nombre,telefono,tipo
      *
-     * <p>Format: id,nombre,telefono,tipo</p>
-     *
-     * @return csv line
+     * <p>Escapes:
+     * <ul>
+     *   <li>Backslash "\" is escaped as "\\\\"</li>
+     *   <li>Comma "," is escaped as "\\,"</li>
+     * </ul>
      */
     public String toCsv() {
         return String.join(",",
@@ -115,7 +88,9 @@ public class Cliente {
     }
 
     /**
-     * Creates a customer from a CSV line produced by {@link #toCsv()}.
+     * Parses a CSV line produced by {@link #toCsv()}.
+     *
+     * <p>This method supports escaped commas (\,) and escaped backslashes (\\).</p>
      *
      * @param line csv line
      * @return parsed Cliente
@@ -124,25 +99,66 @@ public class Cliente {
         if (line == null || line.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid CSV line.");
         }
-        String[] parts = line.split(",", -1);
-        if (parts.length < 4) {
-            throw new IllegalArgumentException("Incomplete customer CSV: " + line);
-        }
 
-        return new Cliente(
-                unescape(parts[0]),
-                unescape(parts[1]),
-                unescape(parts[2]),
-                TipoCliente.valueOf(parts[3].trim())
-        );
+        try {
+            String[] parts = splitCsvEscaped(line);
+            if (parts.length < 4) {
+                throw new IllegalArgumentException("Incomplete customer CSV: " + line);
+            }
+
+            return new Cliente(
+                    unescape(parts[0]),
+                    unescape(parts[1]),
+                    unescape(parts[2]),
+                    TipoCliente.valueOf(parts[3].trim())
+            );
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Invalid customer CSV format.", ex);
+        }
     }
 
+    /**
+     * Escapes backslashes and commas so the CSV stays one line.
+     */
     private static String escape(String s) {
         return s == null ? "" : s.replace("\\", "\\\\").replace(",", "\\,");
     }
 
+    /**
+     * Unescapes commas and backslashes (reverse of {@link #escapeescape(String)}).
+     */
     private static String unescape(String s) {
         return s == null ? "" : s.replace("\\,", ",").replace("\\\\", "\\").trim();
+    }
+
+    /**
+     * Splits a CSV line where commas can be escaped with "\,".
+     * Keeps the backslashes so {@link #unescape(String)} can process them later.
+     */
+    private static String[] splitCsvEscaped(String line) {
+        List<String> out = new ArrayList<>();
+        StringBuilder cur = new StringBuilder();
+        boolean escaping = false;
+
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+
+            if (escaping) {
+                cur.append(c);
+                escaping = false;
+            } else if (c == '\\') {
+                cur.append(c);
+                escaping = true;
+            } else if (c == ',') {
+                out.add(cur.toString());
+                cur.setLength(0);
+            } else {
+                cur.append(c);
+            }
+        }
+
+        out.add(cur.toString());
+        return out.toArray(new String[0]);
     }
 
     @Override

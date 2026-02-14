@@ -1,45 +1,50 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/UnitTests/JUnit4TestClass.java to edit this template
- */
 package testModel;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import Model.Bebida;
+import Model.Producto;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
-/**
- *
- * @author Valverde
- */
 public class BebidaTest {
-    
-    public BebidaTest() {
-    }
-    
-    @BeforeClass
-    public static void setUpClass() {
-    }
-    
-    @AfterClass
-    public static void tearDownClass() {
-    }
-    
-    @Before
-    public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
+
+    @Test
+    public void heredaDeProducto_yConservaDatos() {
+        Bebida b = new Bebida("B001", "Coca Cola", "Bebida", 1500.0, 20);
+
+        assertTrue(b instanceof Producto);
+
+        assertEquals("B001", b.getCodigo());
+        assertEquals("Coca Cola", b.getNombre());
+        assertEquals("Bebida", b.getCategoria());
+        assertEquals(1500.0, b.getPrecio(), 0.0001);
+        assertEquals(20, b.getStock());
     }
 
     @Test
-    public void testSomeMethod() {
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void validaciones_vienenDeProducto() {
+        try {
+            new Bebida("", "X", "Bebida", 1000.0, 1);
+            fail("Debe lanzar IllegalArgumentException por código vacío.");
+        } catch (IllegalArgumentException ex) {
+            /* ok */ }
+
+        try {
+            new Bebida("B1", "X", "", 1000.0, 1);
+            fail("Debe lanzar IllegalArgumentException por categoría vacía.");
+        } catch (IllegalArgumentException ex) {
+            /* ok */ }
+
+        try {
+            new Bebida("B1", "X", "Bebida", -1.0, 1);
+            fail("Debe lanzar IllegalArgumentException por precio negativo.");
+        } catch (IllegalArgumentException ex) {
+            /* ok */ }
+
+        try {
+            new Bebida("B1", "X", "Bebida", 1.0, -1);
+            fail("Debe lanzar IllegalArgumentException por stock negativo.");
+        } catch (IllegalArgumentException ex) {
+            /* ok */ }
     }
-    
 }

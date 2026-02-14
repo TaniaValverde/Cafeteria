@@ -1,306 +1,149 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/UnitTests/JUnit4TestClass.java to edit this template
- */
 package testModel;
 
 import Model.Producto;
 import Model.Venta;
+import org.junit.Test;
+
 import java.time.LocalDateTime;
 import java.util.List;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
 import static org.junit.Assert.*;
 
-/**
- *
- * @author Valverde
- */
 public class VentaTest {
-    
-    public VentaTest() {
-    }
-    
-    @BeforeClass
-    public static void setUpClass() {
-    }
-    
-    @AfterClass
-    public static void tearDownClass() {
-    }
-    
-    @Before
-    public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
+
+    @Test
+    public void constructor_defaultTaxRate_yGetters() {
+        LocalDateTime now = LocalDateTime.now();
+        Venta v = new Venta("V1", now, 1);
+
+        assertEquals("V1", v.getId());
+        assertEquals(now, v.getFechaHora());
+        assertEquals(1, v.getMesaNumero());
+        assertEquals(Venta.DEFAULT_TAX_RATE, v.getTaxRate(), 0.0000001);
+        assertTrue(v.getLineas().isEmpty());
     }
 
-    /**
-     * Test of getId method, of class Venta.
-     */
     @Test
-    public void testGetId() {
-        System.out.println("getId");
-        Venta instance = null;
-        String expResult = "";
-        String result = instance.getId();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void validaciones_constructor_y_setters() {
+        LocalDateTime now = LocalDateTime.now();
+
+        assertThrowsIAE(() -> new Venta("", now, 1));
+        assertThrowsIAE(() -> new Venta("V1", null, 1));
+
+        // mesa inválida (solo 1..5 o 0 para llevar)
+        assertThrowsIAE(() -> new Venta("V1", now, -1));
+        assertThrowsIAE(() -> new Venta("V1", now, 6));
+
+        // tax negativo
+        assertThrowsIAE(() -> new Venta("V1", now, 1, -0.01));
     }
 
-    /**
-     * Test of getFechaHora method, of class Venta.
-     */
     @Test
-    public void testGetFechaHora() {
-        System.out.println("getFechaHora");
-        Venta instance = null;
-        LocalDateTime expResult = null;
-        LocalDateTime result = instance.getFechaHora();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void paraLlevar_funciona() {
+        Venta v = new Venta("V1", LocalDateTime.now(), Venta.PARA_LLEVAR);
+        assertTrue(v.esParaLlevar());
     }
 
-    /**
-     * Test of getMesaNumero method, of class Venta.
-     */
     @Test
-    public void testGetMesaNumero() {
-        System.out.println("getMesaNumero");
-        Venta instance = null;
-        int expResult = 0;
-        int result = instance.getMesaNumero();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void agregarLinea_calculaSubtotalImpuestoTotal() {
+        Venta v = new Venta("V1", LocalDateTime.now(), 1, 0.10); // 10%
+
+        Producto p1 = new Producto("P1", "Prod1", "Cat", 1000.0, 10);
+        Producto p2 = new Producto("P2", "Prod2", "Cat", 500.0, 10);
+
+        v.agregarLinea(p1, 2); // 2000
+        v.agregarLinea(p2, 3); // 1500
+
+        assertEquals(3500.0, v.getSubtotal(), 0.0001);
+        assertEquals(350.0, v.getImpuesto(), 0.0001);
+        assertEquals(3850.0, v.getTotal(), 0.0001);
+
+        List<Venta.LineaVenta> lineas = v.getLineas();
+        assertEquals(2, lineas.size());
+        assertEquals(2000.0, lineas.get(0).getSubtotal(), 0.0001);
+        assertEquals(1500.0, lineas.get(1).getSubtotal(), 0.0001);
     }
 
-    /**
-     * Test of getTaxRate method, of class Venta.
-     */
     @Test
-    public void testGetTaxRate() {
-        System.out.println("getTaxRate");
-        Venta instance = null;
-        double expResult = 0.0;
-        double result = instance.getTaxRate();
-        assertEquals(expResult, result, 0);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void agregarLinea_validaciones() {
+        Venta v = new Venta("V1", LocalDateTime.now(), 1);
+
+        try {
+            v.agregarLinea(null, 1);
+            fail("Debe lanzar IllegalArgumentException por producto null.");
+        } catch (IllegalArgumentException ex) { /* ok */ }
+
+        try {
+            v.agregarLinea(new Producto("P1", "N", "C", 1.0, 1), 0);
+            fail("Debe lanzar IllegalArgumentException por cantidad <= 0.");
+        } catch (IllegalArgumentException ex) { /* ok */ }
     }
 
-    /**
-     * Test of getLineas method, of class Venta.
-     */
     @Test
-    public void testGetLineas() {
-        System.out.println("getLineas");
-        Venta instance = null;
-        List<Venta.LineaVenta> expResult = null;
-        List<Venta.LineaVenta> result = instance.getLineas();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void getLineas_esInmodificable() {
+        Venta v = new Venta("V1", LocalDateTime.now(), 1);
+        v.agregarLinea(new Producto("P1", "N", "C", 100.0, 1), 1);
+
+        List<Venta.LineaVenta> lineas = v.getLineas();
+        try {
+            lineas.add(new Venta.LineaVenta(new Producto("P2", "N2", "C", 50.0, 1), 1, 50.0));
+            fail("Debe lanzar UnsupportedOperationException (lista inmodificable).");
+        } catch (UnsupportedOperationException ex) { /* ok */ }
     }
 
-    /**
-     * Test of setId method, of class Venta.
-     */
     @Test
-    public void testSetId() {
-        System.out.println("setId");
-        String id = "";
-        Venta instance = null;
-        instance.setId(id);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void toCsv_fromCsv_roundtrip() {
+        LocalDateTime dt = LocalDateTime.of(2026, 2, 8, 10, 30);
+        Venta v = new Venta("V1", dt, 2, 0.13);
+
+        v.agregarLinea(new Producto("P1", "N1", "C", 1000.0, 10), 2);
+        v.agregarLinea(new Producto("P2", "N2", "C", 500.0, 10), 1);
+
+        String csv = v.toCsv();
+        Venta parsed = Venta.fromCsv(csv);
+
+        assertEquals(v.getId(), parsed.getId());
+        assertEquals(v.getFechaHora(), parsed.getFechaHora());
+        assertEquals(v.getMesaNumero(), parsed.getMesaNumero());
+        assertEquals(v.getTaxRate(), parsed.getTaxRate(), 0.0000001);
+
+        assertEquals(v.getSubtotal(), parsed.getSubtotal(), 0.0001);
+        assertEquals(v.getImpuesto(), parsed.getImpuesto(), 0.0001);
+        assertEquals(v.getTotal(), parsed.getTotal(), 0.0001);
+        assertEquals(v.getLineas().size(), parsed.getLineas().size());
     }
 
-    /**
-     * Test of setFechaHora method, of class Venta.
-     */
     @Test
-    public void testSetFechaHora() {
-        System.out.println("setFechaHora");
-        LocalDateTime fechaHora = null;
-        Venta instance = null;
-        instance.setFechaHora(fechaHora);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void fromCsv_invalido_lanza() {
+        assertThrowsIAE(() -> Venta.fromCsv(null));
+        assertThrowsIAE(() -> Venta.fromCsv(""));
+        assertThrowsIAE(() -> Venta.fromCsv("a,b,c")); // incompleto
     }
 
-    /**
-     * Test of setMesaNumero method, of class Venta.
-     */
     @Test
-    public void testSetMesaNumero() {
-        System.out.println("setMesaNumero");
-        int mesaNumero = 0;
-        Venta instance = null;
-        instance.setMesaNumero(mesaNumero);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void LineaVenta_validaciones() {
+        try {
+            new Venta.LineaVenta(null, 1, 10.0);
+            fail("Debe lanzar IllegalArgumentException por producto null.");
+        } catch (IllegalArgumentException ex) { /* ok */ }
+
+        try {
+            new Venta.LineaVenta(new Producto("P1", "N", "C", 1.0, 1), 0, 10.0);
+            fail("Debe lanzar IllegalArgumentException por cantidad <= 0.");
+        } catch (IllegalArgumentException ex) { /* ok */ }
+
+        try {
+            new Venta.LineaVenta(new Producto("P1", "N", "C", 1.0, 1), 1, -1.0);
+            fail("Debe lanzar IllegalArgumentException por precioUnitario negativo.");
+        } catch (IllegalArgumentException ex) { /* ok */ }
     }
 
-    /**
-     * Test of setTaxRate method, of class Venta.
-     */
-    @Test
-    public void testSetTaxRate() {
-        System.out.println("setTaxRate");
-        double taxRate = 0.0;
-        Venta instance = null;
-        instance.setTaxRate(taxRate);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    private static void assertThrowsIAE(Runnable r) {
+        try {
+            r.run();
+            fail("Debe lanzar IllegalArgumentException.");
+        } catch (IllegalArgumentException ex) {
+            // ok
+        }
     }
-
-    /**
-     * Test of agregarLinea method, of class Venta.
-     */
-    @Test
-    public void testAgregarLinea() {
-        System.out.println("agregarLinea");
-        Producto producto = null;
-        int cantidad = 0;
-        Venta instance = null;
-        instance.agregarLinea(producto, cantidad);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of getSubtotal method, of class Venta.
-     */
-    @Test
-    public void testGetSubtotal() {
-        System.out.println("getSubtotal");
-        Venta instance = null;
-        double expResult = 0.0;
-        double result = instance.getSubtotal();
-        assertEquals(expResult, result, 0);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of getImpuesto method, of class Venta.
-     */
-    @Test
-    public void testGetImpuesto() {
-        System.out.println("getImpuesto");
-        Venta instance = null;
-        double expResult = 0.0;
-        double result = instance.getImpuesto();
-        assertEquals(expResult, result, 0);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of getTotal method, of class Venta.
-     */
-    @Test
-    public void testGetTotal() {
-        System.out.println("getTotal");
-        Venta instance = null;
-        double expResult = 0.0;
-        double result = instance.getTotal();
-        assertEquals(expResult, result, 0);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of esParaLlevar method, of class Venta.
-     */
-    @Test
-    public void testEsParaLlevar() {
-        System.out.println("esParaLlevar");
-        Venta instance = null;
-        boolean expResult = false;
-        boolean result = instance.esParaLlevar();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of toCsv method, of class Venta.
-     */
-    @Test
-    public void testToCsv() {
-        System.out.println("toCsv");
-        Venta instance = null;
-        String expResult = "";
-        String result = instance.toCsv();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of fromCsv method, of class Venta.
-     */
-    @Test
-    public void testFromCsv() {
-        System.out.println("fromCsv");
-        String line = "";
-        Venta expResult = null;
-        Venta result = Venta.fromCsv(line);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of toString method, of class Venta.
-     */
-    @Test
-    public void testToString() {
-        System.out.println("toString");
-        Venta instance = null;
-        String expResult = "";
-        String result = instance.toString();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of equals method, of class Venta.
-     */
-    @Test
-    public void testEquals() {
-        System.out.println("equals");
-        Object o = null;
-        Venta instance = null;
-        boolean expResult = false;
-        boolean result = instance.equals(o);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of hashCode method, of class Venta.
-     */
-    @Test
-    public void testHashCode() {
-        System.out.println("hashCode");
-        Venta instance = null;
-        int expResult = 0;
-        int result = instance.hashCode();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-    
 }

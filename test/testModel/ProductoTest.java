@@ -1,231 +1,109 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/UnitTests/JUnit4TestClass.java to edit this template
- */
 package testModel;
 
 import Model.Producto;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
-/**
- *
- * @author Valverde
- */
 public class ProductoTest {
-    
-    public ProductoTest() {
-    }
-    
-    @BeforeClass
-    public static void setUpClass() {
-    }
-    
-    @AfterClass
-    public static void tearDownClass() {
-    }
-    
-    @Before
-    public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
+
+    @Test
+    public void constructor_yGetters_funcionan_yTrim() {
+        Producto p = new Producto("  P001  ", "Cafe", "  Bebida  ", 1200.0, 10);
+
+        assertEquals("P001", p.getCodigo());
+        assertEquals("Cafe", p.getNombre());          // ojo: nombre no se trim/valida en tu clase actual
+        assertEquals("Bebida", p.getCategoria());
+        assertEquals(1200.0, p.getPrecio(), 0.0001);
+        assertEquals(10, p.getStock());
     }
 
-    /**
-     * Test of getCodigo method, of class Producto.
-     */
     @Test
-    public void testGetCodigo() {
-        System.out.println("getCodigo");
-        Producto instance = null;
-        String expResult = "";
-        String result = instance.getCodigo();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void setCodigo_invalido_lanza() {
+        Producto p = new Producto("P1", "N", "C", 1.0, 1);
+
+        assertThrowsIAE(() -> p.setCodigo(null));
+        assertThrowsIAE(() -> p.setCodigo(""));
+        assertThrowsIAE(() -> p.setCodigo("   "));
     }
 
-    /**
-     * Test of getCategoria method, of class Producto.
-     */
     @Test
-    public void testGetCategoria() {
-        System.out.println("getCategoria");
-        Producto instance = null;
-        String expResult = "";
-        String result = instance.getCategoria();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void setCategoria_invalida_lanza() {
+        Producto p = new Producto("P1", "N", "C", 1.0, 1);
+
+        assertThrowsIAE(() -> p.setCategoria(null));
+        assertThrowsIAE(() -> p.setCategoria(""));
+        assertThrowsIAE(() -> p.setCategoria("   "));
     }
 
-    /**
-     * Test of getPrecio method, of class Producto.
-     */
     @Test
-    public void testGetPrecio() {
-        System.out.println("getPrecio");
-        Producto instance = null;
-        double expResult = 0.0;
-        double result = instance.getPrecio();
-        assertEquals(expResult, result, 0);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void setPrecio_negativo_lanza() {
+        Producto p = new Producto("P1", "N", "C", 1.0, 1);
+        assertThrowsIAE(() -> p.setPrecio(-0.01));
     }
 
-    /**
-     * Test of getStock method, of class Producto.
-     */
     @Test
-    public void testGetStock() {
-        System.out.println("getStock");
-        Producto instance = null;
-        int expResult = 0;
-        int result = instance.getStock();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void setStock_negativo_lanza() {
+        Producto p = new Producto("P1", "N", "C", 1.0, 1);
+        assertThrowsIAE(() -> p.setStock(-1));
     }
 
-    /**
-     * Test of getNombre method, of class Producto.
-     */
     @Test
-    public void testGetNombre() {
-        System.out.println("getNombre");
-        Producto instance = null;
-        String expResult = "";
-        String result = instance.getNombre();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void descontarStock_casos() {
+        Producto p = new Producto("P1", "N", "C", 1.0, 10);
+
+        assertThrowsIAE(() -> p.descontarStock(0));
+        assertThrowsIAE(() -> p.descontarStock(-1));
+
+        try {
+            p.descontarStock(11);
+            fail("Debe lanzar IllegalStateException por stock insuficiente.");
+        } catch (IllegalStateException ex) {
+            // ok
+        }
+
+        p.descontarStock(3);
+        assertEquals(7, p.getStock());
     }
 
-    /**
-     * Test of setCodigo method, of class Producto.
-     */
     @Test
-    public void testSetCodigo() {
-        System.out.println("setCodigo");
-        String codigo = "";
-        Producto instance = null;
-        instance.setCodigo(codigo);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void aumentarStock_casos() {
+        Producto p = new Producto("P1", "N", "C", 1.0, 10);
+
+        assertThrowsIAE(() -> p.aumentarStock(0));
+        assertThrowsIAE(() -> p.aumentarStock(-2));
+
+        p.aumentarStock(5);
+        assertEquals(15, p.getStock());
     }
 
-    /**
-     * Test of setCategoria method, of class Producto.
-     */
     @Test
-    public void testSetCategoria() {
-        System.out.println("setCategoria");
-        String categoria = "";
-        Producto instance = null;
-        instance.setCategoria(categoria);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void equals_y_hashCode_porCodigo() {
+        Producto a = new Producto("P001", "A", "C", 1.0, 1);
+        Producto b = new Producto("P001", "B", "D", 99.0, 999);
+
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
     }
 
-    /**
-     * Test of setPrecio method, of class Producto.
-     */
-    @Test
-    public void testSetPrecio() {
-        System.out.println("setPrecio");
-        double precio = 0.0;
-        Producto instance = null;
-        instance.setPrecio(precio);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    private static void assertThrowsIAE(Runnable r) {
+        try {
+            r.run();
+            fail("Debe lanzar IllegalArgumentException.");
+        } catch (IllegalArgumentException ex) {
+            // ok
+        }
     }
+    @Test
+public void setNombre_invalido_lanza() {
+    Producto p = new Producto("P1", "N", "C", 1.0, 1);
 
-    /**
-     * Test of setStock method, of class Producto.
-     */
-    @Test
-    public void testSetStock() {
-        System.out.println("setStock");
-        int stock = 0;
-        Producto instance = null;
-        instance.setStock(stock);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
+    try { p.setNombre(null); fail(); } catch (IllegalArgumentException ex) {}
+    try { p.setNombre(""); fail(); } catch (IllegalArgumentException ex) {}
+    try { p.setNombre("   "); fail(); } catch (IllegalArgumentException ex) {}
 
-    /**
-     * Test of descontarStock method, of class Producto.
-     */
-    @Test
-    public void testDescontarStock() {
-        System.out.println("descontarStock");
-        int cantidad = 0;
-        Producto instance = null;
-        instance.descontarStock(cantidad);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
+    p.setNombre("  Te  ");
+    assertEquals("Te", p.getNombre());
+}
 
-    /**
-     * Test of aumentarStock method, of class Producto.
-     */
-    @Test
-    public void testAumentarStock() {
-        System.out.println("aumentarStock");
-        int cantidad = 0;
-        Producto instance = null;
-        instance.aumentarStock(cantidad);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of toString method, of class Producto.
-     */
-    @Test
-    public void testToString() {
-        System.out.println("toString");
-        Producto instance = null;
-        String expResult = "";
-        String result = instance.toString();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of equals method, of class Producto.
-     */
-    @Test
-    public void testEquals() {
-        System.out.println("equals");
-        Object o = null;
-        Producto instance = null;
-        boolean expResult = false;
-        boolean result = instance.equals(o);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of hashCode method, of class Producto.
-     */
-    @Test
-    public void testHashCode() {
-        System.out.println("hashCode");
-        Producto instance = null;
-        int expResult = 0;
-        int result = instance.hashCode();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-    
 }

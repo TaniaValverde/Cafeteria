@@ -10,51 +10,43 @@ import java.util.Objects;
 public class Producto {
 
     private String codigo;
+    private String nombre;
     private String categoria;
     private double precio;
     private int stock;
-    private final String nombre;
 
     /**
      * Creates a new product.
      *
      * @param codigo unique product code (non-empty)
-     * @param nombre
+     * @param nombre product name (non-empty)
      * @param categoria product category (non-empty)
      * @param precio product price (>= 0)
      * @param stock available units (>= 0)
      * @throws IllegalArgumentException if any argument is invalid
      */
-    public Producto(String codigo,String nombre, String categoria, double precio, int stock) {
-        this.nombre=nombre;
+    public Producto(String codigo, String nombre, String categoria, double precio, int stock) {
         setCodigo(codigo);
+        setNombre(nombre);
         setCategoria(categoria);
         setPrecio(precio);
         setStock(stock);
     }
 
     /** @return unique product code */
-    public String getCodigo() {
-        return codigo;
-    }
+    public String getCodigo() { return codigo; }
+
+    /** @return product name */
+    public String getNombre() { return nombre; }
 
     /** @return product category */
-    public String getCategoria() {
-        return categoria;
-    }
+    public String getCategoria() { return categoria; }
 
     /** @return product price */
-    public double getPrecio() {
-        return precio;
-    }
+    public double getPrecio() { return precio; }
 
     /** @return available stock */
-    public int getStock() {
-        return stock;
-    }
-    public String getNombre() {
-        return nombre;
-    }
+    public int getStock() { return stock; }
 
     /**
      * Updates the product code.
@@ -65,6 +57,17 @@ public class Producto {
             throw new IllegalArgumentException("Product code cannot be empty.");
         }
         this.codigo = codigo.trim();
+    }
+
+    /**
+     * Updates the product name.
+     * @param nombre new name (non-empty)
+     */
+    public final void setNombre(String nombre) {
+        if (nombre == null || nombre.trim().isEmpty()) {
+            throw new IllegalArgumentException("Product name cannot be empty.");
+        }
+        this.nombre = nombre.trim();
     }
 
     /**
@@ -132,7 +135,7 @@ public class Producto {
 
     @Override
     public String toString() {
-        return "Producto{codigo='" + codigo + "', categoria='" + categoria
+        return "Producto{codigo='" + codigo + "', nombre='" + nombre + "', categoria='" + categoria
                 + "', precio=" + precio + ", stock=" + stock + "}";
     }
 
