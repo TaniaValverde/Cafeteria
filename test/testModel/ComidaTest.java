@@ -1,81 +1,75 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/UnitTests/JUnit4TestClass.java to edit this template
- */
 package testModel;
 
 import Model.Comida;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
- *
- * @author Valverde
+ * Pruebas unitarias para la clase Comida
+ * Nivel primer año
  */
 public class ComidaTest {
-    
-    public ComidaTest() {
-    }
-    
-    @BeforeClass
-    public static void setUpClass() {
-    }
-    
-    @AfterClass
-    public static void tearDownClass() {
-    }
-    
+
+    private Comida comida;
+
     @Before
     public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
+        // Se crea un objeto Comida válido antes de cada test
+        comida = new Comida("C01", "Hamburguesa", "Comida", 2500, 10, 500);
     }
 
     /**
-     * Test of getCalorias method, of class Comida.
+     * Verifica que las calorías se obtengan correctamente
      */
     @Test
     public void testGetCalorias() {
-        System.out.println("getCalorias");
-        Comida instance = null;
-        int expResult = 0;
-        int result = instance.getCalorias();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        assertEquals(500, comida.getCalorias());
     }
 
     /**
-     * Test of setCalorias method, of class Comida.
+     * Verifica que se puedan cambiar las calorías
      */
     @Test
     public void testSetCalorias() {
-        System.out.println("setCalorias");
-        int calorias = 0;
-        Comida instance = null;
-        instance.setCalorias(calorias);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        try {
+            comida.setCalorias(600);
+            assertEquals(600, comida.getCalorias());
+        } catch (Exception e) {
+            fail("No debería lanzar excepción al cambiar calorías");
+        }
     }
 
     /**
-     * Test of toString method, of class Comida.
+     * Usuario pone calorías en cero
+     */
+    @Test
+    public void testCaloriasCero() {
+        comida.setCalorias(0);
+        assertEquals(0, comida.getCalorias());
+    }
+
+    /**
+     * Usuario pone calorías negativas
+     * El sistema no debe caerse
+     */
+    @Test
+    public void testCaloriasNegativas() {
+        try {
+            comida.setCalorias(-100);
+            assertEquals(-100, comida.getCalorias());
+        } catch (Exception e) {
+            fail("No debería fallar con calorías negativas");
+        }
+    }
+
+    /**
+     * El método toString debe devolver texto válido
      */
     @Test
     public void testToString() {
-        System.out.println("toString");
-        Comida instance = null;
-        String expResult = "";
-        String result = instance.toString();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        String texto = comida.toString();
+        assertNotNull(texto);
+        assertTrue(texto.length() > 0);
     }
-    
 }
