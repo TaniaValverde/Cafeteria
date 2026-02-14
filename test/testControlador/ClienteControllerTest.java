@@ -1,134 +1,152 @@
-
 package testControlador;
 
 import Controlador.ClienteController;
 import Model.Cliente;
-import java.util.List;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.File;
+import java.util.List;
+
 import static org.junit.Assert.*;
 
-/**
- *
- * @author Usuario
- */
 public class ClienteControllerTest {
-    
-    public ClienteControllerTest() {
-    }
-    
-    @BeforeClass
-    public static void setUpClass() {
-    }
-    
-    @AfterClass
-    public static void tearDownClass() {
-    }
-    
-    @Before
-    public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
+
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
+
+    private String clientesPath() throws Exception {
+        File f = tmp.newFile("clientes.txt");
+        return f.getAbsolutePath();
     }
 
-    /**
-     * Test of listar method, of class ClienteController.
-     */
     @Test
-    public void testListar() {
-        System.out.println("listar");
-        ClienteController instance = null;
-        List<Cliente> expResult = null;
-        List<Cliente> result = instance.listar();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void iniciarVacio_siArchivoNuevo() throws Exception {
+        ClienteController cc = new ClienteController(clientesPath());
+        assertNotNull(cc.listar());
+        assertEquals(0, cc.listar().size());
     }
 
-    /**
-     * Test of buscarPorId method, of class ClienteController.
-     */
     @Test
-    public void testBuscarPorId() {
-        System.out.println("buscarPorId");
-        String id = "";
-        ClienteController instance = null;
-        Cliente expResult = null;
-        Cliente result = instance.buscarPorId(id);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void registrarYBuscarPorId_funciona() throws Exception {
+        ClienteController cc = new ClienteController(clientesPath());
+
+        Cliente c = new Cliente("C001", "Ana", "8888-8888", Cliente.TipoCliente.FRECUENTE);
+        cc.registrar(c);
+
+        Cliente encontrado = cc.buscarPorId("C001");
+        assertNotNull(encontrado);
+        assertEquals("C001", encontrado.getId());
+        assertEquals("Ana", encontrado.getNombre());
+        assertEquals("8888-8888", encontrado.getTelefono());
+        assertEquals(Cliente.TipoCliente.FRECUENTE, encontrado.getTipo());
     }
 
-    /**
-     * Test of registrar method, of class ClienteController.
-     */
     @Test
-    public void testRegistrar() throws Exception {
-        System.out.println("registrar");
-        Cliente cliente = null;
-        ClienteController instance = null;
-        instance.registrar(cliente);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void noPermiteIdDuplicado() throws Exception {
+        ClienteController cc = new ClienteController(clientesPath());
+        cc.registrar(new Cliente("C001", "Ana", "8888-8888", Cliente.TipoCliente.FRECUENTE));
+
+        try {
+            cc.registrar(new Cliente("C001", "Tania", "9999-9999", Cliente.TipoCliente.VISITANTE));
+            fail("Debe lanzar IllegalArgumentException por id duplicado");
+        } catch (IllegalArgumentException ex) {
+            assertTrue(ex.getMessage().toLowerCase().contains("ya existe"));
+        }
     }
 
-    /**
-     * Test of modificar method, of class ClienteController.
-     */
     @Test
-    public void testModificar() throws Exception {
-        System.out.println("modificar");
-        String id = "";
-        String nuevoNombre = "";
-        String nuevoTelefono = "";
-        Cliente.TipoCliente nuevoTipo = null;
-        ClienteController instance = null;
-        instance.modificar(id, nuevoNombre, nuevoTelefono, nuevoTipo);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void modificar_actualizaCampos() throws Exception {
+        ClienteController cc = new ClienteController(clientesPath());
+        cc.registrar(new Cliente("C001", "Ana", "8888-8888", Cliente.TipoCliente.FRECUENTE));
+
+        cc.modificar("C001", "Ana Maria", "7777-7777", Cliente.TipoCliente.VISITANTE);
+
+        Cliente mod = cc.buscarPorId("C001");
+        assertEquals("Ana Maria", mod.getNombre());
+        assertEquals("7777-7777", mod.getTelefono());
+        assertEquals(Cliente.TipoCliente.VISITANTE, mod.getTipo());
     }
 
-    /**
-     * Test of eliminar method, of class ClienteController.
-     */
     @Test
-    public void testEliminar() throws Exception {
-        System.out.println("eliminar");
-        String id = "";
-        ClienteController instance = null;
-        instance.eliminar(id);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void eliminar_quitaCliente() throws Exception {
+        ClienteController cc = new ClienteController(clientesPath());
+        cc.registrar(new Cliente("C001", "Ana", "8888-8888", Cliente.TipoCliente.FRECUENTE));
+        cc.registrar(new Cliente("C002", "Hugo", "", Cliente.TipoCliente.VISITANTE));
+
+        cc.eliminar("C001");
+
+        List<Cliente> lista = cc.listar();
+        assertEquals(1, lista.size());
+        assertEquals("C002", lista.get(0).getId());
+
+        try {
+            cc.buscarPorId("C001");
+            fail("Debe lanzar IllegalArgumentException al buscar cliente eliminado");
+        } catch (IllegalArgumentException ex) {
+            assertTrue(ex.getMessage().toLowerCase().contains("no existe"));
+        }
     }
 
-    /**
-     * Test of ordenarPorNombre method, of class ClienteController.
-     */
     @Test
-    public void testOrdenarPorNombre() {
-        System.out.println("ordenarPorNombre");
-        ClienteController instance = null;
-        instance.ordenarPorNombre();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void buscarInexistente_lanzaExcepcion() throws Exception {
+        ClienteController cc = new ClienteController(clientesPath());
+        try {
+            cc.buscarPorId("NOEXISTE");
+            fail("Debe lanzar IllegalArgumentException si no existe");
+        } catch (IllegalArgumentException ex) {
+            assertTrue(ex.getMessage().toLowerCase().contains("no existe"));
+        }
     }
 
-    /**
-     * Test of guardarCambios method, of class ClienteController.
-     */
     @Test
-    public void testGuardarCambios() throws Exception {
-        System.out.println("guardarCambios");
-        ClienteController instance = null;
-        instance.guardarCambios();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void validarIdVacio_enBuscar() throws Exception {
+        ClienteController cc = new ClienteController(clientesPath());
+        try {
+            cc.buscarPorId("   ");
+            fail("Debe lanzar IllegalArgumentException si el id está vacío");
+        } catch (IllegalArgumentException ex) {
+            assertTrue(ex.getMessage().toLowerCase().contains("no puede estar vacío"));
+        }
     }
-    
+
+    @Test
+    public void registrarNull_lanzaExcepcion() throws Exception {
+        ClienteController cc = new ClienteController(clientesPath());
+        try {
+            cc.registrar(null);
+            fail("Debe lanzar IllegalArgumentException si cliente es null");
+        } catch (IllegalArgumentException ex) {
+            assertTrue(ex.getMessage().toLowerCase().contains("no puede ser null"));
+        }
+    }
+
+    @Test
+    public void ordenarPorNombre_ordenAscendente() throws Exception {
+        ClienteController cc = new ClienteController(clientesPath());
+        cc.registrar(new Cliente("C1", "Zoe", "", Cliente.TipoCliente.VISITANTE));
+        cc.registrar(new Cliente("C2", "Ana", "", Cliente.TipoCliente.FRECUENTE));
+        cc.registrar(new Cliente("C3", "Luis", "", Cliente.TipoCliente.FRECUENTE));
+
+        cc.ordenarPorNombre();
+        List<Cliente> lista = cc.listar();
+        assertEquals("Ana", lista.get(0).getNombre());
+        assertEquals("Luis", lista.get(1).getNombre());
+        assertEquals("Zoe", lista.get(2).getNombre());
+    }
+
+    @Test
+    public void persistencia_seMantieneEntreInstancias() throws Exception {
+        String path = clientesPath();
+
+        ClienteController cc1 = new ClienteController(path);
+        cc1.registrar(new Cliente("C001", "Ana", "8888-8888", Cliente.TipoCliente.FRECUENTE));
+        cc1.registrar(new Cliente("C002", "Hugo", "", Cliente.TipoCliente.VISITANTE));
+
+        ClienteController cc2 = new ClienteController(path);
+        assertEquals(2, cc2.listar().size());
+        assertNotNull(cc2.buscarPorId("C001"));
+        assertNotNull(cc2.buscarPorId("C002"));
+    }
 }

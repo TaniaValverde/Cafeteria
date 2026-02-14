@@ -1,146 +1,167 @@
-
 package testControlador;
 
 import Controlador.ProductoController;
 import Model.Producto;
-import java.util.List;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.File;
+import java.util.List;
+
 import static org.junit.Assert.*;
 
-/**
- *
- * @author Valverde
- */
 public class ProductoControllerTest {
-    
-    public ProductoControllerTest() {
-    }
-    
-    @BeforeClass
-    public static void setUpClass() {
-    }
-    
-    @AfterClass
-    public static void tearDownClass() {
-    }
-    
-    @Before
-    public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
+
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
+
+    private String productosPath() throws Exception {
+        File f = tmp.newFile("productos.txt");
+        return f.getAbsolutePath();
     }
 
-    /**
-     * Test of listar method, of class ProductoController.
-     */
     @Test
-    public void testListar() {
-        System.out.println("listar");
-        ProductoController instance = null;
-        List<Producto> expResult = null;
-        List<Producto> result = instance.listar();
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void iniciarVacio_siArchivoNuevo() throws Exception {
+        ProductoController pc = new ProductoController(productosPath());
+        assertNotNull(pc.listar());
+        assertEquals(0, pc.listar().size());
     }
 
-    /**
-     * Test of buscarPorCodigo method, of class ProductoController.
-     */
     @Test
-    public void testBuscarPorCodigo() {
-        System.out.println("buscarPorCodigo");
-        String codigo = "";
-        ProductoController instance = null;
-        Producto expResult = null;
-        Producto result = instance.buscarPorCodigo(codigo);
-        assertEquals(expResult, result);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void agregarYBuscarPorCodigo_funciona() throws Exception {
+        ProductoController pc = new ProductoController(productosPath());
+        Producto p = new Producto("P001", "Cafe Negro", "Bebida", 1200.0, 10);
+        pc.agregar(p);
+
+        Producto encontrado = pc.buscarPorCodigo("P001");
+        assertNotNull(encontrado);
+        assertEquals("P001", encontrado.getCodigo());
+        assertEquals("Cafe Negro", encontrado.getNombre());
+        assertEquals("Bebida", encontrado.getCategoria());
+        assertEquals(1200.0, encontrado.getPrecio(), 0.0001);
+        assertEquals(10, encontrado.getStock());
     }
 
-    /**
-     * Test of agregar method, of class ProductoController.
-     */
     @Test
-    public void testAgregar() throws Exception {
-        System.out.println("agregar");
-        Producto producto = null;
-        ProductoController instance = null;
-        instance.agregar(producto);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void noPermiteCodigoDuplicado() throws Exception {
+        ProductoController pc = new ProductoController(productosPath());
+        pc.agregar(new Producto("P001", "Cafe Negro", "Bebida", 1200.0, 10));
+
+        try {
+            pc.agregar(new Producto("P001", "Sandwich", "Comida", 2000.0, 5));
+            fail("Debe lanzar IllegalArgumentException por código duplicado");
+        } catch (IllegalArgumentException ex) {
+            assertTrue(ex.getMessage().toLowerCase().contains("ya existe"));
+        }
     }
 
-    /**
-     * Test of modificar method, of class ProductoController.
-     */
     @Test
-    public void testModificar() throws Exception {
-        System.out.println("modificar");
-        String codigo = "";
-        String nuevaCategoria = "";
-        double nuevoPrecio = 0.0;
-        int nuevoStock = 0;
-        ProductoController instance = null;
-        instance.modificar(codigo, nuevaCategoria, nuevoPrecio, nuevoStock);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void modificar_actualizaCampos() throws Exception {
+        ProductoController pc = new ProductoController(productosPath());
+        pc.agregar(new Producto("P001", "Cafe Negro", "Bebida", 1200.0, 10));
+
+        pc.modificar("P001", "Comida", 2500.0, 3);
+
+        Producto mod = pc.buscarPorCodigo("P001");
+        assertEquals("Comida", mod.getCategoria());
+        assertEquals(2500.0, mod.getPrecio(), 0.0001);
+        assertEquals(3, mod.getStock());
+        assertEquals("Cafe Negro", mod.getNombre());
     }
 
-    /**
-     * Test of eliminar method, of class ProductoController.
-     */
     @Test
-    public void testEliminar() throws Exception {
-        System.out.println("eliminar");
-        String codigo = "";
-        ProductoController instance = null;
-        instance.eliminar(codigo);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void eliminar_quitaProducto() throws Exception {
+        ProductoController pc = new ProductoController(productosPath());
+        pc.agregar(new Producto("P001", "Cafe Negro", "Bebida", 1200.0, 10));
+        pc.agregar(new Producto("P002", "Sandwich", "Comida", 2000.0, 5));
+
+        pc.eliminar("P001");
+
+        List<Producto> lista = pc.listar();
+        assertEquals(1, lista.size());
+        assertEquals("P002", lista.get(0).getCodigo());
+
+        try {
+            pc.buscarPorCodigo("P001");
+            fail("Debe lanzar IllegalArgumentException al buscar producto eliminado");
+        } catch (IllegalArgumentException ex) {
+            assertTrue(ex.getMessage().toLowerCase().contains("no existe"));
+        }
     }
 
-    /**
-     * Test of ordenarPorCodigo method, of class ProductoController.
-     */
     @Test
-    public void testOrdenarPorCodigo() {
-        System.out.println("ordenarPorCodigo");
-        ProductoController instance = null;
-        instance.ordenarPorCodigo();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void buscarInexistente_lanzaExcepcion() throws Exception {
+        ProductoController pc = new ProductoController(productosPath());
+        try {
+            pc.buscarPorCodigo("NOEXISTE");
+            fail("Debe lanzar IllegalArgumentException si no existe");
+        } catch (IllegalArgumentException ex) {
+            assertTrue(ex.getMessage().toLowerCase().contains("no existe"));
+        }
     }
 
-    /**
-     * Test of ordenarPorPrecio method, of class ProductoController.
-     */
     @Test
-    public void testOrdenarPorPrecio() {
-        System.out.println("ordenarPorPrecio");
-        ProductoController instance = null;
-        instance.ordenarPorPrecio();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void validarCodigoVacio_enBuscar() throws Exception {
+        ProductoController pc = new ProductoController(productosPath());
+        try {
+            pc.buscarPorCodigo("   ");
+            fail("Debe lanzar IllegalArgumentException si el código está vacío");
+        } catch (IllegalArgumentException ex) {
+            assertTrue(ex.getMessage().toLowerCase().contains("no puede estar vacío"));
+        }
     }
 
-    /**
-     * Test of guardarCambios method, of class ProductoController.
-     */
     @Test
-    public void testGuardarCambios() throws Exception {
-        System.out.println("guardarCambios");
-        ProductoController instance = null;
-        instance.guardarCambios();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void agregarNull_lanzaExcepcion() throws Exception {
+        ProductoController pc = new ProductoController(productosPath());
+        try {
+            pc.agregar(null);
+            fail("Debe lanzar IllegalArgumentException si producto es null");
+        } catch (IllegalArgumentException ex) {
+            assertTrue(ex.getMessage().toLowerCase().contains("no puede ser null"));
+        }
     }
-    
+
+    @Test
+    public void ordenarPorCodigo_ordenAscendente() throws Exception {
+        ProductoController pc = new ProductoController(productosPath());
+        pc.agregar(new Producto("P010", "X", "Bebida", 100, 1));
+        pc.agregar(new Producto("P002", "Y", "Bebida", 100, 1));
+        pc.agregar(new Producto("P001", "Z", "Bebida", 100, 1));
+
+        pc.ordenarPorCodigo();
+        List<Producto> lista = pc.listar();
+        assertEquals("P001", lista.get(0).getCodigo());
+        assertEquals("P002", lista.get(1).getCodigo());
+        assertEquals("P010", lista.get(2).getCodigo());
+    }
+
+    @Test
+    public void ordenarPorPrecio_ordenAscendente() throws Exception {
+        ProductoController pc = new ProductoController(productosPath());
+        pc.agregar(new Producto("P1", "A", "Bebida", 3000, 1));
+        pc.agregar(new Producto("P2", "B", "Bebida", 1000, 1));
+        pc.agregar(new Producto("P3", "C", "Bebida", 2000, 1));
+
+        pc.ordenarPorPrecio();
+        List<Producto> lista = pc.listar();
+        assertEquals("P2", lista.get(0).getCodigo());
+        assertEquals("P3", lista.get(1).getCodigo());
+        assertEquals("P1", lista.get(2).getCodigo());
+    }
+
+    @Test
+    public void persistencia_seMantieneEntreInstancias() throws Exception {
+        String path = productosPath();
+
+        ProductoController pc1 = new ProductoController(path);
+        pc1.agregar(new Producto("P001", "Cafe Negro", "Bebida", 1200.0, 10));
+        pc1.agregar(new Producto("P002", "Sandwich", "Comida", 2000.0, 5));
+
+        ProductoController pc2 = new ProductoController(path);
+        assertEquals(2, pc2.listar().size());
+        assertNotNull(pc2.buscarPorCodigo("P001"));
+        assertNotNull(pc2.buscarPorCodigo("P002"));
+    }
 }
