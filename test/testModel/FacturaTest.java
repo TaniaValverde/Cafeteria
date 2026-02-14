@@ -7,7 +7,7 @@ import static org.junit.Assert.*;
 
 /**
  * Pruebas unitarias para la clase Factura
- * Nivel primer año
+ * 
  */
 public class FacturaTest {
 

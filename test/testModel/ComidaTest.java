@@ -7,7 +7,7 @@ import static org.junit.Assert.*;
 
 /**
  * Pruebas unitarias para la clase Comida
- * Nivel primer año
+ * 
  */
 public class ComidaTest {
 
