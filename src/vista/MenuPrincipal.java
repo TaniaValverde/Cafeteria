@@ -105,12 +105,16 @@ public class menuPrincipal extends JFrame {
     }
 
     private void abrirClientes() {
-        JOptionPane.showMessageDialog(this, """
-                                            M\u00f3dulo Clientes a\u00fan no conectado en el men\u00fa.
-                                            Si ya tienes la vistaClientes, dime su constructor y lo enlazo.""",
-                "Pendiente",
-                JOptionPane.WARNING_MESSAGE);
+    try {
+        vistaCliente v = new vistaCliente(clienteCtrl);
+        v.setVisible(true);
+    } catch (Exception ex) {
+        JOptionPane.showMessageDialog(this,
+                "No se pudo abrir Clientes:\n" + ex.getMessage(),
+                "Error", JOptionPane.ERROR_MESSAGE);
     }
+}
+
 
     // ✅ Constructor REAL: vistaMesas(PedidoController, ProductoController, VentaController, MesaController)
     private void abrirMesas() {
