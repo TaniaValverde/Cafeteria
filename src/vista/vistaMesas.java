@@ -6,13 +6,14 @@ import Controlador.ProductoController;
 import Controlador.VentaController;
 import Model.Pedido;
 
-import java.awt.*;
-import java.util.concurrent.ThreadLocalRandom;
 import javax.swing.*;
 import javax.swing.border.*;
+import java.awt.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class vistaMesas extends JFrame {
 
+    // ===== Colors / UI =====
     private static final Color PRIMARY = new Color(0xEC5B13);
     private static final Color BG_LIGHT = new Color(0xF8F6F6);
     private static final Color FREE = new Color(0x10B981);
@@ -30,6 +31,12 @@ public class vistaMesas extends JFrame {
     private final VentaController ventaController;
     private final MesaController mesaController;
 
+    // ✅ Grid reference for refresh
+    private JPanel gridMesas;
+
+    // ✅ Cache last states to highlight changes
+    private final boolean[] lastLibre = new boolean[6]; // index 1..5
+
     public vistaMesas(PedidoController pedidoController,
                       ProductoController productoController,
                       VentaController ventaController,
@@ -41,6 +48,11 @@ public class vistaMesas extends JFrame {
         this.mesaController = mesaController;
 
         initUI();
+
+        // Estados iniciales
+        for (int i = 1; i <= 5; i++) {
+            lastLibre[i] = mesaController.estaLibre(i);
+        }
     }
 
     private void initUI() {
@@ -68,11 +80,16 @@ public class vistaMesas extends JFrame {
                 new EmptyBorder(16, 18, 16, 18)
         ));
 
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         left.setOpaque(false);
+
         JButton btnProductos = createTopButton("Gestión de Productos");
-        btnProductos.addActionListener(e -> JOptionPane.showMessageDialog(this, "Abrir Gestión de Productos"));
+        btnProductos.addActionListener(e -> JOptionPane.showMessageDialog(this, "Conecta aquí tu vistaProducto si deseas."));
         left.add(btnProductos);
+
+        JButton btnActualizar = createTopButton("🔄 Actualizar");
+        btnActualizar.addActionListener(e -> refrescarGridMesas(true));
+        left.add(btnActualizar);
 
         JPanel center = new JPanel();
         center.setOpaque(false);
@@ -110,7 +127,7 @@ public class vistaMesas extends JFrame {
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         right.setOpaque(false);
         JButton btnReportes = createTopButton("Reportes");
-        btnReportes.addActionListener(e -> JOptionPane.showMessageDialog(this, "Abrir Reportes"));
+        btnReportes.addActionListener(e -> JOptionPane.showMessageDialog(this, "Abrir Reportes (pendiente)"));
         right.add(btnReportes);
 
         top.add(left, BorderLayout.WEST);
@@ -149,21 +166,38 @@ public class vistaMesas extends JFrame {
         main.add(h2);
         main.add(Box.createVerticalStrut(22));
 
-        JPanel grid = new JPanel(new GridLayout(2, 3, 22, 22));
-        grid.setOpaque(false);
+        gridMesas = new JPanel(new GridLayout(2, 3, 22, 22));
+        gridMesas.setOpaque(false);
 
-        grid.add(createMesaCard(1, true));
-        grid.add(createMesaCard(2, false));
-        grid.add(createMesaCard(3, true));
-        grid.add(createMesaCard(4, false));
-        grid.add(createMesaCard(5, true));
-        grid.add(createParaLlevarCard());
+        for (int i = 1; i <= 5; i++) {
+            gridMesas.add(createMesaCard(i, false));
+        }
+        gridMesas.add(createParaLlevarCard());
 
-        main.add(grid);
+        main.add(gridMesas);
         return main;
     }
 
-    private JButton createMesaCard(int mesa, boolean libre) {
+    private void refrescarGridMesas(boolean conHighlight) {
+        if (gridMesas == null) return;
+
+        gridMesas.removeAll();
+
+        for (int i = 1; i <= 5; i++) {
+            boolean libreActual = mesaController.estaLibre(i);
+            boolean cambio = (libreActual != lastLibre[i]);
+            lastLibre[i] = libreActual;
+
+            gridMesas.add(createMesaCard(i, conHighlight && cambio));
+        }
+
+        gridMesas.add(createParaLlevarCard());
+        gridMesas.revalidate();
+        gridMesas.repaint();
+    }
+
+    private JButton createMesaCard(int mesa, boolean resaltarCambio) {
+        boolean libre = mesaController.estaLibre(mesa);
         Color accent = libre ? FREE : BUSY;
 
         JButton card = new JButton();
@@ -171,7 +205,15 @@ public class vistaMesas extends JFrame {
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         card.setFocusPainted(false);
         card.setOpaque(true);
-        card.setBackground(Color.WHITE);
+
+        if (resaltarCambio) {
+            card.setBackground(new Color(0xE0F2FE)); // resalte suave
+            Timer t = new Timer(600, e -> card.setBackground(Color.WHITE));
+            t.setRepeats(false);
+            t.start();
+        } else {
+            card.setBackground(Color.WHITE);
+        }
 
         card.setBorder(new CompoundBorder(
                 new MatteBorder(0, 0, 8, 0, accent),
@@ -201,7 +243,19 @@ public class vistaMesas extends JFrame {
         card.add(Box.createVerticalStrut(10));
         card.add(s);
 
-        card.addActionListener(e -> abrirVistaPedidoMesa(mesa));
+        // ✅ Bloquear mesa ocupada (sin Mesa.getPedido no podemos reabrir pedido existente)
+        card.addActionListener(e -> {
+            if (!mesaController.estaLibre(mesa)) {
+                JOptionPane.showMessageDialog(this,
+                        "La mesa " + mesa + " está OCUPADA.\n" +
+                                "Finaliza o cancela el pedido actual para liberarla.",
+                        "Mesa ocupada",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            abrirVistaPedidoMesa(mesa);
+        });
+
         return card;
     }
 
@@ -262,32 +316,66 @@ public class vistaMesas extends JFrame {
     private void abrirVistaPedidoMesa(int numMesa) {
         try {
             int codigo = ThreadLocalRandom.current().nextInt(1, 1_000_000_000);
-            Pedido pedido = new Pedido(codigo, Pedido.MESA, numMesa);
+
+            // ✅ IMPORTANTE: crear pedido dentro del controller (soluciona "El pedido no Existe")
+            Pedido pedido = pedidoController.crearPedido(codigo, Pedido.MESA, numMesa);
 
             vistaPedido vp = new vistaPedido(pedido, pedidoController, productoController, ventaController, mesaController);
+
+            // ✅ ocultar mesas (no destruir)
+            this.setVisible(false);
+
+            // ✅ al cerrar pedido, volver a mesas y refrescar
+            vp.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override public void windowClosed(java.awt.event.WindowEvent e) {
+                    vistaMesas.this.setVisible(true);
+                    refrescarGridMesas(true);
+                }
+                @Override public void windowClosing(java.awt.event.WindowEvent e) {
+                    vistaMesas.this.setVisible(true);
+                    refrescarGridMesas(true);
+                }
+            });
+
             vp.setExtendedState(JFrame.MAXIMIZED_BOTH);
             vp.setVisible(true);
 
-            dispose();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Error abriendo pedido de mesa:\n" + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
+            this.setVisible(true);
         }
     }
 
     private void abrirVistaPedidoParaLlevar() {
         try {
             int codigo = ThreadLocalRandom.current().nextInt(1, 1_000_000_000);
-            Pedido pedido = new Pedido(codigo, Pedido.PARA_LLEVAR, null);
+
+            // ✅ crear pedido dentro del controller
+            Pedido pedido = pedidoController.crearPedido(codigo, Pedido.PARA_LLEVAR, null);
 
             vistaPedido vp = new vistaPedido(pedido, pedidoController, productoController, ventaController, mesaController);
+
+            this.setVisible(false);
+
+            vp.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override public void windowClosed(java.awt.event.WindowEvent e) {
+                    vistaMesas.this.setVisible(true);
+                    refrescarGridMesas(true);
+                }
+                @Override public void windowClosing(java.awt.event.WindowEvent e) {
+                    vistaMesas.this.setVisible(true);
+                    refrescarGridMesas(true);
+                }
+            });
+
             vp.setExtendedState(JFrame.MAXIMIZED_BOTH);
             vp.setVisible(true);
 
-            dispose();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Error abriendo pedido para llevar:\n" + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
+            this.setVisible(true);
         }
     }
 }
