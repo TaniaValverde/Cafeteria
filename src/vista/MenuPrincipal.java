@@ -17,7 +17,6 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import vista.vistaInventario;
 
-
 public class menuPrincipal extends JFrame {
 
     // ===== Controllers =====
@@ -42,10 +41,10 @@ public class menuPrincipal extends JFrame {
 
     // ===== Constructor MVC (usar desde App.java) =====
     public menuPrincipal(PedidoController pedidoCtrl,
-                         ProductoController productoCtrl,
-                         ClienteController clienteCtrl,
-                         VentaController ventaCtrl,
-                         MesaController mesaCtrl) {
+            ProductoController productoCtrl,
+            ClienteController clienteCtrl,
+            VentaController ventaCtrl,
+            MesaController mesaCtrl) {
 
         this.pedidoCtrl = pedidoCtrl;
         this.productoCtrl = productoCtrl;
@@ -94,19 +93,21 @@ public class menuPrincipal extends JFrame {
     // ===========================
     // ====== ABRIR VISTAS =======
     // ===========================
-
     private void abrirProductos() {
-        JOptionPane.showMessageDialog(this,
-                "Módulo Productos aún no conectado en el menú.\n" +
-                        "Si ya tienes la vistaProductos, dime su constructor y lo enlazo.",
-                "Pendiente",
-                JOptionPane.WARNING_MESSAGE);
+        try {
+            vistaProducto v = new vistaProducto(productoCtrl);
+            v.setVisible(true);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo abrir Productos:\n" + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void abrirClientes() {
-        JOptionPane.showMessageDialog(this,
-                "Módulo Clientes aún no conectado en el menú.\n" +
-                        "Si ya tienes la vistaClientes, dime su constructor y lo enlazo.",
+        JOptionPane.showMessageDialog(this, """
+                                            M\u00f3dulo Clientes a\u00fan no conectado en el men\u00fa.
+                                            Si ya tienes la vistaClientes, dime su constructor y lo enlazo.""",
                 "Pendiente",
                 JOptionPane.WARNING_MESSAGE);
     }
@@ -148,15 +149,14 @@ public class menuPrincipal extends JFrame {
     }
 
     private void abrirInventario() {
-    vistaInventario vi = new vistaInventario(productoCtrl);
-    vi.setVisible(true);
-}
-
+        vistaInventario vi = new vistaInventario(productoCtrl);
+        vi.setVisible(true);
+    }
 
     private void abrirReportes() {
         JOptionPane.showMessageDialog(this,
-                "Módulo Reportes aún no conectado en el menú.\n" +
-                        "Si ya tienes vistaReportes, dime su constructor y lo enlazo.",
+                "Módulo Reportes aún no conectado en el menú.\n"
+                + "Si ya tienes vistaReportes, dime su constructor y lo enlazo.",
                 "Pendiente",
                 JOptionPane.WARNING_MESSAGE);
     }
@@ -164,7 +164,6 @@ public class menuPrincipal extends JFrame {
     // ===========================
     // ====== UI DEL MENÚ ========
     // ===========================
-
     private JComponent buildHeader() {
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(new Color(255, 255, 255, 220));
@@ -243,11 +242,13 @@ public class menuPrincipal extends JFrame {
 
         right.add(course);
         right.add(Box.createRigidArea(new Dimension(18, 0)));
-        right.add(new JSeparator(SwingConstants.VERTICAL) {{
-            setPreferredSize(new Dimension(1, 28));
-            setMaximumSize(new Dimension(1, 28));
-            setForeground(new Color(0, 0, 0, 30));
-        }});
+        right.add(new JSeparator(SwingConstants.VERTICAL) {
+            {
+                setPreferredSize(new Dimension(1, 28));
+                setMaximumSize(new Dimension(1, 28));
+                setForeground(new Color(0, 0, 0, 30));
+            }
+        });
         right.add(Box.createRigidArea(new Dimension(18, 0)));
         right.add(userPill);
 
@@ -408,17 +409,20 @@ public class menuPrincipal extends JFrame {
                 : new Color(PRIMARY.getRed(), PRIMARY.getGreen(), PRIMARY.getBlue(), 140);
 
         card.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override public void mouseEntered(java.awt.event.MouseEvent e) {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
                 card.setBorder(new CompoundBorder(new LineBorder(hoverBorder, 2, true),
                         new EmptyBorder(17, 17, 17, 17)));
             }
 
-            @Override public void mouseExited(java.awt.event.MouseEvent e) {
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
                 card.setBorder(new CompoundBorder(new LineBorder(normalBorder, 1, true),
                         new EmptyBorder(18, 18, 18, 18)));
             }
 
-            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
                 action.run();
             }
         });
@@ -432,7 +436,9 @@ public class menuPrincipal extends JFrame {
                 "Confirmar salida",
                 JOptionPane.YES_NO_OPTION);
         if (op == JOptionPane.YES_OPTION) {
-            if (reloj != null) reloj.stop();
+            if (reloj != null) {
+                reloj.stop();
+            }
             dispose();
         }
     }

@@ -625,9 +625,10 @@ public class vistaProducto extends JFrame {
         b.setBackground(Color.WHITE);
         b.setForeground(DANGER);
         b.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0xFE, 0xCACA), 1, true),
-                new EmptyBorder(10, 16, 10, 16)
-        ));
+    new LineBorder(new Color(0xFE, 0xCA, 0xCA), 1, true),
+    new EmptyBorder(10, 16, 10, 16)
+));
+
         b.setFocusPainted(false);
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return b;
