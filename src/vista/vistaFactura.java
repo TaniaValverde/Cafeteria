@@ -16,8 +16,7 @@ public class vistaFactura extends JFrame {
     private JButton btnImprimir;
     private JButton btnCerrar;
 
-    private final JTextArea areaFactura;
-
+  
 
     public vistaFactura() {
         setTitle("Factura - Cafetería UCR Sede del Sur");

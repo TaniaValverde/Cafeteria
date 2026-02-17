@@ -6,8 +6,9 @@ import Controlador.PedidoController;
 import Controlador.ProductoController;
 import Controlador.VentaController;
 
+import Model.Pedido;
+
 import java.awt.*;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import javax.swing.*;
@@ -17,12 +18,12 @@ import javax.swing.border.LineBorder;
 
 public class menuPrincipal extends JFrame {
 
-    // ===== Controllers (MVC) =====
-    private PedidoController pedidoCtrl;
-    private ProductoController productoCtrl;
-    private ClienteController clienteCtrl;
-    private VentaController ventaCtrl;
-    private MesaController mesaCtrl;
+    // ===== Controllers =====
+    private final PedidoController pedidoCtrl;
+    private final ProductoController productoCtrl;
+    private final ClienteController clienteCtrl;
+    private final VentaController ventaCtrl;
+    private final MesaController mesaCtrl;
 
     // Paleta inspirada en tu HTML
     private static final Color PRIMARY = new Color(0x3C, 0xE6, 0x19);          // #3ce619
@@ -37,13 +38,7 @@ public class menuPrincipal extends JFrame {
 
     private Timer reloj;
 
-    // ===== Constructor vacío (opcional para pruebas rápidas) =====
-    public menuPrincipal() {
-        initUI();
-        iniciarReloj();
-    }
-
-    // ===== Constructor MVC (el que usa App.java) =====
+    // ===== Constructor MVC (usar desde App.java) =====
     public menuPrincipal(PedidoController pedidoCtrl,
                          ProductoController productoCtrl,
                          ClienteController clienteCtrl,
@@ -99,56 +94,69 @@ public class menuPrincipal extends JFrame {
     // ===========================
 
     private void abrirProductos() {
-        // Si ya tienes una vista de productos, cámbiala aquí:
-        // new vistaProductos(this, productoCtrl).setVisible(true);
         JOptionPane.showMessageDialog(this,
-                "Vista de Productos no conectada aquí.\nSi ya existe, dime el nombre del archivo/clase y el constructor.",
+                "Módulo Productos aún no conectado en el menú.\n" +
+                        "Si ya tienes la vistaProductos, dime su constructor y lo enlazo.",
                 "Pendiente",
                 JOptionPane.WARNING_MESSAGE);
     }
 
     private void abrirClientes() {
-        // Si ya tienes una vista de clientes, cámbiala aquí:
-        // new vistaClientes(this, clienteCtrl).setVisible(true);
         JOptionPane.showMessageDialog(this,
-                "Vista de Clientes no conectada aquí.\nSi ya existe, dime el nombre del archivo/clase y el constructor.",
+                "Módulo Clientes aún no conectado en el menú.\n" +
+                        "Si ya tienes la vistaClientes, dime su constructor y lo enlazo.",
                 "Pendiente",
                 JOptionPane.WARNING_MESSAGE);
     }
 
+    // ✅ Constructor REAL: vistaMesas(PedidoController, ProductoController, VentaController, MesaController)
     private void abrirMesas() {
-        // ✅ Tú ya tienes vistaMesas.java subida
-        // Ajusta solo si tu constructor pide parámetros distintos
-        vistaMesas vm = new vistaMesas(this, mesaCtrl, pedidoCtrl, productoCtrl);
+        vistaMesas vm = new vistaMesas(
+                pedidoCtrl,
+                productoCtrl,
+                ventaCtrl,
+                mesaCtrl
+        );
         vm.setVisible(true);
     }
 
+    // ✅ Constructor REAL: vistaPedido(Pedido, PedidoController, ProductoController, VentaController, MesaController)
     private void abrirParaLlevar() {
-        // Si tu vistaPedido soporta “para llevar” sin mesa, úsala aquí.
-        // Si tu constructor es distinto, ajusta la llamada.
-        vistaPedido vp = new vistaPedido(this, pedidoCtrl, productoCtrl, clienteCtrl);
+
+        int codigo = (int) (System.currentTimeMillis() % 100000); // código rápido único
+        String tipo = "PARA_LLEVAR";
+        Integer numeroMesa = null; // para llevar no tiene mesa
+
+        Pedido pedidoNuevo = new Pedido(codigo, tipo, numeroMesa);
+
+        vistaPedido vp = new vistaPedido(
+                pedidoNuevo,
+                pedidoCtrl,
+                productoCtrl,
+                ventaCtrl,
+                mesaCtrl
+        );
         vp.setVisible(true);
     }
 
+    // ✅ Tu constructor REAL es: public vistaFactura()
     private void abrirFacturacion() {
-        // ✅ Tú ya tienes vistaFactura.java subida
-        // Ajusta solo si tu constructor pide parámetros distintos
-        vistaFactura vf = new vistaFactura(this, ventaCtrl, pedidoCtrl, mesaCtrl);
+        vistaFactura vf = new vistaFactura();
         vf.setVisible(true);
     }
 
     private void abrirInventario() {
-        // Si ya tienes vistaInventario, ponla aquí
         JOptionPane.showMessageDialog(this,
-                "Vista de Inventario no conectada aquí.\nSi ya existe, dime el nombre del archivo/clase y el constructor.",
+                "Módulo Inventario aún no conectado en el menú.\n" +
+                        "Si ya tienes vistaInventario, dime su constructor y lo enlazo.",
                 "Pendiente",
                 JOptionPane.WARNING_MESSAGE);
     }
 
     private void abrirReportes() {
-        // Si ya tienes vistaReportes, ponla aquí
         JOptionPane.showMessageDialog(this,
-                "Vista de Reportes no conectada aquí.\nSi ya existe, dime el nombre del archivo/clase y el constructor.",
+                "Módulo Reportes aún no conectado en el menú.\n" +
+                        "Si ya tienes vistaReportes, dime su constructor y lo enlazo.",
                 "Pendiente",
                 JOptionPane.WARNING_MESSAGE);
     }
@@ -238,7 +246,7 @@ public class menuPrincipal extends JFrame {
         right.add(new JSeparator(SwingConstants.VERTICAL) {{
             setPreferredSize(new Dimension(1, 28));
             setMaximumSize(new Dimension(1, 28));
-            setForeground(new Color(0,0,0,30));
+            setForeground(new Color(0, 0, 0, 30));
         }});
         right.add(Box.createRigidArea(new Dimension(18, 0)));
         right.add(userPill);
@@ -302,7 +310,7 @@ public class menuPrincipal extends JFrame {
         lblFechaHora.setFont(new Font("SansSerif", Font.BOLD, 12));
 
         JLabel cal = new JLabel("📅 ");
-        cal.setForeground(new Color(255,255,255,200));
+        cal.setForeground(new Color(255, 255, 255, 200));
 
         left.add(cal);
         left.add(lblFechaHora);
@@ -312,7 +320,7 @@ public class menuPrincipal extends JFrame {
         right.setLayout(new BoxLayout(right, BoxLayout.X_AXIS));
 
         JLabel u = new JLabel("Usuario: ");
-        u.setForeground(new Color(255,255,255,160));
+        u.setForeground(new Color(255, 255, 255, 160));
         u.setFont(new Font("SansSerif", Font.BOLD, 12));
 
         JLabel uName = new JLabel(lblUsuario.getText());
@@ -321,9 +329,9 @@ public class menuPrincipal extends JFrame {
 
         JPanel statusPill = new JPanel();
         statusPill.setOpaque(true);
-        statusPill.setBackground(new Color(255,255,255,18));
+        statusPill.setBackground(new Color(255, 255, 255, 18));
         statusPill.setBorder(new CompoundBorder(
-                new LineBorder(new Color(255,255,255,30), 1, true),
+                new LineBorder(new Color(255, 255, 255, 30), 1, true),
                 new EmptyBorder(6, 10, 6, 10)
         ));
         statusPill.setLayout(new BoxLayout(statusPill, BoxLayout.X_AXIS));
@@ -371,13 +379,10 @@ public class menuPrincipal extends JFrame {
         iconBox.setAlignmentX(Component.CENTER_ALIGNMENT);
         iconBox.setMaximumSize(new Dimension(88, 88));
         iconBox.setPreferredSize(new Dimension(88, 88));
-        iconBox.setBorder(new LineBorder(new Color(0,0,0,0), 1, true));
+        iconBox.setBorder(new LineBorder(new Color(0, 0, 0, 0), 1, true));
 
-        if (danger) {
-            iconBox.setBackground(new Color(0xFF, 0xF1, 0xF2));
-        } else {
-            iconBox.setBackground(new Color(PRIMARY.getRed(), PRIMARY.getGreen(), PRIMARY.getBlue(), 28));
-        }
+        iconBox.setBackground(danger ? new Color(0xFF, 0xF1, 0xF2)
+                : new Color(PRIMARY.getRed(), PRIMARY.getGreen(), PRIMARY.getBlue(), 28));
         iconBox.add(icon);
 
         JLabel t = new JLabel(title);
@@ -404,19 +409,15 @@ public class menuPrincipal extends JFrame {
 
         card.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseEntered(java.awt.event.MouseEvent e) {
-                card.setBorder(new CompoundBorder(
-                        new LineBorder(hoverBorder, 2, true),
-                        new EmptyBorder(17, 17, 17, 17)
-                ));
-                card.repaint();
+                card.setBorder(new CompoundBorder(new LineBorder(hoverBorder, 2, true),
+                        new EmptyBorder(17, 17, 17, 17)));
             }
+
             @Override public void mouseExited(java.awt.event.MouseEvent e) {
-                card.setBorder(new CompoundBorder(
-                        new LineBorder(normalBorder, 1, true),
-                        new EmptyBorder(18, 18, 18, 18)
-                ));
-                card.repaint();
+                card.setBorder(new CompoundBorder(new LineBorder(normalBorder, 1, true),
+                        new EmptyBorder(18, 18, 18, 18)));
             }
+
             @Override public void mouseClicked(java.awt.event.MouseEvent e) {
                 action.run();
             }
@@ -433,29 +434,6 @@ public class menuPrincipal extends JFrame {
         if (op == JOptionPane.YES_OPTION) {
             if (reloj != null) reloj.stop();
             dispose();
-        }
-    }
-
-    // ===== main solo para pruebas =====
-    public static void main(String[] args) {
-        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
-        catch (Exception ignored) {}
-
-        try {
-            ProductoController productoCtrl = new ProductoController("data/productos.txt");
-            ClienteController clienteCtrl = new ClienteController("data/clientes.txt");
-            PedidoController pedidoCtrl = new PedidoController();
-            VentaController ventaCtrl = new VentaController();
-            MesaController mesaCtrl = new MesaController();
-
-            SwingUtilities.invokeLater(() -> new menuPrincipal(
-                    pedidoCtrl, productoCtrl, clienteCtrl, ventaCtrl, mesaCtrl
-            ).setVisible(true));
-
-        } catch (IOException e) {
-            System.out.println("Error de IO: " + e.getMessage());
-        } catch (Exception e) {
-            System.out.println("Error general: " + e.getMessage());
         }
     }
 }
