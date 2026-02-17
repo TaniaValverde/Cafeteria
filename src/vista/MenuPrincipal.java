@@ -15,6 +15,8 @@ import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import vista.vistaInventario;
+
 
 public class menuPrincipal extends JFrame {
 
@@ -146,12 +148,10 @@ public class menuPrincipal extends JFrame {
     }
 
     private void abrirInventario() {
-        JOptionPane.showMessageDialog(this,
-                "Módulo Inventario aún no conectado en el menú.\n" +
-                        "Si ya tienes vistaInventario, dime su constructor y lo enlazo.",
-                "Pendiente",
-                JOptionPane.WARNING_MESSAGE);
-    }
+    vistaInventario vi = new vistaInventario(productoCtrl);
+    vi.setVisible(true);
+}
+
 
     private void abrirReportes() {
         JOptionPane.showMessageDialog(this,
