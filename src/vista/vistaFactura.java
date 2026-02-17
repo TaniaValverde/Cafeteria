@@ -1,3 +1,4 @@
+
 package vista;
 
 import javax.swing.*;
@@ -10,9 +11,13 @@ import java.awt.event.ActionListener;
  */
 public class vistaFactura extends JFrame {
 
-    private JTextArea areaFactura;
+
+    private JTextArea areaFactura = null;
     private JButton btnImprimir;
     private JButton btnCerrar;
+
+    private final JTextArea areaFactura;
+
 
     public vistaFactura() {
         setTitle("Factura - Cafetería UCR Sede del Sur");

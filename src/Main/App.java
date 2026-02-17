@@ -5,13 +5,20 @@ import Controlador.MesaController;
 import Controlador.PedidoController;
 import Controlador.ProductoController;
 import Controlador.VentaController;
+
 import java.io.IOException;
 import javax.swing.SwingUtilities;
-import vista.MenuPrincipal;
+import javax.swing.UIManager;
+
+import vista.menuPrincipal; // ✅ SOLO este import
 
 public class App {
 
     public static void main(String[] args) {
+
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ignored) {}
 
         try {
             // ===== Controllers =====
@@ -23,9 +30,10 @@ public class App {
 
             // ===== Lanzar Menú Principal =====
             SwingUtilities.invokeLater(() -> {
-                MenuPrincipal menu = new MenuPrincipal(
+                menuPrincipal menu = new menuPrincipal(
                         pedidoCtrl,
                         productoCtrl,
+                        clienteCtrl,
                         ventaCtrl,
                         mesaCtrl
                 );
