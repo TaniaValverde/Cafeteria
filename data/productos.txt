@@ -1,4 +1,5 @@
 1210,Papas,COMIDA,2500.0,10
 1212,casado americano,COMIDA,3500.0,12
 2312,Smirnof,BEBIDA,1300.0,20
-2525,Frescoleche fresa,BEBIDA,700.0,10
+2525,Frescoleche fresa,BEBIDA,700.0,14
+1314,Coca Cola,BEBIDA,1500.0,30

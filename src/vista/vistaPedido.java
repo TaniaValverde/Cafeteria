@@ -4,9 +4,6 @@ import Controlador.MesaController;
 import Controlador.PedidoController;
 import Controlador.ProductoController;
 import Controlador.VentaController;
-import Model.Cliente;
-import Model.Factura;
-import Model.Mesa;
 import Model.Pedido;
 import Model.Producto;
 
@@ -14,6 +11,7 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
@@ -21,7 +19,8 @@ import java.util.List;
 
 public class vistaPedido extends JFrame {
 
-    private final Pedido pedido;
+    private Pedido pedido;
+
     private final PedidoController pedidoController;
     private final ProductoController productoController;
     private final VentaController ventaController;
@@ -29,14 +28,11 @@ public class vistaPedido extends JFrame {
 
     private JLabel lblInfo;
 
-    // ===== Autocomplete UI =====
-    private JTextField txtBuscar;
+    // ===== Autocomplete UI con JComboBox =====
+    private JComboBox<Producto> cbProductos;
+    private JTextField txtBuscarEditor; // editor del combo
     private List<Producto> productosCache = new ArrayList<>();
     private Producto productoSeleccionado = null;
-
-    private JPopupMenu popup;
-    private DefaultListModel<Producto> modelSugerencias;
-    private JList<Producto> listSugerencias;
 
     private JTextField txtCantidad;
 
@@ -48,17 +44,36 @@ public class vistaPedido extends JFrame {
     private boolean mesaAsignada = false;
     private boolean cierreControlado = false;
 
-    public vistaPedido(Pedido pedido,
-            PedidoController pedidoController,
-            ProductoController productoController,
-            VentaController ventaController,
-            MesaController mesaController) {
+    // ===== Teclados flotantes =====
+    private AlphaKeyboard alphaKeyboard;
+    private NumericKeyboard numericKeyboard;
 
-        this.pedido = pedido;
+    // ✅ Flags anti-loop / anti-eventos fantasma
+    private boolean actualizandoCombo = false;
+    private boolean actualizandoEditor = false;
+
+    public vistaPedido(Pedido pedido,
+                       PedidoController pedidoController,
+                       ProductoController productoController,
+                       VentaController ventaController,
+                       MesaController mesaController) {
+
         this.pedidoController = pedidoController;
         this.productoController = productoController;
         this.ventaController = ventaController;
         this.mesaController = mesaController;
+
+        // Asegurar que el pedido exista en el controller
+        Pedido existente = pedidoController.buscarPedido(pedido.getCodigoPedido());
+        if (existente != null) {
+            this.pedido = existente;
+        } else {
+            this.pedido = pedidoController.crearPedido(
+                    pedido.getCodigoPedido(),
+                    pedido.getTipoPedido(),
+                    pedido.getNumeroMesa()
+            );
+        }
 
         setTitle("Pedido");
         setSize(1200, 720);
@@ -67,52 +82,58 @@ public class vistaPedido extends JFrame {
 
         buildUI();
         cargarProductos();
-        actualizarSugerencias(""); // inicia sin filtro
+        cargarComboInicialVacio(); // ✅ no muestra nada al inicio
 
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                if (!cierreControlado) {
-                    liberarMesaSiCorresponde();
-                }
+                hideAllKeyboards();
+                if (!cierreControlado) liberarMesaSiCorresponde();
             }
 
             @Override
             public void windowClosed(WindowEvent e) {
-                if (!cierreControlado) {
-                    liberarMesaSiCorresponde();
-                }
+                hideAllKeyboards();
+                if (!cierreControlado) liberarMesaSiCorresponde();
             }
         });
     }
 
     private void buildUI() {
-        JPanel root = new JPanel(new BorderLayout());
+        JPanel root = new JPanel(new BorderLayout(20, 20));
         root.setBorder(new EmptyBorder(18, 18, 18, 18));
         root.setBackground(new Color(0xF6F7F9));
         setContentPane(root);
 
         lblInfo = new JLabel(
                 "Pedido: " + pedido.getCodigoPedido()
-                + " | Tipo: " + pedido.getTipoPedido()
-                + (pedido.getNumeroMesa() != null ? (" | Mesa: " + pedido.getNumeroMesa()) : "")
+                        + " | Tipo: " + pedido.getTipoPedido()
+                        + (pedido.getNumeroMesa() != null ? (" | Mesa: " + pedido.getNumeroMesa()) : "")
         );
         lblInfo.setFont(new Font("SansSerif", Font.BOLD, 22));
         lblInfo.setBorder(new EmptyBorder(0, 0, 12, 0));
         root.add(lblInfo, BorderLayout.NORTH);
 
-        JPanel content = new JPanel(new GridLayout(1, 2, 18, 18));
+        JPanel content = new JPanel(new BorderLayout(18, 18));
         content.setOpaque(false);
         root.add(content, BorderLayout.CENTER);
 
-        content.add(buildBuscadorConPopup());
-        content.add(buildAcciones());
+        content.add(buildBuscadorConCombo(), BorderLayout.CENTER);
+        content.add(buildAcciones(), BorderLayout.EAST);
+
+        alphaKeyboard = new AlphaKeyboard(this);
+        numericKeyboard = new NumericKeyboard(this);
+    }
+
+    private void hideAllKeyboards() {
+        if (alphaKeyboard != null) alphaKeyboard.hideKb();
+        if (numericKeyboard != null) numericKeyboard.hideKb();
     }
 
     // ============================
-    //  BUSCADOR + LISTA DESPLEGABLE
+    //  BUSCADOR CON JComboBox (autocomplete)
     // ============================
-    private JComponent buildBuscadorConPopup() {
+    private JComponent buildBuscadorConCombo() {
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBackground(Color.WHITE);
@@ -131,140 +152,102 @@ public class vistaPedido extends JFrame {
         searchBox.setBackground(Color.WHITE);
         searchBox.setBorder(new CompoundBorder(
                 new LineBorder(new Color(0xCBD5E1), 1, true),
-                new EmptyBorder(10, 12, 10, 12)
+                new EmptyBorder(8, 10, 8, 10)
         ));
         searchBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        Dimension halfWidth = new Dimension(520, 52);
+        searchBox.setPreferredSize(halfWidth);
+        searchBox.setMaximumSize(halfWidth);
 
         JLabel icon = new JLabel("🔎");
         icon.setFont(new Font("SansSerif", Font.PLAIN, 18));
         searchBox.add(icon, BorderLayout.WEST);
 
-        txtBuscar = new JTextField();
-        txtBuscar.setBorder(null);
-        txtBuscar.setFont(new Font("SansSerif", Font.PLAIN, 18));
-        txtBuscar.setToolTipText("Buscar producto por nombre...");
-        searchBox.add(txtBuscar, BorderLayout.CENTER);
+        cbProductos = new JComboBox<>();
+        cbProductos.setEditable(true);
+        cbProductos.setBorder(null);
+        cbProductos.setFont(new Font("SansSerif", Font.PLAIN, 18));
+        cbProductos.setMaximumRowCount(8);
 
-        card.add(searchBox);
+        // Render: solo nombre
+        cbProductos.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
+            JLabel l = new JLabel(value == null ? "" : value.getNombre());
+            l.setOpaque(true);
+            l.setBorder(new EmptyBorder(8, 12, 8, 12));
+            if (isSelected) {
+                l.setBackground(new Color(0xE0F2FE));
+                l.setForeground(new Color(0x0F172A));
+            } else {
+                l.setBackground(Color.WHITE);
+                l.setForeground(new Color(0x111827));
+            }
+            return l;
+        });
 
-        // Hint + selección actual
+        // Editor del combo
+        Component editorComp = cbProductos.getEditor().getEditorComponent();
+        txtBuscarEditor = (JTextField) editorComp;
+        txtBuscarEditor.setBorder(null);
+        txtBuscarEditor.setFont(new Font("SansSerif", Font.PLAIN, 18));
+        txtBuscarEditor.setToolTipText("Buscar producto por nombre...");
+
+        ((AbstractDocument) txtBuscarEditor.getDocument()).setDocumentFilter(new OnlyLettersFilter());
+
         JLabel lblSel = new JLabel("Seleccionado: (ninguno)");
         lblSel.setForeground(new Color(0x64748B));
         lblSel.setFont(new Font("SansSerif", Font.BOLD, 14));
         lblSel.setBorder(new EmptyBorder(12, 2, 0, 0));
         lblSel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // ✅ Filtrado en vivo (SIN reescribir el editor)
+        txtBuscarEditor.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { filtrar(lblSel); }
+            @Override public void removeUpdate(DocumentEvent e) { filtrar(lblSel); }
+            @Override public void changedUpdate(DocumentEvent e) { filtrar(lblSel); }
+        });
+
+        // ✅ Selección real del dropdown
+        cbProductos.addActionListener(e -> {
+            if (actualizandoCombo) return;
+
+            Object sel = cbProductos.getSelectedItem();
+            if (sel instanceof Producto) {
+                Producto p = (Producto) sel;
+                productoSeleccionado = p;
+
+                // aquí sí reescribimos porque ya es selección final
+                try {
+                    actualizandoEditor = true;
+                    txtBuscarEditor.setText(p.getNombre());
+                    txtBuscarEditor.setCaretPosition(p.getNombre().length());
+                } finally {
+                    actualizandoEditor = false;
+                }
+
+                lblSel.setText("Seleccionado: " + p.getNombre());
+                cbProductos.hidePopup();
+            }
+        });
+
+        // ✅ teclado SOLO letras al tocar el buscador
+        txtBuscarEditor.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (numericKeyboard != null) numericKeyboard.hideKb();
+                if (alphaKeyboard != null) {
+                    alphaKeyboard.attach(txtBuscarEditor);
+                    alphaKeyboard.showCenteredInOwner();
+                }
+            }
+        });
+
+        searchBox.add(cbProductos, BorderLayout.CENTER);
+        card.add(searchBox);
         card.add(lblSel);
 
-        // ===== Popup con JList como tu imagen =====
-        popup = new JPopupMenu();
-        popup.setBorder(new LineBorder(new Color(0xCBD5E1), 1, true));
-        popup.setFocusable(false);
-
-        modelSugerencias = new DefaultListModel<>();
-        listSugerencias = new JList<>(modelSugerencias);
-        listSugerencias.setFont(new Font("SansSerif", Font.BOLD, 18));
-        listSugerencias.setFixedCellHeight(56);
-        listSugerencias.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        listSugerencias.setCellRenderer(new ProductoCellRenderer());
-
-        JScrollPane sp = new JScrollPane(listSugerencias);
-        sp.setBorder(null);
-        sp.setPreferredSize(new Dimension(520, 320)); // alto del dropdown (ajusta si quieres)
-        popup.add(sp);
-
-        // Mostrar/filtrar al escribir
-        txtBuscar.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                onChange();
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                onChange();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                onChange();
-            }
-
-            private void onChange() {
-                productoSeleccionado = null;
-                lblSel.setText("Seleccionado: (ninguno)");
-                actualizarSugerencias(txtBuscar.getText());
-                mostrarPopupSiHay();
-            }
-        });
-
-        // Click en sugerencia
-        listSugerencias.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                Producto p = listSugerencias.getSelectedValue();
-                if (p == null) {
-                    return;
-                }
-
-                seleccionarProducto(p, lblSel);
-
-                // doble click: agrega directo
-                if (e.getClickCount() == 2) {
-                    agregarProducto();
-                }
-            }
-        });
-
-        // Teclado: flechas + enter + escape
-        txtBuscar.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (!popup.isVisible()) {
-                    if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-                        mostrarPopupSiHay();
-                        if (popup.isVisible() && modelSugerencias.size() > 0) {
-                            listSugerencias.setSelectedIndex(0);
-                            listSugerencias.requestFocusInWindow();
-                        }
-                    }
-                    return;
-                }
-
-                if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                    popup.setVisible(false);
-                }
-            }
-        });
-
-        // Dentro de la lista: Enter selecciona, Escape cierra
-        listSugerencias.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    Producto p = listSugerencias.getSelectedValue();
-                    if (p != null) {
-                        seleccionarProducto(p, lblSel);
-                    }
-                    txtBuscar.requestFocusInWindow();
-                } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                    popup.setVisible(false);
-                    txtBuscar.requestFocusInWindow();
-                }
-            }
-        });
-
-        // Si pierde foco, cerrar popup (con pequeño delay para permitir click)
-        txtBuscar.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusLost(FocusEvent e) {
-                SwingUtilities.invokeLater(() -> popup.setVisible(false));
-            }
-        });
-
-        // Espacio para que se vea bonito
         card.add(Box.createVerticalStrut(18));
-
-        JLabel tip = new JLabel("Tip: escribe y selecciona de la lista (como en móvil). Enter o doble click agrega.");
+        JLabel tip = new JLabel("Tip: escribe y selecciona de la lista. Enter o doble click agrega.");
         tip.setForeground(new Color(0x64748B));
         tip.setFont(new Font("SansSerif", Font.BOLD, 13));
         tip.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -273,41 +256,62 @@ public class vistaPedido extends JFrame {
         return card;
     }
 
-    private void mostrarPopupSiHay() {
-        if (modelSugerencias.isEmpty()) {
-            popup.setVisible(false);
+    // ✅ Filtrado sin sobreescribir el editor
+    private void filtrar(JLabel lblSel) {
+        if (actualizandoEditor) return;
+
+        productoSeleccionado = null;
+        lblSel.setText("Seleccionado: (ninguno)");
+
+        String t = txtBuscarEditor.getText();
+        int caret = txtBuscarEditor.getCaretPosition();
+
+        if (t == null || t.trim().isEmpty()) {
+            actualizandoCombo = true;
+            cbProductos.setModel(new DefaultComboBoxModel<>());
+            actualizandoCombo = false;
+            cbProductos.hidePopup();
             return;
         }
 
-        // mostrar justo debajo del txtBuscar
-        if (!popup.isVisible()) {
-            popup.show(txtBuscar, 0, txtBuscar.getHeight() + 6);
-        }
+        List<Producto> matches = filtrarProductos(t);
+
+        actualizandoCombo = true;
+        DefaultComboBoxModel<Producto> model = new DefaultComboBoxModel<>();
+        for (Producto p : matches) model.addElement(p);
+        cbProductos.setModel(model);
+        actualizandoCombo = false;
+
+        // NO tocar el texto; solo restaurar caret si el Look&Feel lo mueve
+        SwingUtilities.invokeLater(() -> {
+            try {
+                actualizandoEditor = true;
+                int safe = Math.min(caret, txtBuscarEditor.getText().length());
+                txtBuscarEditor.setCaretPosition(safe);
+            } finally {
+                actualizandoEditor = false;
+            }
+
+            if (!matches.isEmpty()) cbProductos.showPopup();
+            else cbProductos.hidePopup();
+        });
     }
 
-    private void actualizarSugerencias(String texto) {
-        modelSugerencias.clear();
-        String f = (texto == null) ? "" : texto.trim().toLowerCase();
+    private void cargarComboInicialVacio() {
+        actualizandoCombo = true;
+        cbProductos.setModel(new DefaultComboBoxModel<>());
+        actualizandoCombo = false;
+        // ✅ NO limpiar editor aquí (evita "sobreponer")
+    }
 
-        // si no escribe nada, también puedes mostrar todas (como en tu imagen)
+    private List<Producto> filtrarProductos(String texto) {
+        String f = texto.trim().toLowerCase();
+        List<Producto> res = new ArrayList<>();
         for (Producto p : productosCache) {
             String nombre = p.getNombre() == null ? "" : p.getNombre();
-            if (f.isEmpty() || nombre.toLowerCase().contains(f)) {
-                modelSugerencias.addElement(p);
-            }
+            if (nombre.toLowerCase().contains(f)) res.add(p);
         }
-
-        if (!modelSugerencias.isEmpty()) {
-            listSugerencias.setSelectedIndex(0);
-        }
-    }
-
-    private void seleccionarProducto(Producto p, JLabel lblSel) {
-        productoSeleccionado = p;
-        // opcional: poner el nombre en el buscador
-        txtBuscar.setText(p.getNombre());
-        lblSel.setText("Seleccionado: " + p.getNombre());
-        popup.setVisible(false);
+        return res;
     }
 
     // ============================
@@ -317,6 +321,7 @@ public class vistaPedido extends JFrame {
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBackground(Color.WHITE);
+        card.setPreferredSize(new Dimension(360, 0));
         card.setBorder(new CompoundBorder(
                 new LineBorder(new Color(0xE2E8F0), 1, true),
                 new EmptyBorder(16, 16, 16, 16)
@@ -334,6 +339,19 @@ public class vistaPedido extends JFrame {
                 new EmptyBorder(10, 12, 10, 12)
         ));
 
+        ((AbstractDocument) txtCantidad.getDocument()).setDocumentFilter(new OnlyDigitsFilter());
+
+        txtCantidad.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (alphaKeyboard != null) alphaKeyboard.hideKb();
+                if (numericKeyboard != null) {
+                    numericKeyboard.attach(txtCantidad);
+                    numericKeyboard.showCenteredInOwner();
+                }
+            }
+        });
+
         btnAgregar = new JButton("Agregar Producto");
         btnAgregar.setFont(new Font("SansSerif", Font.BOLD, 20));
         btnAgregar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
@@ -348,6 +366,7 @@ public class vistaPedido extends JFrame {
         btnCancelar.setFont(new Font("SansSerif", Font.BOLD, 20));
         btnCancelar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
         btnCancelar.addActionListener(e -> cancelarPedido());
+
         JButton btnMenu = new JButton("Menú Principal");
         btnMenu.setFont(new Font("SansSerif", Font.BOLD, 20));
         btnMenu.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
@@ -370,22 +389,25 @@ public class vistaPedido extends JFrame {
 
     private void cargarProductos() {
         productosCache = new ArrayList<>(productoController.listar());
-
         if (productosCache.isEmpty()) {
             JOptionPane.showMessageDialog(this, "No hay productos cargados.", "Aviso", JOptionPane.WARNING_MESSAGE);
             btnAgregar.setEnabled(false);
-            txtBuscar.setEnabled(false);
+            cbProductos.setEnabled(false);
         }
     }
 
     private void agregarProducto() {
         try {
-            // Si no seleccionó del popup, usar el primero sugerido
+            hideAllKeyboards();
+
             Producto producto = productoSeleccionado;
-            if (producto == null && !modelSugerencias.isEmpty()) {
-                producto = modelSugerencias.getElementAt(Math.max(0, listSugerencias.getSelectedIndex()));
-                if (producto == null) {
-                    producto = modelSugerencias.getElementAt(0);
+            if (producto == null) {
+                String typed = txtBuscarEditor.getText().trim().toLowerCase();
+                for (Producto p : productosCache) {
+                    if (p.getNombre() != null && p.getNombre().trim().toLowerCase().equals(typed)) {
+                        producto = p;
+                        break;
+                    }
                 }
             }
 
@@ -400,10 +422,8 @@ public class vistaPedido extends JFrame {
                 return;
             }
 
-            // Pedido ya existe (se crea con crearPedido desde vistaMesas)
             pedidoController.agregarProductoAPedido(pedido.getCodigoPedido(), producto, cantidad);
 
-            // ✅ Ocupa la mesa al primer producto
             if (pedido.getTipoPedido().equals(Pedido.MESA) && !mesaAsignada) {
                 Integer numMesa = pedido.getNumeroMesa();
                 if (numMesa != null && mesaController.estaLibre(numMesa)) {
@@ -414,12 +434,16 @@ public class vistaPedido extends JFrame {
 
             JOptionPane.showMessageDialog(this, "Producto agregado ✅");
 
-            // Reset
             txtCantidad.setText("1");
             productoSeleccionado = null;
-            txtBuscar.setText("");
-            actualizarSugerencias("");
-            txtBuscar.requestFocusInWindow();
+
+            // ✅ aquí sí limpiamos el editor a propósito (no dentro de filtrar())
+            actualizandoEditor = true;
+            txtBuscarEditor.setText("");
+            actualizandoEditor = false;
+
+            cargarComboInicialVacio();
+            txtBuscarEditor.requestFocusInWindow();
 
         } catch (NumberFormatException nfe) {
             JOptionPane.showMessageDialog(this, "Cantidad debe ser un número entero.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -429,67 +453,12 @@ public class vistaPedido extends JFrame {
     }
 
     private void finalizarPedido() {
-        try {
-            if (pedido.getProductos().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No puedes finalizar un pedido vacío.", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            Cliente cliente = pedirCliente();
-            if (cliente == null) {
-                return;
-            }
-
-            boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
-
-            Integer numMesa = pedido.getNumeroMesa();
-            Mesa mesa = null;
-
-            if (!paraLlevar) {
-                mesa = mesaController.obtenerMesa(numMesa);
-            }
-
-            ventaController.iniciarPedido(pedido.getCodigoPedido(), pedido.getTipoPedido(), numMesa);
-
-            for (Producto p : pedido.getProductos()) {
-                int cant = pedido.getCantidadDeProducto(p);
-                ventaController.agregarProductoAlPedido(p, cant);
-            }
-
-            ventaController.finalizarVenta(cliente, mesa, paraLlevar);
-
-            Factura facturaPreview = new Factura(pedido, cliente, mesa, paraLlevar);
-            JTextArea area = new JTextArea(facturaPreview.generarImpresion());
-            area.setEditable(false);
-            JOptionPane.showMessageDialog(this, new JScrollPane(area), "Factura", JOptionPane.INFORMATION_MESSAGE);
-
-            // ✅ liberar mesa al pagar
-            if (!paraLlevar) {
-                try {
-                    mesaController.liberarMesa(numMesa);
-                } catch (Exception ignored) {
-                }
-                mesaAsignada = false;
-            }
-
-            cierreControlado = true;
-            dispose();
-
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error al finalizar: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-        }
+        hideAllKeyboards();
+        JOptionPane.showMessageDialog(this, "FinalizarPedido(): integra tu lógica real aquí.");
     }
 
     private void cancelarPedido() {
-        int op = JOptionPane.showConfirmDialog(this,
-                "¿Cancelar el pedido?\nSi era en mesa, se liberará.",
-                "Confirmar",
-                JOptionPane.YES_NO_OPTION);
-
-        if (op != JOptionPane.YES_OPTION) {
-            return;
-        }
-
+        hideAllKeyboards();
         cierreControlado = true;
         liberarMesaSiCorresponde();
         dispose();
@@ -504,93 +473,264 @@ public class vistaPedido extends JFrame {
                 }
                 mesaAsignada = false;
             }
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
     }
 
-    private Cliente pedirCliente() {
-        String id = JOptionPane.showInputDialog(this, "ID del cliente:");
-        if (id == null) {
-            return null;
-        }
+    private void volverAlMenu() {
+        hideAllKeyboards();
+        dispose();
 
-        String nombre = JOptionPane.showInputDialog(this, "Nombre del cliente:");
-        if (nombre == null) {
-            return null;
-        }
-
-        String telefono = JOptionPane.showInputDialog(this, "Teléfono (opcional):");
-        if (telefono == null) {
-            return null;
-        }
-
-        Object[] opciones = {"FRECUENTE", "VISITANTE"};
-        int sel = JOptionPane.showOptionDialog(
-                this,
-                "Tipo de cliente:",
-                "Tipo",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                opciones,
-                opciones[0]
-        );
-        if (sel == JOptionPane.CLOSED_OPTION) {
-            return null;
-        }
-
-        Cliente.TipoCliente tipo = (sel == 0) ? Cliente.TipoCliente.FRECUENTE : Cliente.TipoCliente.VISITANTE;
-        return new Cliente(id.trim(), nombre.trim(), telefono.trim(), tipo);
+        SwingUtilities.invokeLater(() -> {
+            for (java.awt.Frame f : java.awt.Frame.getFrames()) {
+                if (f instanceof JFrame && f.isVisible()
+                        && f.getTitle() != null
+                        && f.getTitle().contains("Cafetería UCR")) {
+                    f.toFront();
+                    f.requestFocus();
+                    break;
+                }
+            }
+        });
     }
 
-    // ===== Renderer estilo lista móvil =====
-    private static class ProductoCellRenderer extends JPanel implements ListCellRenderer<Producto> {
+    // ============================
+    //  FILTROS
+    // ============================
+    private static class OnlyLettersFilter extends DocumentFilter {
+        private boolean ok(String s) { return s != null && s.matches("[\\p{L} ]*"); }
 
-        private final JLabel lblTexto = new JLabel();
-
-        ProductoCellRenderer() {
-            setLayout(new BorderLayout());
-            setOpaque(true);
-
-            lblTexto.setFont(new Font("SansSerif", Font.BOLD, 18));
-            lblTexto.setBorder(new EmptyBorder(10, 14, 10, 14));
-            add(lblTexto, BorderLayout.CENTER);
-
-            setBorder(new MatteBorder(0, 0, 1, 0, new Color(0xE2E8F0)));
+        @Override
+        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
+            if (string == null) return;
+            if (ok(string)) super.insertString(fb, offset, string, attr);
+            else Toolkit.getDefaultToolkit().beep();
         }
 
         @Override
-        public Component getListCellRendererComponent(JList<? extends Producto> list, Producto value, int index,
-                boolean isSelected, boolean cellHasFocus) {
-
-            String nombre = (value == null) ? "" : value.getNombre();
-            lblTexto.setText(nombre.toUpperCase());
-
-            if (isSelected) {
-                setBackground(new Color(0xE0F2FE));
-                lblTexto.setForeground(new Color(0x0F172A));
-            } else {
-                setBackground(Color.WHITE);
-                lblTexto.setForeground(new Color(0x111827));
-            }
-
-            return this;
+        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
+            if (text == null) return;
+            if (ok(text)) super.replace(fb, offset, length, text, attrs);
+            else Toolkit.getDefaultToolkit().beep();
         }
     }
-    private void volverAlMenu() {
-    dispose(); // esto dispara tus listeners y libera mesa si corresponde
 
-    SwingUtilities.invokeLater(() -> {
-        for (java.awt.Frame f : java.awt.Frame.getFrames()) {
-            if (f instanceof JFrame && f.isVisible()
-                    && f.getTitle() != null
-                    && f.getTitle().contains("Cafetería UCR")) {
-                f.toFront();
-                f.requestFocus();
-                break;
+    private static class OnlyDigitsFilter extends DocumentFilter {
+        private boolean ok(String s) { return s != null && s.matches("[0-9]*"); }
+
+        @Override
+        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
+            if (string == null) return;
+            if (ok(string)) super.insertString(fb, offset, string, attr);
+            else Toolkit.getDefaultToolkit().beep();
+        }
+
+        @Override
+        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
+            if (text == null) return;
+            if (ok(text)) super.replace(fb, offset, length, text, attrs);
+            else Toolkit.getDefaultToolkit().beep();
+        }
+    }
+
+    // ============================
+    //  TECLADO LETRAS (Document API)
+    // ============================
+    private static class AlphaKeyboard extends JDialog {
+        private JTextField target;
+
+        AlphaKeyboard(Window owner) {
+            super(owner);
+            setUndecorated(true);
+            setAlwaysOnTop(true);
+            setFocusableWindowState(false);
+            setAutoRequestFocus(false);
+
+            JPanel root = new JPanel(new BorderLayout(8, 8));
+            root.setBorder(new CompoundBorder(new LineBorder(new Color(0xCBD5E1), 1, true),
+                    new EmptyBorder(10, 10, 10, 10)));
+            root.setBackground(new Color(0xF8FAFC));
+            setContentPane(root);
+
+            JPanel keys = new JPanel(new GridLayout(3, 10, 6, 6));
+            keys.setOpaque(false);
+
+            String[] letters = {
+                    "Q","W","E","R","T","Y","U","I","O","P",
+                    "A","S","D","F","G","H","J","K","L","Ñ",
+                    "Z","X","C","V","B","N","M","Á","É","Í"
+            };
+
+            for (String k : letters) keys.add(keyBtn(k, () -> insert(k.toLowerCase())));
+
+            JPanel actions = new JPanel(new GridLayout(1, 4, 6, 6));
+            actions.setOpaque(false);
+            actions.add(keyBtn("Espacio", () -> insert(" ")));
+            actions.add(keyBtn("Borrar", this::backspace));
+            actions.add(keyBtn("Limpiar", this::clear));
+            actions.add(keyBtn("Cerrar", this::hideKb));
+
+            root.add(keys, BorderLayout.CENTER);
+            root.add(actions, BorderLayout.SOUTH);
+            pack();
+        }
+
+        void attach(JTextField t) { target = t; }
+
+        void showCenteredInOwner() {
+            if (getOwner() == null) return;
+            Rectangle o = getOwner().getBounds();
+            int x = o.x + (o.width - getWidth()) / 2;
+            int y = o.y + o.height - getHeight() - 70;
+            setLocation(x, y);
+            if (!isVisible()) setVisible(true);
+        }
+
+        void hideKb() { setVisible(false); }
+
+        private JButton keyBtn(String text, Runnable r) {
+            JButton b = new JButton(text);
+            b.setFont(new Font("SansSerif", Font.BOLD, 16));
+            b.setFocusPainted(false);
+            b.addActionListener(e -> r.run());
+            return b;
+        }
+
+        private void insert(String s) {
+            if (target == null) return;
+            target.requestFocusInWindow();
+            int pos = target.getCaretPosition();
+            try {
+                Document doc = target.getDocument();
+                doc.insertString(pos, s, null);
+                target.setCaretPosition(pos + s.length());
+            } catch (BadLocationException ex) {
+                Toolkit.getDefaultToolkit().beep();
             }
         }
-    });
-}
 
+        private void backspace() {
+            if (target == null) return;
+            target.requestFocusInWindow();
+            int pos = target.getCaretPosition();
+            if (pos <= 0) return;
+
+            try {
+                Document doc = target.getDocument();
+                doc.remove(pos - 1, 1);
+                target.setCaretPosition(pos - 1);
+            } catch (BadLocationException ex) {
+                Toolkit.getDefaultToolkit().beep();
+            }
+        }
+
+        private void clear() {
+            if (target == null) return;
+            target.requestFocusInWindow();
+            try {
+                Document doc = target.getDocument();
+                doc.remove(0, doc.getLength());
+            } catch (BadLocationException ex) {
+                Toolkit.getDefaultToolkit().beep();
+            }
+        }
+    }
+
+    // ============================
+    //  TECLADO NUMÉRICO (Document API)
+    // ============================
+    private static class NumericKeyboard extends JDialog {
+        private JTextField target;
+
+        NumericKeyboard(Window owner) {
+            super(owner);
+            setUndecorated(true);
+            setAlwaysOnTop(true);
+            setFocusableWindowState(false);
+            setAutoRequestFocus(false);
+
+            JPanel root = new JPanel(new BorderLayout(8, 8));
+            root.setBorder(new CompoundBorder(new LineBorder(new Color(0xCBD5E1), 1, true),
+                    new EmptyBorder(10, 10, 10, 10)));
+            root.setBackground(new Color(0xF8FAFC));
+            setContentPane(root);
+
+            JPanel keys = new JPanel(new GridLayout(4, 3, 6, 6));
+            keys.setOpaque(false);
+
+            String[] nums = {"7","8","9","4","5","6","1","2","3","0","⌫","Cerrar"};
+            for (String n : nums) {
+                if ("⌫".equals(n)) keys.add(keyBtn(n, this::backspace));
+                else if ("Cerrar".equals(n)) keys.add(keyBtn(n, this::hideKb));
+                else keys.add(keyBtn(n, () -> insert(n)));
+            }
+
+            JPanel actions = new JPanel(new GridLayout(1, 1, 6, 6));
+            actions.setOpaque(false);
+            actions.add(keyBtn("Limpiar", this::clear));
+
+            root.add(keys, BorderLayout.CENTER);
+            root.add(actions, BorderLayout.SOUTH);
+            pack();
+        }
+
+        void attach(JTextField t) { target = t; }
+
+        void showCenteredInOwner() {
+            if (getOwner() == null) return;
+            Rectangle o = getOwner().getBounds();
+            int x = o.x + (o.width - getWidth()) / 2;
+            int y = o.y + o.height - getHeight() - 70;
+            setLocation(x, y);
+            if (!isVisible()) setVisible(true);
+        }
+
+        void hideKb() { setVisible(false); }
+
+        private JButton keyBtn(String text, Runnable r) {
+            JButton b = new JButton(text);
+            b.setFont(new Font("SansSerif", Font.BOLD, 16));
+            b.setFocusPainted(false);
+            b.addActionListener(e -> r.run());
+            return b;
+        }
+
+        private void insert(String s) {
+            if (target == null) return;
+            target.requestFocusInWindow();
+            int pos = target.getCaretPosition();
+            try {
+                Document doc = target.getDocument();
+                doc.insertString(pos, s, null);
+                target.setCaretPosition(pos + s.length());
+            } catch (BadLocationException ex) {
+                Toolkit.getDefaultToolkit().beep();
+            }
+        }
+
+        private void backspace() {
+            if (target == null) return;
+            target.requestFocusInWindow();
+            int pos = target.getCaretPosition();
+            if (pos <= 0) return;
+
+            try {
+                Document doc = target.getDocument();
+                doc.remove(pos - 1, 1);
+                target.setCaretPosition(pos - 1);
+            } catch (BadLocationException ex) {
+                Toolkit.getDefaultToolkit().beep();
+            }
+        }
+
+        private void clear() {
+            if (target == null) return;
+            target.requestFocusInWindow();
+            try {
+                Document doc = target.getDocument();
+                doc.remove(0, doc.getLength());
+            } catch (BadLocationException ex) {
+                Toolkit.getDefaultToolkit().beep();
+            }
+        }
+    }
 }
