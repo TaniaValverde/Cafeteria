@@ -38,9 +38,9 @@ public class vistaMesas extends JFrame {
     private final boolean[] lastLibre = new boolean[6]; // index 1..5
 
     public vistaMesas(PedidoController pedidoController,
-                      ProductoController productoController,
-                      VentaController ventaController,
-                      MesaController mesaController) {
+            ProductoController productoController,
+            VentaController ventaController,
+            MesaController mesaController) {
 
         this.pedidoController = pedidoController;
         this.productoController = productoController;
@@ -57,7 +57,7 @@ public class vistaMesas extends JFrame {
 
     private void initUI() {
         setTitle("Sistema de Cafetería UCR – Sede del Sur");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         setMinimumSize(new Dimension(1280, 720));
         setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -124,11 +124,18 @@ public class vistaMesas extends JFrame {
         center.add(Box.createVerticalStrut(4));
         center.add(sub);
 
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         right.setOpaque(false);
+
+        JButton btnMenu = createTopButton("Menú Principal");
+        btnMenu.addActionListener(e -> volverAlMenu());
+        right.add(btnMenu);
+
         JButton btnReportes = createTopButton("Reportes");
         btnReportes.addActionListener(e -> JOptionPane.showMessageDialog(this, "Abrir Reportes (pendiente)"));
         right.add(btnReportes);
+
+        btnReportes.addActionListener(e -> JOptionPane.showMessageDialog(this, "Abrir Reportes (pendiente)"));
 
         top.add(left, BorderLayout.WEST);
         top.add(center, BorderLayout.CENTER);
@@ -179,7 +186,9 @@ public class vistaMesas extends JFrame {
     }
 
     private void refrescarGridMesas(boolean conHighlight) {
-        if (gridMesas == null) return;
+        if (gridMesas == null) {
+            return;
+        }
 
         gridMesas.removeAll();
 
@@ -247,8 +256,8 @@ public class vistaMesas extends JFrame {
         card.addActionListener(e -> {
             if (!mesaController.estaLibre(mesa)) {
                 JOptionPane.showMessageDialog(this,
-                        "La mesa " + mesa + " está OCUPADA.\n" +
-                                "Finaliza o cancela el pedido actual para liberarla.",
+                        "La mesa " + mesa + " está OCUPADA.\n"
+                        + "Finaliza o cancela el pedido actual para liberarla.",
                         "Mesa ocupada",
                         JOptionPane.WARNING_MESSAGE);
                 return;
@@ -327,11 +336,14 @@ public class vistaMesas extends JFrame {
 
             // ✅ al cerrar pedido, volver a mesas y refrescar
             vp.addWindowListener(new java.awt.event.WindowAdapter() {
-                @Override public void windowClosed(java.awt.event.WindowEvent e) {
+                @Override
+                public void windowClosed(java.awt.event.WindowEvent e) {
                     vistaMesas.this.setVisible(true);
                     refrescarGridMesas(true);
                 }
-                @Override public void windowClosing(java.awt.event.WindowEvent e) {
+
+                @Override
+                public void windowClosing(java.awt.event.WindowEvent e) {
                     vistaMesas.this.setVisible(true);
                     refrescarGridMesas(true);
                 }
@@ -359,11 +371,14 @@ public class vistaMesas extends JFrame {
             this.setVisible(false);
 
             vp.addWindowListener(new java.awt.event.WindowAdapter() {
-                @Override public void windowClosed(java.awt.event.WindowEvent e) {
+                @Override
+                public void windowClosed(java.awt.event.WindowEvent e) {
                     vistaMesas.this.setVisible(true);
                     refrescarGridMesas(true);
                 }
-                @Override public void windowClosing(java.awt.event.WindowEvent e) {
+
+                @Override
+                public void windowClosing(java.awt.event.WindowEvent e) {
                     vistaMesas.this.setVisible(true);
                     refrescarGridMesas(true);
                 }
@@ -378,4 +393,21 @@ public class vistaMesas extends JFrame {
             this.setVisible(true);
         }
     }
+
+    private void volverAlMenu() {
+        dispose();
+
+        SwingUtilities.invokeLater(() -> {
+            for (java.awt.Frame f : java.awt.Frame.getFrames()) {
+                if (f instanceof JFrame && f.isVisible()
+                        && f.getTitle() != null
+                        && f.getTitle().contains("Cafetería UCR")) {
+                    f.toFront();
+                    f.requestFocus();
+                    break;
+                }
+            }
+        });
+    }
+
 }

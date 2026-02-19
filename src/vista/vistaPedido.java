@@ -49,10 +49,10 @@ public class vistaPedido extends JFrame {
     private boolean cierreControlado = false;
 
     public vistaPedido(Pedido pedido,
-                       PedidoController pedidoController,
-                       ProductoController productoController,
-                       VentaController ventaController,
-                       MesaController mesaController) {
+            PedidoController pedidoController,
+            ProductoController productoController,
+            VentaController ventaController,
+            MesaController mesaController) {
 
         this.pedido = pedido;
         this.pedidoController = pedidoController;
@@ -70,11 +70,18 @@ public class vistaPedido extends JFrame {
         actualizarSugerencias(""); // inicia sin filtro
 
         addWindowListener(new WindowAdapter() {
-            @Override public void windowClosing(WindowEvent e) {
-                if (!cierreControlado) liberarMesaSiCorresponde();
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if (!cierreControlado) {
+                    liberarMesaSiCorresponde();
+                }
             }
-            @Override public void windowClosed(WindowEvent e) {
-                if (!cierreControlado) liberarMesaSiCorresponde();
+
+            @Override
+            public void windowClosed(WindowEvent e) {
+                if (!cierreControlado) {
+                    liberarMesaSiCorresponde();
+                }
             }
         });
     }
@@ -86,9 +93,9 @@ public class vistaPedido extends JFrame {
         setContentPane(root);
 
         lblInfo = new JLabel(
-                "Pedido: " + pedido.getCodigoPedido() +
-                        " | Tipo: " + pedido.getTipoPedido() +
-                        (pedido.getNumeroMesa() != null ? (" | Mesa: " + pedido.getNumeroMesa()) : "")
+                "Pedido: " + pedido.getCodigoPedido()
+                + " | Tipo: " + pedido.getTipoPedido()
+                + (pedido.getNumeroMesa() != null ? (" | Mesa: " + pedido.getNumeroMesa()) : "")
         );
         lblInfo.setFont(new Font("SansSerif", Font.BOLD, 22));
         lblInfo.setBorder(new EmptyBorder(0, 0, 12, 0));
@@ -167,9 +174,20 @@ public class vistaPedido extends JFrame {
 
         // Mostrar/filtrar al escribir
         txtBuscar.getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { onChange(); }
-            @Override public void removeUpdate(DocumentEvent e) { onChange(); }
-            @Override public void changedUpdate(DocumentEvent e) { onChange(); }
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                onChange();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                onChange();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                onChange();
+            }
 
             private void onChange() {
                 productoSeleccionado = null;
@@ -184,7 +202,9 @@ public class vistaPedido extends JFrame {
             @Override
             public void mouseClicked(MouseEvent e) {
                 Producto p = listSugerencias.getSelectedValue();
-                if (p == null) return;
+                if (p == null) {
+                    return;
+                }
 
                 seleccionarProducto(p, lblSel);
 
@@ -222,7 +242,9 @@ public class vistaPedido extends JFrame {
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     Producto p = listSugerencias.getSelectedValue();
-                    if (p != null) seleccionarProducto(p, lblSel);
+                    if (p != null) {
+                        seleccionarProducto(p, lblSel);
+                    }
                     txtBuscar.requestFocusInWindow();
                 } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
                     popup.setVisible(false);
@@ -326,6 +348,10 @@ public class vistaPedido extends JFrame {
         btnCancelar.setFont(new Font("SansSerif", Font.BOLD, 20));
         btnCancelar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
         btnCancelar.addActionListener(e -> cancelarPedido());
+        JButton btnMenu = new JButton("Menú Principal");
+        btnMenu.setFont(new Font("SansSerif", Font.BOLD, 20));
+        btnMenu.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
+        btnMenu.addActionListener(e -> volverAlMenu());
 
         card.add(lblCant);
         card.add(Box.createVerticalStrut(8));
@@ -336,6 +362,8 @@ public class vistaPedido extends JFrame {
         card.add(btnFinalizar);
         card.add(Box.createVerticalStrut(12));
         card.add(btnCancelar);
+        card.add(Box.createVerticalStrut(12));
+        card.add(btnMenu);
 
         return card;
     }
@@ -356,7 +384,9 @@ public class vistaPedido extends JFrame {
             Producto producto = productoSeleccionado;
             if (producto == null && !modelSugerencias.isEmpty()) {
                 producto = modelSugerencias.getElementAt(Math.max(0, listSugerencias.getSelectedIndex()));
-                if (producto == null) producto = modelSugerencias.getElementAt(0);
+                if (producto == null) {
+                    producto = modelSugerencias.getElementAt(0);
+                }
             }
 
             if (producto == null) {
@@ -406,7 +436,9 @@ public class vistaPedido extends JFrame {
             }
 
             Cliente cliente = pedirCliente();
-            if (cliente == null) return;
+            if (cliente == null) {
+                return;
+            }
 
             boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
 
@@ -433,7 +465,10 @@ public class vistaPedido extends JFrame {
 
             // ✅ liberar mesa al pagar
             if (!paraLlevar) {
-                try { mesaController.liberarMesa(numMesa); } catch (Exception ignored) {}
+                try {
+                    mesaController.liberarMesa(numMesa);
+                } catch (Exception ignored) {
+                }
                 mesaAsignada = false;
             }
 
@@ -451,7 +486,9 @@ public class vistaPedido extends JFrame {
                 "Confirmar",
                 JOptionPane.YES_NO_OPTION);
 
-        if (op != JOptionPane.YES_OPTION) return;
+        if (op != JOptionPane.YES_OPTION) {
+            return;
+        }
 
         cierreControlado = true;
         liberarMesaSiCorresponde();
@@ -467,18 +504,25 @@ public class vistaPedido extends JFrame {
                 }
                 mesaAsignada = false;
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     private Cliente pedirCliente() {
         String id = JOptionPane.showInputDialog(this, "ID del cliente:");
-        if (id == null) return null;
+        if (id == null) {
+            return null;
+        }
 
         String nombre = JOptionPane.showInputDialog(this, "Nombre del cliente:");
-        if (nombre == null) return null;
+        if (nombre == null) {
+            return null;
+        }
 
         String telefono = JOptionPane.showInputDialog(this, "Teléfono (opcional):");
-        if (telefono == null) return null;
+        if (telefono == null) {
+            return null;
+        }
 
         Object[] opciones = {"FRECUENTE", "VISITANTE"};
         int sel = JOptionPane.showOptionDialog(
@@ -491,7 +535,9 @@ public class vistaPedido extends JFrame {
                 opciones,
                 opciones[0]
         );
-        if (sel == JOptionPane.CLOSED_OPTION) return null;
+        if (sel == JOptionPane.CLOSED_OPTION) {
+            return null;
+        }
 
         Cliente.TipoCliente tipo = (sel == 0) ? Cliente.TipoCliente.FRECUENTE : Cliente.TipoCliente.VISITANTE;
         return new Cliente(id.trim(), nombre.trim(), telefono.trim(), tipo);
@@ -515,7 +561,7 @@ public class vistaPedido extends JFrame {
 
         @Override
         public Component getListCellRendererComponent(JList<? extends Producto> list, Producto value, int index,
-                                                      boolean isSelected, boolean cellHasFocus) {
+                boolean isSelected, boolean cellHasFocus) {
 
             String nombre = (value == null) ? "" : value.getNombre();
             lblTexto.setText(nombre.toUpperCase());
@@ -531,4 +577,20 @@ public class vistaPedido extends JFrame {
             return this;
         }
     }
+    private void volverAlMenu() {
+    dispose(); // esto dispara tus listeners y libera mesa si corresponde
+
+    SwingUtilities.invokeLater(() -> {
+        for (java.awt.Frame f : java.awt.Frame.getFrames()) {
+            if (f instanceof JFrame && f.isVisible()
+                    && f.getTitle() != null
+                    && f.getTitle().contains("Cafetería UCR")) {
+                f.toFront();
+                f.requestFocus();
+                break;
+            }
+        }
+    });
+}
+
 }

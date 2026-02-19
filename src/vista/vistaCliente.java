@@ -60,7 +60,9 @@ public class vistaCliente extends JFrame {
 
         // ==== TABLE ====
         modelo = new DefaultTableModel(new String[]{"ID", "Nombre", "Teléfono", "Tipo"}, 0) {
-            public boolean isCellEditable(int r, int c) { return false; }
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
         };
 
         tabla = new JTable(modelo);
@@ -73,20 +75,22 @@ public class vistaCliente extends JFrame {
         JButton btnModificar = new JButton("Modificar");
         JButton btnEliminar = new JButton("Eliminar");
         JButton btnLimpiar = new JButton("Limpiar");
+        JButton btnMenu = new JButton("Menú Principal");
 
         botones.add(btnAgregar);
         botones.add(btnModificar);
         botones.add(btnEliminar);
         botones.add(btnLimpiar);
+        botones.add(btnMenu);
 
-        add(botones, BorderLayout.SOUTH);
+        add(botones, BorderLayout.SOUTH);     
 
         // ==== EVENTS ====
-
         btnAgregar.addActionListener(e -> agregar());
         btnModificar.addActionListener(e -> modificar());
         btnEliminar.addActionListener(e -> eliminar());
         btnLimpiar.addActionListener(e -> limpiar());
+        btnMenu.addActionListener(e -> volverAlMenu());
 
         tabla.getSelectionModel().addListSelectionListener(e -> {
             int row = tabla.getSelectedRow();
@@ -164,10 +168,10 @@ public class vistaCliente extends JFrame {
         List<Cliente> lista = clienteController.listar();
         for (Cliente c : lista) {
             modelo.addRow(new Object[]{
-                    c.getId(),
-                    c.getNombre(),
-                    c.getTelefono(),
-                    c.getTipo()
+                c.getId(),
+                c.getNombre(),
+                c.getTelefono(),
+                c.getTipo()
             });
         }
     }
@@ -180,4 +184,22 @@ public class vistaCliente extends JFrame {
         txtId.setEnabled(true);
         tabla.clearSelection();
     }
+    private void volverAlMenu() {
+    // Cierra esta ventana
+    dispose();
+
+    // Trae al frente el menú principal (si está abierto)
+    SwingUtilities.invokeLater(() -> {
+        for (java.awt.Frame f : java.awt.Frame.getFrames()) {
+            if (f instanceof JFrame && f.isVisible()
+                    && f.getTitle() != null
+                    && f.getTitle().contains("Cafetería UCR Sede del Sur")) {
+                f.toFront();
+                f.requestFocus();
+                break;
+            }
+        }
+    });
+}
+
 }

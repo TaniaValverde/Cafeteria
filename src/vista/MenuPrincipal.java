@@ -16,7 +16,7 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
-public class menuPrincipal extends JFrame {
+public class MenuPrincipal extends JFrame {
 
     // ===== Controllers =====
     private final PedidoController pedidoCtrl;
@@ -39,7 +39,7 @@ public class menuPrincipal extends JFrame {
     private Timer reloj;
 
     // ===== Constructor MVC (usar desde App.java) =====
-    public menuPrincipal(PedidoController pedidoCtrl,
+    public MenuPrincipal(PedidoController pedidoCtrl,
             ProductoController productoCtrl,
             ClienteController clienteCtrl,
             VentaController ventaCtrl,
@@ -104,16 +104,15 @@ public class menuPrincipal extends JFrame {
     }
 
     private void abrirClientes() {
-    try {
-        vistaCliente v = new vistaCliente(clienteCtrl);
-        v.setVisible(true);
-    } catch (Exception ex) {
-        JOptionPane.showMessageDialog(this,
-                "No se pudo abrir Clientes:\n" + ex.getMessage(),
-                "Error", JOptionPane.ERROR_MESSAGE);
+        try {
+            vistaCliente v = new vistaCliente(clienteCtrl);
+            v.setVisible(true);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo abrir Clientes:\n" + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
-}
-
 
     // ✅ Constructor REAL: vistaMesas(PedidoController, ProductoController, VentaController, MesaController)
     private void abrirMesas() {
@@ -157,11 +156,7 @@ public class menuPrincipal extends JFrame {
     }
 
     private void abrirReportes() {
-        JOptionPane.showMessageDialog(this,
-                "Módulo Reportes aún no conectado en el menú.\n"
-                + "Si ya tienes vistaReportes, dime su constructor y lo enlazo.",
-                "Pendiente",
-                JOptionPane.WARNING_MESSAGE);
+        new vistaReporte().setVisible(true);
     }
 
     // ===========================

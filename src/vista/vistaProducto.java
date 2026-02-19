@@ -13,6 +13,10 @@ import javax.swing.border.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 
 public class vistaProducto extends JFrame {
 
@@ -27,6 +31,7 @@ public class vistaProducto extends JFrame {
     private JTextField txtStock;
 
     private JButton btnAgregar;
+    private JButton btnMenu;
     private JButton btnModificar;
     private JButton btnEliminar;
     private JButton btnLimpiar;
@@ -60,6 +65,10 @@ public class vistaProducto extends JFrame {
         setLocationRelativeTo(null);
 
         setContentPane(buildRoot());
+
+        // ✅ Aplicar filtros de entrada (NUM / LETRAS) una vez creados los campos
+        applyInputFilters();
+
         wireEvents();
 
         recargarTabla();
@@ -156,6 +165,11 @@ public class vistaProducto extends JFrame {
 
         pill.add(dot);
         pill.add(txt);
+
+        btnMenu = ghostButton("⬅ Menú Principal");
+        right.add(btnMenu);
+        right.add(Box.createRigidArea(new Dimension(10, 0)));
+
         right.add(pill);
 
         header.add(left, BorderLayout.WEST);
@@ -194,12 +208,12 @@ public class vistaProducto extends JFrame {
         c.fill = GridBagConstraints.HORIZONTAL;
         c.gridy = 0;
 
-        // Código
+        // Código (solo números)
         c.gridx = 0;
         c.weightx = 0.9;
-        grid.add(fieldGroup("Código (txtCodigo)", txtCodigo = input("P001")), c);
+        grid.add(fieldGroup("Código (txtCodigo)", txtCodigo = input("Solo números. Ej: 1001")), c);
 
-        // Nombre (colspan 2)
+        // Nombre (solo letras)
         c.gridx = 1;
         c.weightx = 2.5;
         grid.add(fieldGroup("Nombre (txtNombre)", txtNombre = input("Café Americano Grande")), c);
@@ -269,7 +283,10 @@ public class vistaProducto extends JFrame {
 
         // Model + table
         modelo = new DefaultTableModel(new String[]{"Código", "Nombre del Producto", "Categoría", "Precio", "Stock"}, 0) {
-            @Override public boolean isCellEditable(int row, int col) { return false; }
+            @Override
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
         };
 
         tabla = new JTable(modelo);
@@ -331,6 +348,27 @@ public class vistaProducto extends JFrame {
     }
 
     // =========================
+    // ====== INPUT FILTERS =====
+    // =========================
+    private void applyInputFilters() {
+        // Código: solo números
+        ((AbstractDocument) txtCodigo.getDocument())
+                .setDocumentFilter(new RegexFilter("\\d*"));
+
+        // Stock: solo números
+        ((AbstractDocument) txtStock.getDocument())
+                .setDocumentFilter(new RegexFilter("\\d*"));
+
+        // Precio: números con opcional decimal ('.' o ',') y hasta 2 decimales
+        ((AbstractDocument) txtPrecio.getDocument())
+                .setDocumentFilter(new RegexFilter("\\d*([\\.,]\\d{0,2})?"));
+
+        // Nombre: solo letras y espacios (incluye tildes/ñ). Permite vacío.
+        ((AbstractDocument) txtNombre.getDocument())
+                .setDocumentFilter(new RegexFilter("[\\p{L} ]*"));
+    }
+
+    // =========================
     // ====== WIRE EVENTS ======
     // =========================
     private void wireEvents() {
@@ -338,6 +376,7 @@ public class vistaProducto extends JFrame {
             recargarTabla();
             actualizarFooter();
         });
+        btnMenu.addActionListener(e -> volverAlMenu());
 
         btnLimpiar.addActionListener(e -> limpiarFormulario());
 
@@ -426,7 +465,9 @@ public class vistaProducto extends JFrame {
                 "Confirmar",
                 JOptionPane.YES_NO_OPTION);
 
-        if (op != JOptionPane.YES_OPTION) return;
+        if (op != JOptionPane.YES_OPTION) {
+            return;
+        }
 
         try {
             productoController.eliminar(codigo);
@@ -452,11 +493,11 @@ public class vistaProducto extends JFrame {
         List<Producto> lista = productoController.listar();
         for (Producto p : lista) {
             modelo.addRow(new Object[]{
-                    p.getCodigo(),
-                    p.getNombre(),
-                    p.getCategoria(),
-                    p.getPrecio(),
-                    p.getStock()
+                p.getCodigo(),
+                p.getNombre(),
+                p.getCategoria(),
+                p.getPrecio(),
+                p.getStock()
             });
         }
 
@@ -465,7 +506,9 @@ public class vistaProducto extends JFrame {
 
     private void cargarSeleccionEnFormulario() {
         int row = tabla.getSelectedRow();
-        if (row < 0) return;
+        if (row < 0) {
+            return;
+        }
 
         txtCodigo.setText(String.valueOf(modelo.getValueAt(row, 0)));
         txtNombre.setText(String.valueOf(modelo.getValueAt(row, 1)));
@@ -497,11 +540,17 @@ public class vistaProducto extends JFrame {
         String codigo = txtCodigo.getText().trim();
         String nombre = txtNombre.getText().trim();
         String categoria = String.valueOf(cmbCategoria.getSelectedItem()).trim();
-        String sPrecio = txtPrecio.getText().trim();
+
+        // ✅ precio acepta coma o punto
+        String sPrecio = txtPrecio.getText().trim().replace(',', '.');
         String sStock = txtStock.getText().trim();
 
-        if (codigo.isEmpty()) throw new IllegalArgumentException("El código es obligatorio.");
-        if (esAgregar && nombre.isEmpty()) throw new IllegalArgumentException("El nombre es obligatorio.");
+        if (codigo.isEmpty()) {
+            throw new IllegalArgumentException("El código es obligatorio.");
+        }
+        if (esAgregar && nombre.isEmpty()) {
+            throw new IllegalArgumentException("El nombre es obligatorio.");
+        }
         if (!esAgregar && nombre.isEmpty()) {
             // al modificar está deshabilitado, pero por seguridad
             nombre = txtNombre.getText().trim();
@@ -522,8 +571,12 @@ public class vistaProducto extends JFrame {
             throw new IllegalArgumentException("Stock inválido. Ej: 50");
         }
 
-        if (precio < 0) throw new IllegalArgumentException("El precio no puede ser negativo.");
-        if (stock < 0) throw new IllegalArgumentException("El stock no puede ser negativo.");
+        if (precio < 0) {
+            throw new IllegalArgumentException("El precio no puede ser negativo.");
+        }
+        if (stock < 0) {
+            throw new IllegalArgumentException("El stock no puede ser negativo.");
+        }
 
         return new DatosForm(codigo, nombre, categoria, precio, stock);
     }
@@ -625,9 +678,9 @@ public class vistaProducto extends JFrame {
         b.setBackground(Color.WHITE);
         b.setForeground(DANGER);
         b.setBorder(new CompoundBorder(
-    new LineBorder(new Color(0xFE, 0xCA, 0xCA), 1, true),
-    new EmptyBorder(10, 16, 10, 16)
-));
+                new LineBorder(new Color(0xFE, 0xCA, 0xCA), 1, true),
+                new EmptyBorder(10, 16, 10, 16)
+        ));
 
         b.setFocusPainted(false);
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -664,4 +717,56 @@ public class vistaProducto extends JFrame {
             this.stock = stock;
         }
     }
+
+    private void volverAlMenu() {
+        dispose();
+
+        SwingUtilities.invokeLater(() -> {
+            for (java.awt.Frame f : java.awt.Frame.getFrames()) {
+                if (f instanceof JFrame && f.isVisible()
+                        && f.getTitle() != null
+                        && f.getTitle().contains("Cafetería UCR")) {
+                    f.toFront();
+                    f.requestFocus();
+                    break;
+                }
+            }
+        });
+    }
+
+    private static class RegexFilter extends DocumentFilter {
+
+        private final String allowedRegex;
+
+        RegexFilter(String allowedRegex) {
+            this.allowedRegex = allowedRegex;
+        }
+
+        @Override
+        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr)
+                throws BadLocationException {
+            if (string == null) {
+                return;
+            }
+            String current = fb.getDocument().getText(0, fb.getDocument().getLength());
+            String next = current.substring(0, offset) + string + current.substring(offset);
+            if (next.matches(allowedRegex)) {
+                super.insertString(fb, offset, string, attr);
+            }
+        }
+
+        @Override
+        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
+                throws BadLocationException {
+            if (text == null) {
+                text = "";
+            }
+            String current = fb.getDocument().getText(0, fb.getDocument().getLength());
+            String next = current.substring(0, offset) + text + current.substring(offset + length);
+            if (next.matches(allowedRegex)) {
+                super.replace(fb, offset, length, text, attrs);
+            }
+        }
+    }
+
 }

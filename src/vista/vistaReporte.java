@@ -50,8 +50,8 @@ public class vistaReporte extends JFrame {
 
         panelFiltros.add(new JLabel("Tipo de Reporte:"));
         comboTipoReporte = new JComboBox<>(new String[]{
-                "Historial de Ventas",
-                "Ventas por Mesa"
+            "Historial de Ventas",
+            "Ventas por Mesa"
         });
         panelFiltros.add(comboTipoReporte);
 
@@ -69,20 +69,20 @@ public class vistaReporte extends JFrame {
         areaReporte.setFont(new Font("Monospaced", Font.PLAIN, 12));
 
         areaReporte.setText(
-                "================================================================\n" +
-                "           HISTORIAL DE VENTAS - CAFETERÍA UCR           \n" +
-                "                     SEDE DEL SUR                       \n" +
-                "================================================================\n" +
-                "FECHA REPORTE: --/--/----                ESTADO: --\n" +
-                "----------------------------------------------------------------\n" +
-                "ID VENTA  FECHA       HORA   MESA   MONTO TOTAL    MÉTODO PAGO\n" +
-                "----------------------------------------------------------------\n" +
-                "\n" +
-                "----------------------------------------------------------------\n" +
-                "RESUMEN DEL DÍA:\n" +
-                "TOTAL VENTAS:    0\n" +
-                "TOTAL RECAUDADO: ₡ 0.00\n" +
-                "----------------------------------------------------------------\n"
+                "================================================================\n"
+                + "           HISTORIAL DE VENTAS - CAFETERÍA UCR           \n"
+                + "                     SEDE DEL SUR                       \n"
+                + "================================================================\n"
+                + "FECHA REPORTE: --/--/----                ESTADO: --\n"
+                + "----------------------------------------------------------------\n"
+                + "ID VENTA  FECHA       HORA   MESA   MONTO TOTAL    MÉTODO PAGO\n"
+                + "----------------------------------------------------------------\n"
+                + "\n"
+                + "----------------------------------------------------------------\n"
+                + "RESUMEN DEL DÍA:\n"
+                + "TOTAL VENTAS:    0\n"
+                + "TOTAL RECAUDADO: ₡ 0.00\n"
+                + "----------------------------------------------------------------\n"
         );
 
         JScrollPane scroll = new JScrollPane(areaReporte);
@@ -93,12 +93,12 @@ public class vistaReporte extends JFrame {
     private void inicializarBotones() {
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 
-        JButton btnCerrar = new JButton("Cerrar");
+        JButton btnMenu = new JButton("Menú Principal");
         JButton btnLimpiar = new JButton("Limpiar");
         JButton btnGenerar = new JButton("Generar Reporte");
 
         // Cerrar ventana
-        btnCerrar.addActionListener(e -> dispose());
+        btnMenu.addActionListener(e -> volverAlMenu());
 
         // Limpiar filtros y área
         btnLimpiar.addActionListener(e -> {
@@ -109,7 +109,7 @@ public class vistaReporte extends JFrame {
         // Generar reporte (placeholder compatible con controlador)
         btnGenerar.addActionListener(e -> generarReporte());
 
-        panelBotones.add(btnCerrar);
+        panelBotones.add(btnMenu);
         panelBotones.add(btnLimpiar);
         panelBotones.add(btnGenerar);
 
@@ -122,16 +122,31 @@ public class vistaReporte extends JFrame {
         String mesa = txtMesa.getText().trim();
 
         areaReporte.setText(
-                "================================================================\n" +
-                "           REPORTE GENERADO - CAFETERÍA UCR           \n" +
-                "================================================================\n" +
-                "Tipo de Reporte: " + tipo + "\n" +
-                "Mesa: " + (mesa.isEmpty() ? "Todas" : mesa) + "\n" +
-                "----------------------------------------------------------------\n" +
-                "Aquí se mostrará la información real obtenida desde\n" +
-                "ReporteController.\n" +
-                "----------------------------------------------------------------\n"
+                "================================================================\n"
+                + "           REPORTE GENERADO - CAFETERÍA UCR           \n"
+                + "================================================================\n"
+                + "Tipo de Reporte: " + tipo + "\n"
+                + "Mesa: " + (mesa.isEmpty() ? "Todas" : mesa) + "\n"
+                + "----------------------------------------------------------------\n"
+                + "Aquí se mostrará la información real obtenida desde\n"
+                + "ReporteController.\n"
+                + "----------------------------------------------------------------\n"
         );
     }
+    private void volverAlMenu() {
+    dispose();
+
+    SwingUtilities.invokeLater(() -> {
+        for (java.awt.Frame f : java.awt.Frame.getFrames()) {
+            if (f instanceof JFrame && f.isVisible()
+                    && f.getTitle() != null
+                    && f.getTitle().contains("Cafetería UCR")) {
+                f.toFront();
+                f.requestFocus();
+                break;
+            }
+        }
+    });
 }
 
+}

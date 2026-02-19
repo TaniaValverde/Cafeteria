@@ -1,4 +1,3 @@
-
 package vista;
 
 import javax.swing.*;
@@ -11,12 +10,9 @@ import java.awt.event.ActionListener;
  */
 public class vistaFactura extends JFrame {
 
-
     private JTextArea areaFactura = null;
     private JButton btnImprimir;
     private JButton btnCerrar;
-
-  
 
     public vistaFactura() {
         setTitle("Factura - Cafetería UCR Sede del Sur");
@@ -91,6 +87,8 @@ public class vistaFactura extends JFrame {
 
         btnCerrar = new JButton("Cerrar / Volver");
         btnCerrar.setFont(new Font("Arial", Font.BOLD, 16));
+        btnCerrar.setText("Menú Principal");
+        btnCerrar.addActionListener(e -> volverAlMenu());
 
         panelBotones.add(btnImprimir);
         panelBotones.add(btnCerrar);
@@ -113,4 +111,21 @@ public class vistaFactura extends JFrame {
     public void agregarListenerCerrar(ActionListener listener) {
         btnCerrar.addActionListener(listener);
     }
+
+    private void volverAlMenu() {
+        dispose();
+
+        SwingUtilities.invokeLater(() -> {
+            for (java.awt.Frame f : java.awt.Frame.getFrames()) {
+                if (f instanceof JFrame && f.isVisible()
+                        && f.getTitle() != null
+                        && f.getTitle().contains("Cafetería UCR")) {
+                    f.toFront();
+                    f.requestFocus();
+                    break;
+                }
+            }
+        });
+    }
+
 }

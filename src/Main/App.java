@@ -5,12 +5,11 @@ import Controlador.MesaController;
 import Controlador.PedidoController;
 import Controlador.ProductoController;
 import Controlador.VentaController;
-
 import java.io.IOException;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
-import vista.menuPrincipal; // ✅ SOLO este import
+import vista.MenuPrincipal; // ✅ SOLO este import
 
 public class App {
 
@@ -30,7 +29,7 @@ public class App {
 
             // ===== Lanzar Menú Principal =====
             SwingUtilities.invokeLater(() -> {
-                menuPrincipal menu = new menuPrincipal(
+                MenuPrincipal menu = new MenuPrincipal(
                         pedidoCtrl,
                         productoCtrl,
                         clienteCtrl,

@@ -106,11 +106,15 @@ public class vistaInventario extends JFrame {
         btnGuardar = new JButton("Guardar Cambios");
         btnGuardar.setFont(new Font("SansSerif", Font.BOLD, 14));
         btnGuardar.addActionListener(e -> guardarCambios());
+        JButton btnMenu = new JButton("Menú Principal");
+        btnMenu.setFont(f);
+        btnMenu.addActionListener(e -> volverAlMenu());
 
         bottom.add(btnSumar);
         bottom.add(btnRestar);
         bottom.add(btnRecargar);
         bottom.add(btnGuardar);
+        bottom.add(btnMenu);
 
         // ===== Layout =====
         JPanel root = new JPanel(new BorderLayout());
@@ -130,11 +134,11 @@ public class vistaInventario extends JFrame {
         List<Producto> productos = productoController.listar();
         for (Producto p : productos) {
             Object[] row = {
-                    p.getCodigo(),
-                    p.getNombre(),
-                    p.getCategoria(),
-                    p.getPrecio(),
-                    p.getStock()
+                p.getCodigo(),
+                p.getNombre(),
+                p.getCategoria(),
+                p.getPrecio(),
+                p.getStock()
             };
             modelo.addRow(row);
         }
@@ -157,11 +161,11 @@ public class vistaInventario extends JFrame {
 
             if (cod.contains(q) || nom.contains(q)) {
                 Object[] row = {
-                        p.getCodigo(),
-                        p.getNombre(),
-                        p.getCategoria(),
-                        p.getPrecio(),
-                        p.getStock()
+                    p.getCodigo(),
+                    p.getNombre(),
+                    p.getCategoria(),
+                    p.getPrecio(),
+                    p.getStock()
                 };
                 modelo.addRow(row);
             }
@@ -250,4 +254,20 @@ public class vistaInventario extends JFrame {
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+    private void volverAlMenu() {
+    dispose();
+
+    SwingUtilities.invokeLater(() -> {
+        for (java.awt.Frame f : java.awt.Frame.getFrames()) {
+            if (f instanceof JFrame && f.isVisible()
+                    && f.getTitle() != null
+                    && f.getTitle().contains("Cafetería UCR")) {
+                f.toFront();
+                f.requestFocus();
+                break;
+            }
+        }
+    });
+}
+
 }
