@@ -6,6 +6,10 @@ import Model.Cliente;
 import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import java.awt.*;
 import java.io.IOException;
 import java.util.List;
@@ -47,6 +51,9 @@ public class vistaCliente extends JFrame {
         txtTelefono = new JTextField();
         cmbTipo = new JComboBox<>(Cliente.TipoCliente.values());
 
+        // ✅ Aplicar filtros de entrada (NUM / LETRAS)
+        applyInputFilters();
+
         form.add(new JLabel("ID:"));
         form.add(txtId);
         form.add(new JLabel("Nombre:"));
@@ -83,7 +90,7 @@ public class vistaCliente extends JFrame {
         botones.add(btnLimpiar);
         botones.add(btnMenu);
 
-        add(botones, BorderLayout.SOUTH);     
+        add(botones, BorderLayout.SOUTH);
 
         // ==== EVENTS ====
         btnAgregar.addActionListener(e -> agregar());
@@ -102,6 +109,23 @@ public class vistaCliente extends JFrame {
                 txtId.setEnabled(false);
             }
         });
+    }
+
+    // =========================
+    // ====== INPUT FILTERS =====
+    // =========================
+    private void applyInputFilters() {
+        // ID: solo números (permite vacío mientras escribe)
+        ((AbstractDocument) txtId.getDocument())
+                .setDocumentFilter(new RegexFilter("\\d*"));
+
+        // Teléfono: solo números
+        ((AbstractDocument) txtTelefono.getDocument())
+                .setDocumentFilter(new RegexFilter("\\d*"));
+
+        // Nombre: solo letras y espacios (incluye tildes/ñ)
+        ((AbstractDocument) txtNombre.getDocument())
+                .setDocumentFilter(new RegexFilter("[\\p{L} ]*"));
     }
 
     private void agregar() {
@@ -168,10 +192,10 @@ public class vistaCliente extends JFrame {
         List<Cliente> lista = clienteController.listar();
         for (Cliente c : lista) {
             modelo.addRow(new Object[]{
-                c.getId(),
-                c.getNombre(),
-                c.getTelefono(),
-                c.getTipo()
+                    c.getId(),
+                    c.getNombre(),
+                    c.getTelefono(),
+                    c.getTipo()
             });
         }
     }
@@ -184,22 +208,58 @@ public class vistaCliente extends JFrame {
         txtId.setEnabled(true);
         tabla.clearSelection();
     }
-    private void volverAlMenu() {
-    // Cierra esta ventana
-    dispose();
 
-    // Trae al frente el menú principal (si está abierto)
-    SwingUtilities.invokeLater(() -> {
-        for (java.awt.Frame f : java.awt.Frame.getFrames()) {
-            if (f instanceof JFrame && f.isVisible()
-                    && f.getTitle() != null
-                    && f.getTitle().contains("Cafetería UCR Sede del Sur")) {
-                f.toFront();
-                f.requestFocus();
-                break;
+    private void volverAlMenu() {
+        dispose();
+
+        SwingUtilities.invokeLater(() -> {
+            for (java.awt.Frame f : java.awt.Frame.getFrames()) {
+                if (f instanceof JFrame && f.isVisible()
+                        && f.getTitle() != null
+                        && f.getTitle().contains("Cafetería UCR Sede del Sur")) {
+                    f.toFront();
+                    f.requestFocus();
+                    break;
+                }
+            }
+        });
+    }
+
+    // =========================
+    // ====== DOCUMENT FILTER ===
+    // =========================
+    private static class RegexFilter extends DocumentFilter {
+
+        private final String allowedRegex;
+
+        RegexFilter(String allowedRegex) {
+            this.allowedRegex = allowedRegex;
+        }
+
+        @Override
+        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr)
+                throws BadLocationException {
+            if (string == null) return;
+
+            String current = fb.getDocument().getText(0, fb.getDocument().getLength());
+            String next = current.substring(0, offset) + string + current.substring(offset);
+
+            if (next.matches(allowedRegex)) {
+                super.insertString(fb, offset, string, attr);
             }
         }
-    });
-}
 
+        @Override
+        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
+                throws BadLocationException {
+            if (text == null) text = "";
+
+            String current = fb.getDocument().getText(0, fb.getDocument().getLength());
+            String next = current.substring(0, offset) + text + current.substring(offset + length);
+
+            if (next.matches(allowedRegex)) {
+                super.replace(fb, offset, length, text, attrs);
+            }
+        }
+    }
 }

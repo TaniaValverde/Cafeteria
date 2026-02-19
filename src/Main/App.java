@@ -8,8 +8,7 @@ import Controlador.VentaController;
 import java.io.IOException;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-
-import vista.MenuPrincipal; // ✅ SOLO este import
+import vista.MenuPrincipal; 
 
 public class App {
 
