@@ -1,8 +1,16 @@
 package vista;
 
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.awt.print.PageFormat;
+import java.awt.print.Paper;
+import java.awt.print.Printable;
+import java.awt.print.PrinterException;
+import java.awt.print.PrinterJob;
 
 /**
  * VistaFactura Muestra visualmente la factura generada por el sistema. No
@@ -13,6 +21,10 @@ public class vistaFactura extends JFrame {
     private JTextArea areaFactura = null;
     private JButton btnImprimir;
     private JButton btnCerrar;
+
+    // Si un controlador registra un listener externo, removemos el listener por defecto
+    // para evitar doble impresión.
+    private transient ActionListener defaultPrintListener;
 
     public vistaFactura() {
         setTitle("Factura - Cafetería UCR Sede del Sur");
@@ -73,21 +85,25 @@ public class vistaFactura extends JFrame {
         );
 
         JScrollPane scroll = new JScrollPane(areaFactura);
+        scroll.setBorder(null);
         add(scroll, BorderLayout.CENTER);
     }
 
     private void crearBotones() {
         JPanel panelBotones = new JPanel(new GridLayout(1, 2, 15, 0));
         panelBotones.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        panelBotones.setBackground(new Color(0xF8, 0xFA, 0xFC));
 
-        btnImprimir = new JButton("Imprimir Factura");
-        btnImprimir.setFont(new Font("Arial", Font.BOLD, 16));
-        btnImprimir.setBackground(new Color(46, 125, 50));
-        btnImprimir.setForeground(Color.WHITE);
+        btnImprimir = primaryButton("🖨 Imprimir Factura");
+        btnCerrar = ghostButton("⬅ Menú Principal");
 
-        btnCerrar = new JButton("Cerrar / Volver");
-        btnCerrar.setFont(new Font("Arial", Font.BOLD, 16));
-        btnCerrar.setText("Menú Principal");
+        // Listener por defecto: imprime lo que se ve en pantalla.
+        defaultPrintListener = e -> {
+            String ticket = areaFactura.getText();
+            imprimirTicket(ticket, true); // true = 80mm | false = 58mm
+        };
+        btnImprimir.addActionListener(defaultPrintListener);
+
         btnCerrar.addActionListener(e -> volverAlMenu());
 
         panelBotones.add(btnImprimir);
@@ -105,6 +121,10 @@ public class vistaFactura extends JFrame {
     }
 
     public void agregarListenerImprimir(ActionListener listener) {
+        if (defaultPrintListener != null) {
+            btnImprimir.removeActionListener(defaultPrintListener);
+            defaultPrintListener = null;
+        }
         btnImprimir.addActionListener(listener);
     }
 
@@ -128,4 +148,116 @@ public class vistaFactura extends JFrame {
         });
     }
 
+    // =========================
+    // ===== IMPRESIÓN TICKET ===
+    // =========================
+    private void imprimirTicket(String texto, boolean es80mm) {
+        try {
+            PrinterJob job = PrinterJob.getPrinterJob();
+            job.setJobName("Factura Cafetería");
+
+            PageFormat pf = new PageFormat();
+            Paper paper = new Paper();
+
+            // 58mm ~ 164pt, 80mm ~ 226pt
+            double width = es80mm ? 226 : 164;
+            double height = 1000; // alto grande (ticket largo)
+
+            double margin = 6;
+            paper.setSize(width, height);
+            paper.setImageableArea(margin, margin, width - 2 * margin, height - 2 * margin);
+
+            pf.setPaper(paper);
+            pf.setOrientation(PageFormat.PORTRAIT);
+
+            job.setPrintable((graphics, pageFormat, pageIndex) -> {
+                if (pageIndex > 0) return Printable.NO_SUCH_PAGE;
+
+                Graphics2D g2 = (Graphics2D) graphics;
+                g2.translate(pageFormat.getImageableX(), pageFormat.getImageableY());
+                g2.setColor(Color.BLACK);
+
+                Font font = new Font("Monospaced", Font.PLAIN, 10);
+                g2.setFont(font);
+
+                FontMetrics fm = g2.getFontMetrics();
+                int lineHeight = fm.getHeight();
+                int maxWidth = (int) pageFormat.getImageableWidth();
+
+                String[] lineas = wrapTexto(texto == null ? "" : texto, fm, maxWidth);
+
+                int y = 0;
+                for (String linea : lineas) {
+                    y += lineHeight;
+                    g2.drawString(linea, 0, y);
+                }
+
+                return Printable.PAGE_EXISTS;
+            }, pf);
+
+            // El usuario elige impresora
+            if (job.printDialog()) {
+                job.print();
+                JOptionPane.showMessageDialog(this, "Enviado a impresión ✅", "Impresión", JOptionPane.INFORMATION_MESSAGE);
+            }
+
+        } catch (PrinterException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo imprimir:\n" + ex.getMessage(),
+                    "Impresión", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private static String[] wrapTexto(String text, FontMetrics fm, int maxWidth) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (String rawLine : text.split("\\R")) {
+            if (rawLine.isEmpty()) {
+                out.add("");
+                continue;
+            }
+            String line = rawLine;
+            while (fm.stringWidth(line) > maxWidth) {
+                int cut = line.length();
+                while (cut > 0 && fm.stringWidth(line.substring(0, cut)) > maxWidth) {
+                    cut--;
+                }
+                if (cut <= 0) break;
+                out.add(line.substring(0, cut));
+                line = line.substring(cut).stripLeading();
+            }
+            out.add(line);
+        }
+        return out.toArray(new String[0]);
+    }
+
+    // =========================
+    // ====== BOTONES ESTILO ====
+    // =========================
+    private JButton primaryButton(String text) {
+        JButton b = new JButton(text);
+        b.setFont(new Font("Arial", Font.BOLD, 16));
+        b.setBackground(new Color(46, 125, 50));
+        b.setForeground(Color.WHITE);
+        b.setBorder(new CompoundBorder(
+                new LineBorder(new Color(0, 0, 0, 12), 1, true),
+                new EmptyBorder(12, 16, 12, 16)
+        ));
+        b.setFocusPainted(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    private JButton ghostButton(String text) {
+        JButton b = new JButton(text);
+        b.setFont(new Font("Arial", Font.BOLD, 16));
+        b.setBackground(new Color(0xF1, 0xF5, 0xF9));
+        b.setForeground(new Color(0x64, 0x74, 0x8B));
+        b.setBorder(new CompoundBorder(
+                new LineBorder(new Color(0, 0, 0, 12), 1, true),
+                new EmptyBorder(12, 16, 12, 16)
+        ));
+        b.setFocusPainted(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
 }
