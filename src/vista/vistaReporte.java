@@ -9,144 +9,139 @@ public class vistaReporte extends JFrame {
     private JTextField txtMesa;
     private JTextArea areaReporte;
 
-    // Constructor vacío (IMPORTANTE para MenuPrincipal)
     public vistaReporte() {
         setTitle("Reportes de Ventas - Cafetería UCR");
-        setSize(650, 650);
+        setSize(900, 650);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
         setLayout(new BorderLayout(10, 10));
+        getContentPane().setBackground(Color.WHITE);
 
         inicializarEncabezado();
-        inicializarFiltros();
-        inicializarAreaReporte();
+        inicializarContenidoCentral();
         inicializarBotones();
     }
 
-    // ================= ENCABEZADO =================
     private void inicializarEncabezado() {
-        JPanel panelHeader = new JPanel();
-        panelHeader.setLayout(new BoxLayout(panelHeader, BoxLayout.Y_AXIS));
-        panelHeader.setBorder(BorderFactory.createEmptyBorder(15, 15, 10, 15));
+        JPanel header = new JPanel(new GridLayout(2, 1));
+        header.setBorder(BorderFactory.createEmptyBorder(15, 20, 10, 20));
+        header.setBackground(Color.WHITE);
 
-        JLabel lblTitulo = new JLabel("Reportes de Ventas - Cafetería UCR");
-        lblTitulo.setFont(new Font("Arial", Font.BOLD, 18));
+        JLabel titulo = new JLabel("Reportes de Ventas - Cafetería UCR");
+        titulo.setFont(new Font("Arial", Font.BOLD, 20));
 
-        JLabel lblSub = new JLabel("Sistema de Gestión Universitaria - Sede del Sur");
-        lblSub.setFont(new Font("Arial", Font.PLAIN, 12));
+        JLabel subtitulo = new JLabel("Sistema de Gestión Universitaria - Sede del Sur");
+        subtitulo.setFont(new Font("Arial", Font.PLAIN, 12));
 
-        panelHeader.add(lblTitulo);
-        panelHeader.add(lblSub);
+        header.add(titulo);
+        header.add(subtitulo);
 
-        add(panelHeader, BorderLayout.NORTH);
+        add(header, BorderLayout.NORTH);
     }
 
-    // ================= FILTROS =================
-    private void inicializarFiltros() {
-        JPanel panelFiltros = new JPanel(new GridLayout(2, 2, 10, 10));
-        panelFiltros.setBorder(
-                BorderFactory.createTitledBorder("Filtros de Reporte")
-        );
+    private void inicializarContenidoCentral() {
+        JPanel centro = new JPanel(new BorderLayout(15, 15));
+        centro.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        centro.setBackground(Color.WHITE);
 
-        panelFiltros.add(new JLabel("Tipo de Reporte:"));
+        centro.add(crearPanelFiltros(), BorderLayout.WEST);
+        centro.add(crearPanelReporte(), BorderLayout.CENTER);
+
+        add(centro, BorderLayout.CENTER);
+    }
+
+    private JPanel crearPanelFiltros() {
+        JPanel filtros = new JPanel(new GridBagLayout());
+        filtros.setBorder(BorderFactory.createTitledBorder("Filtros de Reporte"));
+        filtros.setPreferredSize(new Dimension(260, 0));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+
+        filtros.add(new JLabel("Tipo de Reporte:"), gbc);
+
+        gbc.gridy++;
         comboTipoReporte = new JComboBox<>(new String[]{
-            "Historial de Ventas",
-            "Ventas por Mesa"
+                "Historial de Ventas",
+                "Ventas por Mesa"
         });
-        panelFiltros.add(comboTipoReporte);
+        filtros.add(comboTipoReporte, gbc);
 
-        panelFiltros.add(new JLabel("Número de Mesa:"));
+        gbc.gridy++;
+        filtros.add(new JLabel("Número de Mesa:"), gbc);
+
+        gbc.gridy++;
         txtMesa = new JTextField();
-        panelFiltros.add(txtMesa);
+        filtros.add(txtMesa, gbc);
 
-        add(panelFiltros, BorderLayout.WEST);
+        return filtros;
     }
 
-    // ================= ÁREA DE REPORTE =================
-    private void inicializarAreaReporte() {
+    private JScrollPane crearPanelReporte() {
         areaReporte = new JTextArea();
         areaReporte.setEditable(false);
         areaReporte.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        areaReporte.setMargin(new Insets(10, 10, 10, 10));
 
         areaReporte.setText(
-                "================================================================\n"
-                + "           HISTORIAL DE VENTAS - CAFETERÍA UCR           \n"
-                + "                     SEDE DEL SUR                       \n"
-                + "================================================================\n"
-                + "FECHA REPORTE: --/--/----                ESTADO: --\n"
-                + "----------------------------------------------------------------\n"
-                + "ID VENTA  FECHA       HORA   MESA   MONTO TOTAL    MÉTODO PAGO\n"
-                + "----------------------------------------------------------------\n"
-                + "\n"
-                + "----------------------------------------------------------------\n"
-                + "RESUMEN DEL DÍA:\n"
-                + "TOTAL VENTAS:    0\n"
-                + "TOTAL RECAUDADO: ₡ 0.00\n"
-                + "----------------------------------------------------------------\n"
+                "============================================================\n" +
+                "        HISTORIAL DE VENTAS - CAFETERÍA UCR\n" +
+                "                  SEDE DEL SUR\n" +
+                "============================================================\n\n" +
+                "FECHA REPORTE: --/--/----\n\n" +
+                "ID VENTA   FECHA     HORA   MESA   MONTO TOTAL\n" +
+                "------------------------------------------------------------\n\n" +
+                "RESUMEN DEL DÍA:\n" +
+                "TOTAL VENTAS:    0\n" +
+                "TOTAL RECAUDADO: ₡ 0.00\n"
         );
 
         JScrollPane scroll = new JScrollPane(areaReporte);
-        add(scroll, BorderLayout.CENTER);
+        scroll.setBorder(BorderFactory.createTitledBorder("Reporte"));
+
+        return scroll;
     }
 
-    // ================= BOTONES =================
     private void inicializarBotones() {
-        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel botones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+        botones.setBorder(BorderFactory.createEmptyBorder(5, 20, 15, 20));
+        botones.setBackground(Color.WHITE);
 
-        JButton btnMenu = new JButton("Menú Principal");
+        JButton btnCerrar = new JButton("Cerrar");
         JButton btnLimpiar = new JButton("Limpiar");
         JButton btnGenerar = new JButton("Generar Reporte");
 
-        // Cerrar ventana
-        btnMenu.addActionListener(e -> volverAlMenu());
+        btnCerrar.addActionListener(e -> dispose());
 
-        // Limpiar filtros y área
         btnLimpiar.addActionListener(e -> {
             txtMesa.setText("");
             areaReporte.setText("");
         });
 
-        // Generar reporte (placeholder compatible con controlador)
         btnGenerar.addActionListener(e -> generarReporte());
 
-        panelBotones.add(btnMenu);
-        panelBotones.add(btnLimpiar);
-        panelBotones.add(btnGenerar);
+        botones.add(btnCerrar);
+        botones.add(btnLimpiar);
+        botones.add(btnGenerar);
 
-        add(panelBotones, BorderLayout.SOUTH);
+        add(botones, BorderLayout.SOUTH);
     }
 
-    // ================= ACCIÓN GENERAR =================
     private void generarReporte() {
         String tipo = comboTipoReporte.getSelectedItem().toString();
-        String mesa = txtMesa.getText().trim();
+        String mesa = txtMesa.getText().isEmpty() ? "Todas" : txtMesa.getText();
 
         areaReporte.setText(
-                "================================================================\n"
-                + "           REPORTE GENERADO - CAFETERÍA UCR           \n"
-                + "================================================================\n"
-                + "Tipo de Reporte: " + tipo + "\n"
-                + "Mesa: " + (mesa.isEmpty() ? "Todas" : mesa) + "\n"
-                + "----------------------------------------------------------------\n"
-                + "Aquí se mostrará la información real obtenida desde\n"
-                + "ReporteController.\n"
-                + "----------------------------------------------------------------\n"
+                "============================================================\n" +
+                "        REPORTE GENERADO - CAFETERÍA UCR\n" +
+                "============================================================\n" +
+                "Tipo de Reporte: " + tipo + "\n" +
+                "Mesa: " + mesa + "\n\n" +
+                "Aquí se mostrará la información real desde el controlador\n"
         );
     }
-    private void volverAlMenu() {
-    dispose();
-
-    SwingUtilities.invokeLater(() -> {
-        for (java.awt.Frame f : java.awt.Frame.getFrames()) {
-            if (f instanceof JFrame && f.isVisible()
-                    && f.getTitle() != null
-                    && f.getTitle().contains("Cafetería UCR")) {
-                f.toFront();
-                f.requestFocus();
-                break;
-            }
-        }
-    });
-}
-
 }
