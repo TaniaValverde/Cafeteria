@@ -4,33 +4,56 @@ import Controlador.MesaController;
 import Controlador.PedidoController;
 import Controlador.ProductoController;
 import Controlador.VentaController;
+import Model.Mesa;
 import Model.Pedido;
+import Model.Producto;
+import Model.Venta;
 
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
+import java.io.IOException;
+import java.util.List;
 
 public class vistaPedido extends JFrame {
 
     // ===== Controllers =====
     private final Pedido pedido;
-    private final PedidoController pedidoCtrl;
+    private final PedidoController pedidoCtrl;          // (no lo uso mucho aquí, pero lo mantengo)
     private final ProductoController productoCtrl;
     private final VentaController ventaCtrl;
     private final MesaController mesaCtrl;
     private final MenuPrincipal menuPrincipalRef;
 
-    // ===== Palette (similar to mock) =====
+    // ===== Palette =====
     private static final Color BG = new Color(0xF5, 0xF7, 0xFA);
     private static final Color CARD = Color.WHITE;
     private static final Color BORDER = new Color(0xE5, 0xE7, 0xEB);
     private static final Color TEXT = new Color(0x0F, 0x17, 0x2A);
     private static final Color TEXT_MID = new Color(0x64, 0x74, 0x8B);
 
-    private static final Color PRIMARY = new Color(0xEE, 0x9D, 0x2B);   // naranja
-    private static final Color NAVY = new Color(0x0B, 0x12, 0x22);      // azul oscuro panel resumen
-    private static final Color NAVY_2 = new Color(0x10, 0x1A, 0x33);
+    private static final Color PRIMARY = new Color(0xEE, 0x9D, 0x2B);
+    private static final Color NAVY = new Color(0x0B, 0x12, 0x22);
     private static final Color DANGER = new Color(0xEF, 0x44, 0x44);
+
+    // ===== UI state =====
+    private JTextField txtBuscar;
+    private DefaultListModel<Producto> productosModel;
+    private JList<Producto> listaProductos;
+
+    private Producto productoSeleccionado;
+    private int cantidadSeleccionada = 1;
+
+    private JLabel lblProdNombre;
+    private JLabel lblProdPrecio;
+    private JLabel lblProdDesc;
+    private JLabel lblCantidad;
+
+    private JTextArea txtNotas; // (visual, no se guarda en Pedido)
+
+    // resumen
+    private JPanel resumenItemsPanel;
+    private JLabel lblTotalValor;
 
     public vistaPedido(Pedido pedido,
                        PedidoController pedidoCtrl,
@@ -46,7 +69,13 @@ public class vistaPedido extends JFrame {
         this.mesaCtrl = mesaCtrl;
         this.menuPrincipalRef = menuPrincipalRef;
 
+        // ✅ CLAVE: sincroniza el pedido con VentaController
+        // Así agregar productos y finalizar venta usarán ESTE pedido.
+        this.ventaCtrl.setPedidoActual(pedido);
+
         initUI();
+        cargarProductosInicial();
+        refrescarResumen();
     }
 
     private void initUI() {
@@ -81,7 +110,6 @@ public class vistaPedido extends JFrame {
                 new EmptyBorder(12, 14, 12, 14)
         ));
 
-        // left: order + pill
         JPanel left = new JPanel();
         left.setOpaque(false);
         left.setLayout(new BoxLayout(left, BoxLayout.X_AXIS));
@@ -97,28 +125,15 @@ public class vistaPedido extends JFrame {
                 ? ("MESA " + pedido.getNumeroMesa())
                 : "PARA LLEVAR";
 
-        JPanel pill = pill(pillTxt);
-        left.add(pill);
+        left.add(pill(pillTxt));
 
-        // right: menu button + avatar
         JPanel right = new JPanel();
         right.setOpaque(false);
         right.setLayout(new BoxLayout(right, BoxLayout.X_AXIS));
 
         JButton btnMenu = ghostButton("▦  MENÚ PRINCIPAL");
-        btnMenu.addActionListener(e -> {
-            if (pedido.getTipoPedido().equals(Pedido.MESA)) {
-                vistaMesas vm = new vistaMesas(pedidoCtrl, productoCtrl, ventaCtrl, mesaCtrl, menuPrincipalRef);
-                vm.setVisible(true);
-            } else {
-                menuPrincipalRef.setVisible(true);
-            }
-            dispose();
-        });
-
+        btnMenu.addActionListener(e -> volverAtras());
         right.add(btnMenu);
-        right.add(Box.createRigidArea(new Dimension(10, 0)));
-        right.add(avatar("JD"));
 
         top.add(left, BorderLayout.WEST);
         top.add(right, BorderLayout.EAST);
@@ -129,34 +144,17 @@ public class vistaPedido extends JFrame {
         JPanel p = new JPanel();
         p.setBackground(new Color(PRIMARY.getRed(), PRIMARY.getGreen(), PRIMARY.getBlue(), 35));
         p.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0,0,0,10), 1, true),
+                new LineBorder(new Color(0, 0, 0, 10), 1, true),
                 new EmptyBorder(6, 10, 6, 10)
         ));
-        p.setLayout(new BoxLayout(p, BoxLayout.X_AXIS));
-
         JLabel l = new JLabel(text);
         l.setFont(new Font("SansSerif", Font.BOLD, 11));
-        l.setForeground(new Color(0xB4, 0x6A, 0x07)); // naranja oscuro
-
+        l.setForeground(new Color(0xB4, 0x6A, 0x07));
         p.add(l);
         return p;
     }
 
-    private JComponent avatar(String initials) {
-        JPanel a = new JPanel(new GridBagLayout());
-        a.setPreferredSize(new Dimension(34, 34));
-        a.setMaximumSize(new Dimension(34, 34));
-        a.setBackground(new Color(0xF1, 0xF5, 0xF9));
-        a.setBorder(new LineBorder(new Color(0,0,0,12), 1, true));
-
-        JLabel t = new JLabel(initials);
-        t.setFont(new Font("SansSerif", Font.BOLD, 12));
-        t.setForeground(TEXT_MID);
-        a.add(t);
-        return a;
-    }
-
-    // ================= MAIN CONTENT (2 columns) =================
+    // ================= MAIN CONTENT =================
     private JComponent buildContent() {
         JPanel content = new JPanel(new BorderLayout(14, 14));
         content.setOpaque(false);
@@ -168,52 +166,93 @@ public class vistaPedido extends JFrame {
         return content;
     }
 
-    // ================= LEFT COLUMN =================
+    // ================= LEFT =================
     private JComponent buildLeftColumn() {
         JPanel left = new JPanel();
         left.setOpaque(false);
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
 
-        left.add(searchBar());
+        left.add(buildSearchBar());
+        left.add(Box.createRigidArea(new Dimension(0, 10)));
+        left.add(buildProductsList());
         left.add(Box.createRigidArea(new Dimension(0, 12)));
-        left.add(productCardMock());
+        left.add(buildProductCard());
         left.add(Box.createRigidArea(new Dimension(0, 12)));
-        left.add(quantityRow());
+        left.add(buildQuantityRow());
         left.add(Box.createRigidArea(new Dimension(0, 12)));
-        left.add(notesBox());
+        left.add(buildNotesBox());
         left.add(Box.createRigidArea(new Dimension(0, 14)));
 
         JButton add = solidButton("🛒  AGREGAR PRODUCTO", PRIMARY, Color.WHITE, 16, 14);
         add.setAlignmentX(Component.LEFT_ALIGNMENT);
         add.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
-
-        // TODO: aquí conectas con tu lógica real de agregar items al pedido
-        add.addActionListener(e -> JOptionPane.showMessageDialog(this, "Agregar producto (demo)"));
+        add.addActionListener(e -> onAgregarProducto());
 
         left.add(add);
-
         return left;
     }
 
-    private JComponent searchBar() {
-        JTextField search = new JTextField();
-        search.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        search.setForeground(TEXT);
-        search.setBackground(Color.WHITE);
-        search.setBorder(new CompoundBorder(
+    private JComponent buildSearchBar() {
+        txtBuscar = new JTextField();
+        txtBuscar.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        txtBuscar.setBorder(new CompoundBorder(
                 new LineBorder(BORDER, 1, true),
                 new EmptyBorder(12, 12, 12, 12)
         ));
-        search.setToolTipText("Buscar producto (Hamburguesa, bebida...)");
+        txtBuscar.setToolTipText("Buscar producto (Hamburguesa, bebida...)");
 
-        JPanel wrap = new JPanel(new BorderLayout());
-        wrap.setOpaque(false);
-        wrap.add(search, BorderLayout.CENTER);
-        wrap.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return wrap;
+        txtBuscar.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { filtrarProductos(txtBuscar.getText()); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { filtrarProductos(txtBuscar.getText()); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { filtrarProductos(txtBuscar.getText()); }
+        });
+
+        txtBuscar.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return txtBuscar;
     }
 
-    private JComponent productCardMock() {
+    private JComponent buildProductsList() {
+        productosModel = new DefaultListModel<>();
+        listaProductos = new JList<>(productosModel);
+        listaProductos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        listaProductos.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        listaProductos.setFixedCellHeight(32);
+
+        // renderer: Nombre - Precio
+        listaProductos.setCellRenderer((list, value, index, isSelected, cellHasFocus) -> {
+            String nombre = value.getNombre();
+            String precio = String.format("$%.2f", value.getPrecio());
+
+            JLabel l = new JLabel(nombre + "   —   " + precio);
+            l.setOpaque(true);
+            l.setBorder(new EmptyBorder(6, 10, 6, 10));
+            l.setFont(new Font("SansSerif", Font.BOLD, 13));
+
+            if (isSelected) {
+                l.setBackground(new Color(0xF1, 0xF5, 0xF9));
+                l.setForeground(TEXT);
+            } else {
+                l.setBackground(Color.WHITE);
+                l.setForeground(TEXT_MID);
+            }
+            return l;
+        });
+
+        listaProductos.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                productoSeleccionado = listaProductos.getSelectedValue();
+                actualizarCardProducto(productoSeleccionado);
+            }
+        });
+
+        JScrollPane sp = new JScrollPane(listaProductos);
+        sp.setBorder(new LineBorder(BORDER, 1, true));
+        sp.setPreferredSize(new Dimension(0, 180));
+        sp.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return sp;
+    }
+
+    private JComponent buildProductCard() {
         JPanel card = new JPanel(new BorderLayout(12, 12));
         card.setBackground(CARD);
         card.setBorder(new CompoundBorder(
@@ -222,28 +261,28 @@ public class vistaPedido extends JFrame {
         ));
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel name = new JLabel("Hamburguesa Clásica");
-        name.setFont(new Font("SansSerif", Font.BOLD, 24));
-        name.setForeground(TEXT);
+        lblProdNombre = new JLabel("Selecciona un producto…");
+        lblProdNombre.setFont(new Font("SansSerif", Font.BOLD, 24));
+        lblProdNombre.setForeground(TEXT);
 
-        JLabel price = new JLabel("$12.50");
-        price.setFont(new Font("SansSerif", Font.BOLD, 18));
-        price.setForeground(PRIMARY);
+        lblProdPrecio = new JLabel("$0.00", SwingConstants.RIGHT);
+        lblProdPrecio.setFont(new Font("SansSerif", Font.BOLD, 18));
+        lblProdPrecio.setForeground(PRIMARY);
 
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
-        top.add(name, BorderLayout.WEST);
-        top.add(price, BorderLayout.EAST);
+        top.add(lblProdNombre, BorderLayout.WEST);
+        top.add(lblProdPrecio, BorderLayout.EAST);
 
-        JLabel desc = new JLabel("<html><span style='color:#64748b;'>Carne premium, lechuga, tomate y nuestra salsa secreta...</span></html>");
-        desc.setBorder(new EmptyBorder(6, 0, 0, 0));
+        lblProdDesc = new JLabel("<html><span style='color:#64748b;'>—</span></html>");
+        lblProdDesc.setBorder(new EmptyBorder(6, 0, 0, 0));
 
         card.add(top, BorderLayout.NORTH);
-        card.add(desc, BorderLayout.CENTER);
+        card.add(lblProdDesc, BorderLayout.CENTER);
         return card;
     }
 
-    private JComponent quantityRow() {
+    private JComponent buildQuantityRow() {
         JPanel row = new JPanel(new BorderLayout(10, 10));
         row.setOpaque(false);
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -252,25 +291,32 @@ public class vistaPedido extends JFrame {
         label.setFont(new Font("SansSerif", Font.BOLD, 11));
         label.setForeground(TEXT_MID);
 
-        JPanel controls = new JPanel(new BorderLayout(10, 0));
-        controls.setOpaque(false);
-
         JButton minus = outlineButton("−", new Color(0,0,0,15), TEXT_MID, 18, 14);
         JButton plus  = solidButton("+", PRIMARY, Color.WHITE, 18, 14);
 
-        JLabel qty = new JLabel("1", SwingConstants.CENTER);
-        qty.setFont(new Font("SansSerif", Font.BOLD, 18));
-        qty.setOpaque(true);
-        qty.setBackground(new Color(0xF8, 0xFA, 0xFC));
-        qty.setBorder(new LineBorder(BORDER, 1, true));
-        qty.setPreferredSize(new Dimension(80, 44));
+        lblCantidad = new JLabel(String.valueOf(cantidadSeleccionada), SwingConstants.CENTER);
+        lblCantidad.setFont(new Font("SansSerif", Font.BOLD, 18));
+        lblCantidad.setOpaque(true);
+        lblCantidad.setBackground(new Color(0xF8, 0xFA, 0xFC));
+        lblCantidad.setBorder(new LineBorder(BORDER, 1, true));
+        lblCantidad.setPreferredSize(new Dimension(80, 44));
 
-        JPanel mid = new JPanel(new BorderLayout());
-        mid.setOpaque(false);
-        mid.add(qty, BorderLayout.CENTER);
+        minus.addActionListener(e -> {
+            if (cantidadSeleccionada > 1) {
+                cantidadSeleccionada--;
+                lblCantidad.setText(String.valueOf(cantidadSeleccionada));
+            }
+        });
 
+        plus.addActionListener(e -> {
+            cantidadSeleccionada++;
+            lblCantidad.setText(String.valueOf(cantidadSeleccionada));
+        });
+
+        JPanel controls = new JPanel(new BorderLayout(10, 0));
+        controls.setOpaque(false);
         controls.add(minus, BorderLayout.WEST);
-        controls.add(mid, BorderLayout.CENTER);
+        controls.add(lblCantidad, BorderLayout.CENTER);
         controls.add(plus, BorderLayout.EAST);
 
         JPanel box = new JPanel();
@@ -284,23 +330,23 @@ public class vistaPedido extends JFrame {
         return row;
     }
 
-    private JComponent notesBox() {
+    private JComponent buildNotesBox() {
         JPanel box = new JPanel();
         box.setOpaque(false);
         box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
         box.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel label = new JLabel("NOTAS ESPECIALES");
+        JLabel label = new JLabel("NOTAS ESPECIALES (visual)");
         label.setFont(new Font("SansSerif", Font.BOLD, 11));
         label.setForeground(TEXT_MID);
 
-        JTextArea area = new JTextArea(4, 20);
-        area.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        area.setLineWrap(true);
-        area.setWrapStyleWord(true);
-        area.setBorder(new EmptyBorder(10, 12, 10, 12));
+        txtNotas = new JTextArea(4, 20);
+        txtNotas.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        txtNotas.setLineWrap(true);
+        txtNotas.setWrapStyleWord(true);
+        txtNotas.setBorder(new EmptyBorder(10, 12, 10, 12));
 
-        JScrollPane sp = new JScrollPane(area);
+        JScrollPane sp = new JScrollPane(txtNotas);
         sp.setBorder(new LineBorder(BORDER, 1, true));
         sp.setBackground(Color.WHITE);
 
@@ -317,30 +363,23 @@ public class vistaPedido extends JFrame {
         card.setBackground(CARD);
         card.setBorder(new LineBorder(BORDER, 1, true));
 
-        // header
         JLabel title = new JLabel("  🧾  RESUMEN DE PEDIDO");
         title.setFont(new Font("SansSerif", Font.BOLD, 14));
         title.setForeground(TEXT);
         title.setBorder(new EmptyBorder(14, 14, 14, 14));
         card.add(title, BorderLayout.NORTH);
 
-        // items list mock
-        JPanel list = new JPanel();
-        list.setBackground(CARD);
-        list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
-        list.setBorder(new EmptyBorder(10, 14, 10, 14));
+        resumenItemsPanel = new JPanel();
+        resumenItemsPanel.setBackground(CARD);
+        resumenItemsPanel.setLayout(new BoxLayout(resumenItemsPanel, BoxLayout.Y_AXIS));
+        resumenItemsPanel.setBorder(new EmptyBorder(10, 14, 10, 14));
 
-        list.add(summaryItem("1x", "Hamburguesa", "Queso", "$12.00"));
-        list.add(Box.createRigidArea(new Dimension(0, 10)));
-        list.add(summaryItem("1x", "Papas Fritas", "Extra crujientes", "$8.50"));
-
-        JScrollPane sp = new JScrollPane(list);
+        JScrollPane sp = new JScrollPane(resumenItemsPanel);
         sp.setBorder(null);
         sp.getVerticalScrollBar().setUnitIncrement(16);
-
         card.add(sp, BorderLayout.CENTER);
 
-        // bottom navy total + buttons
+        // bottom
         JPanel bottom = new JPanel();
         bottom.setLayout(new BoxLayout(bottom, BoxLayout.Y_AXIS));
         bottom.setBackground(NAVY);
@@ -353,37 +392,23 @@ public class vistaPedido extends JFrame {
         totalLbl.setFont(new Font("SansSerif", Font.BOLD, 12));
         totalLbl.setForeground(new Color(0x9C, 0xA3, 0xAF));
 
-        JLabel totalVal = new JLabel("$20.50", SwingConstants.RIGHT);
-        totalVal.setFont(new Font("SansSerif", Font.BOLD, 28));
-        totalVal.setForeground(PRIMARY);
+        lblTotalValor = new JLabel("$0.00", SwingConstants.RIGHT);
+        lblTotalValor.setFont(new Font("SansSerif", Font.BOLD, 28));
+        lblTotalValor.setForeground(PRIMARY);
 
         totalRow.add(totalLbl, BorderLayout.WEST);
-        totalRow.add(totalVal, BorderLayout.EAST);
+        totalRow.add(lblTotalValor, BorderLayout.EAST);
 
         bottom.add(totalRow);
         bottom.add(Box.createRigidArea(new Dimension(0, 12)));
 
         JButton finish = solidButton("✅  FINALIZAR PEDIDO", PRIMARY, Color.WHITE, 14, 12);
         finish.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
-        finish.addActionListener(e -> {
-            if (pedido.getTipoPedido().equals(Pedido.MESA)) {
-                mesaCtrl.liberarMesa(pedido.getNumeroMesa());
-            }
-            JOptionPane.showMessageDialog(this, "Pedido finalizado correctamente");
-            menuPrincipalRef.setVisible(true);
-            dispose();
-        });
+        finish.addActionListener(e -> onFinalizar());
 
         JButton cancel = outlineButton("✖  CANCELAR PEDIDO", DANGER, DANGER, 14, 12);
         cancel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
-        cancel.addActionListener(e -> {
-            if (pedido.getTipoPedido().equals(Pedido.MESA)) {
-                mesaCtrl.liberarMesa(pedido.getNumeroMesa());
-            }
-            JOptionPane.showMessageDialog(this, "Pedido cancelado");
-            menuPrincipalRef.setVisible(true);
-            dispose();
-        });
+        cancel.addActionListener(e -> onCancelar());
 
         bottom.add(finish);
         bottom.add(Box.createRigidArea(new Dimension(0, 10)));
@@ -394,7 +419,6 @@ public class vistaPedido extends JFrame {
         bottomWrap.add(bottom, BorderLayout.CENTER);
 
         card.add(bottomWrap, BorderLayout.SOUTH);
-
         return card;
     }
 
@@ -418,13 +442,15 @@ public class vistaPedido extends JFrame {
         n.setFont(new Font("SansSerif", Font.BOLD, 13));
         n.setForeground(TEXT);
 
-        JLabel s = new JLabel(sub);
+        JLabel s = new JLabel(sub == null ? "" : sub);
         s.setFont(new Font("SansSerif", Font.PLAIN, 11));
         s.setForeground(TEXT_MID);
 
         mid.add(n);
-        mid.add(Box.createRigidArea(new Dimension(0, 2)));
-        mid.add(s);
+        if (sub != null && !sub.isBlank()) {
+            mid.add(Box.createRigidArea(new Dimension(0, 2)));
+            mid.add(s);
+        }
 
         JLabel p = new JLabel(price, SwingConstants.RIGHT);
         p.setFont(new Font("SansSerif", Font.BOLD, 12));
@@ -435,6 +461,163 @@ public class vistaPedido extends JFrame {
         row.add(p, BorderLayout.EAST);
 
         return row;
+    }
+
+    // ================= LOGIC =================
+
+    private void cargarProductosInicial() {
+        productosModel.clear();
+        List<Producto> lista = productoCtrl.listar();
+        for (Producto p : lista) productosModel.addElement(p);
+
+        // selecciona el primero si existe
+        if (!lista.isEmpty()) {
+            listaProductos.setSelectedIndex(0);
+        }
+    }
+
+    private void filtrarProductos(String q) {
+        String query = (q == null) ? "" : q.trim().toLowerCase();
+        productosModel.clear();
+
+        for (Producto p : productoCtrl.listar()) {
+            String nombre = (p.getNombre() == null) ? "" : p.getNombre().toLowerCase();
+            if (nombre.contains(query)) {
+                productosModel.addElement(p);
+            }
+        }
+
+        if (productosModel.size() > 0) {
+            listaProductos.setSelectedIndex(0);
+        } else {
+            productoSeleccionado = null;
+            actualizarCardProducto(null);
+        }
+    }
+
+    private void actualizarCardProducto(Producto p) {
+        if (p == null) {
+            lblProdNombre.setText("Selecciona un producto…");
+            lblProdPrecio.setText("$0.00");
+            lblProdDesc.setText("<html><span style='color:#64748b;'>—</span></html>");
+            return;
+        }
+
+        lblProdNombre.setText(p.getNombre());
+        lblProdPrecio.setText(String.format("$%.2f", p.getPrecio()));
+        lblProdDesc.setText("<html><span style='color:#64748b;'>Disponible en catálogo</span></html>");
+    }
+
+    private void onAgregarProducto() {
+        if (productoSeleccionado == null) {
+            JOptionPane.showMessageDialog(this, "Selecciona un producto.");
+            return;
+        }
+
+        try {
+            // ✅ usa VentaController para que haga validar stock + descontar stock + agregar al pedidoActual
+            ventaCtrl.agregarProductoAlPedido(productoSeleccionado, cantidadSeleccionada);
+
+            // reset UI
+            cantidadSeleccionada = 1;
+            lblCantidad.setText("1");
+            txtNotas.setText("");
+
+            refrescarResumen();
+
+        } catch (IllegalStateException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Stock / Pedido", JOptionPane.WARNING_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error agregando producto:\n" + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void refrescarResumen() {
+        resumenItemsPanel.removeAll();
+
+        double total = 0.0;
+
+        for (Producto p : pedido.getProductos()) {
+            int cant = pedido.getCantidadDeProducto(p);
+            double sub = p.getPrecio() * cant;
+            total += sub;
+
+            resumenItemsPanel.add(summaryItem(
+                    cant + "x",
+                    p.getNombre(),
+                    null,
+                    String.format("$%.2f", sub)
+            ));
+            resumenItemsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        }
+
+        lblTotalValor.setText(String.format("$%.2f", total));
+
+        resumenItemsPanel.revalidate();
+        resumenItemsPanel.repaint();
+    }
+
+    private void onFinalizar() {
+        try {
+            boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
+
+            Mesa mesa = null;
+            if (!paraLlevar) {
+                mesa = mesaCtrl.obtenerMesa(pedido.getNumeroMesa());
+            }
+
+            // ✅ Esto GUARDA la venta en ventaDAO y persiste productos (según tu VentaController)
+            Venta v = ventaCtrl.finalizarVenta(null, mesa, paraLlevar);
+
+            // ✅ Mesa: se libera al terminar (porque ya terminó la atención)
+            if (!paraLlevar) {
+                mesaCtrl.liberarMesa(pedido.getNumeroMesa());
+            }
+
+           JOptionPane.showMessageDialog(this, "Venta guardada: " + v.getId());
+
+            menuPrincipalRef.setVisible(true);
+            dispose();
+
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "No se pudo guardar la venta:\n" + ex.getMessage(),
+                    "Error IO", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error al finalizar:\n" + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void onCancelar() {
+        try {
+            boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
+
+            // si era mesa: liberar
+            if (!paraLlevar) {
+                mesaCtrl.liberarMesa(pedido.getNumeroMesa());
+            }
+
+            JOptionPane.showMessageDialog(this, "Pedido cancelado.");
+
+            menuPrincipalRef.setVisible(true);
+            dispose();
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error al cancelar:\n" + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void volverAtras() {
+        // regresar sin finalizar: para mesa vuelve a mapa de mesas
+        if (pedido.getTipoPedido().equals(Pedido.MESA)) {
+            vistaMesas vm = new vistaMesas(pedidoCtrl, productoCtrl, ventaCtrl, mesaCtrl, menuPrincipalRef);
+            vm.setVisible(true);
+        } else {
+            menuPrincipalRef.setVisible(true);
+        }
+        dispose();
     }
 
     // ================= BUTTONS (LAF-proof) =================
