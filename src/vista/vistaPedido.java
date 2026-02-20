@@ -5,732 +5,492 @@ import Controlador.PedidoController;
 import Controlador.ProductoController;
 import Controlador.VentaController;
 import Model.Pedido;
-import Model.Producto;
 
 import javax.swing.*;
 import javax.swing.border.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.text.*;
 import java.awt.*;
-import java.awt.event.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class vistaPedido extends JFrame {
 
-    private Pedido pedido;
+    // ===== Controllers =====
+    private final Pedido pedido;
+    private final PedidoController pedidoCtrl;
+    private final ProductoController productoCtrl;
+    private final VentaController ventaCtrl;
+    private final MesaController mesaCtrl;
+    private final MenuPrincipal menuPrincipalRef;
 
-    private final PedidoController pedidoController;
-    private final ProductoController productoController;
-    private final VentaController ventaController;
-    private final MesaController mesaController;
+    // ===== Palette (similar to mock) =====
+    private static final Color BG = new Color(0xF5, 0xF7, 0xFA);
+    private static final Color CARD = Color.WHITE;
+    private static final Color BORDER = new Color(0xE5, 0xE7, 0xEB);
+    private static final Color TEXT = new Color(0x0F, 0x17, 0x2A);
+    private static final Color TEXT_MID = new Color(0x64, 0x74, 0x8B);
 
-    private JLabel lblInfo;
-
-    // ===== Autocomplete UI con JComboBox =====
-    private JComboBox<Producto> cbProductos;
-    private JTextField txtBuscarEditor; // editor del combo
-    private List<Producto> productosCache = new ArrayList<>();
-    private Producto productoSeleccionado = null;
-
-    private JTextField txtCantidad;
-
-    private JButton btnAgregar;
-    private JButton btnFinalizar;
-    private JButton btnCancelar;
-
-    // Estado mesa
-    private boolean mesaAsignada = false;
-    private boolean cierreControlado = false;
-
-    // ===== Teclados flotantes =====
-    private AlphaKeyboard alphaKeyboard;
-    private NumericKeyboard numericKeyboard;
-
-    // ✅ Flags anti-loop / anti-eventos fantasma
-    private boolean actualizandoCombo = false;
-    private boolean actualizandoEditor = false;
+    private static final Color PRIMARY = new Color(0xEE, 0x9D, 0x2B);   // naranja
+    private static final Color NAVY = new Color(0x0B, 0x12, 0x22);      // azul oscuro panel resumen
+    private static final Color NAVY_2 = new Color(0x10, 0x1A, 0x33);
+    private static final Color DANGER = new Color(0xEF, 0x44, 0x44);
 
     public vistaPedido(Pedido pedido,
-                       PedidoController pedidoController,
-                       ProductoController productoController,
-                       VentaController ventaController,
-                       MesaController mesaController) {
+                       PedidoController pedidoCtrl,
+                       ProductoController productoCtrl,
+                       VentaController ventaCtrl,
+                       MesaController mesaCtrl,
+                       MenuPrincipal menuPrincipalRef) {
 
-        this.pedidoController = pedidoController;
-        this.productoController = productoController;
-        this.ventaController = ventaController;
-        this.mesaController = mesaController;
+        this.pedido = pedido;
+        this.pedidoCtrl = pedidoCtrl;
+        this.productoCtrl = productoCtrl;
+        this.ventaCtrl = ventaCtrl;
+        this.mesaCtrl = mesaCtrl;
+        this.menuPrincipalRef = menuPrincipalRef;
 
-        // Asegurar que el pedido exista en el controller
-        Pedido existente = pedidoController.buscarPedido(pedido.getCodigoPedido());
-        if (existente != null) {
-            this.pedido = existente;
-        } else {
-            this.pedido = pedidoController.crearPedido(
-                    pedido.getCodigoPedido(),
-                    pedido.getTipoPedido(),
-                    pedido.getNumeroMesa()
-            );
-        }
+        initUI();
+    }
 
-        setTitle("Pedido");
-        setSize(1200, 720);
-        setLocationRelativeTo(null);
+    private void initUI() {
+        setTitle("Orden #" + pedido.getCodigoPedido());
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
-        buildUI();
-        cargarProductos();
-        cargarComboInicialVacio(); // ✅ no muestra nada al inicio
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(BG);
+        root.setBorder(new EmptyBorder(14, 14, 14, 14));
 
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                hideAllKeyboards();
-                if (!cierreControlado) liberarMesaSiCorresponde();
-            }
+        JPanel shell = new JPanel(new BorderLayout());
+        shell.setBackground(CARD);
+        shell.setBorder(new CompoundBorder(
+                new LineBorder(BORDER, 1, true),
+                new EmptyBorder(0, 0, 0, 0)
+        ));
 
-            @Override
-            public void windowClosed(WindowEvent e) {
-                hideAllKeyboards();
-                if (!cierreControlado) liberarMesaSiCorresponde();
-            }
-        });
-    }
+        shell.add(buildTopBar(), BorderLayout.NORTH);
+        shell.add(buildContent(), BorderLayout.CENTER);
 
-    private void buildUI() {
-        JPanel root = new JPanel(new BorderLayout(20, 20));
-        root.setBorder(new EmptyBorder(18, 18, 18, 18));
-        root.setBackground(new Color(0xF6F7F9));
+        root.add(shell, BorderLayout.CENTER);
         setContentPane(root);
-
-        lblInfo = new JLabel(
-                "Pedido: " + pedido.getCodigoPedido()
-                        + " | Tipo: " + pedido.getTipoPedido()
-                        + (pedido.getNumeroMesa() != null ? (" | Mesa: " + pedido.getNumeroMesa()) : "")
-        );
-        lblInfo.setFont(new Font("SansSerif", Font.BOLD, 22));
-        lblInfo.setBorder(new EmptyBorder(0, 0, 12, 0));
-        root.add(lblInfo, BorderLayout.NORTH);
-
-        JPanel content = new JPanel(new BorderLayout(18, 18));
-        content.setOpaque(false);
-        root.add(content, BorderLayout.CENTER);
-
-        content.add(buildBuscadorConCombo(), BorderLayout.CENTER);
-        content.add(buildAcciones(), BorderLayout.EAST);
-
-        alphaKeyboard = new AlphaKeyboard(this);
-        numericKeyboard = new NumericKeyboard(this);
     }
 
-    private void hideAllKeyboards() {
-        if (alphaKeyboard != null) alphaKeyboard.hideKb();
-        if (numericKeyboard != null) numericKeyboard.hideKb();
-    }
-
-    // ============================
-    //  BUSCADOR CON JComboBox (autocomplete)
-    // ============================
-    private JComponent buildBuscadorConCombo() {
-        JPanel card = new JPanel();
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBackground(Color.WHITE);
-        card.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0xE2E8F0), 1, true),
-                new EmptyBorder(16, 16, 16, 16)
+    // ================= TOP BAR =================
+    private JComponent buildTopBar() {
+        JPanel top = new JPanel(new BorderLayout(12, 12));
+        top.setBackground(CARD);
+        top.setBorder(new CompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(0xF1, 0xF5, 0xF9)),
+                new EmptyBorder(12, 14, 12, 14)
         ));
 
-        JLabel titulo = new JLabel("Buscar producto");
-        titulo.setFont(new Font("SansSerif", Font.BOLD, 18));
-        titulo.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(titulo);
-        card.add(Box.createVerticalStrut(10));
+        // left: order + pill
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.X_AXIS));
 
-        JPanel searchBox = new JPanel(new BorderLayout(10, 0));
-        searchBox.setBackground(Color.WHITE);
-        searchBox.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0xCBD5E1), 1, true),
-                new EmptyBorder(8, 10, 8, 10)
-        ));
-        searchBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel order = new JLabel("ORDEN #" + pedido.getCodigoPedido());
+        order.setFont(new Font("SansSerif", Font.BOLD, 18));
+        order.setForeground(TEXT);
 
-        Dimension halfWidth = new Dimension(520, 52);
-        searchBox.setPreferredSize(halfWidth);
-        searchBox.setMaximumSize(halfWidth);
+        left.add(order);
+        left.add(Box.createRigidArea(new Dimension(12, 0)));
 
-        JLabel icon = new JLabel("🔎");
-        icon.setFont(new Font("SansSerif", Font.PLAIN, 18));
-        searchBox.add(icon, BorderLayout.WEST);
+        String pillTxt = pedido.getTipoPedido().equals(Pedido.MESA)
+                ? ("MESA " + pedido.getNumeroMesa())
+                : "PARA LLEVAR";
 
-        cbProductos = new JComboBox<>();
-        cbProductos.setEditable(true);
-        cbProductos.setBorder(null);
-        cbProductos.setFont(new Font("SansSerif", Font.PLAIN, 18));
-        cbProductos.setMaximumRowCount(8);
+        JPanel pill = pill(pillTxt);
+        left.add(pill);
 
-        // Render: solo nombre
-        cbProductos.setRenderer((list, value, index, isSelected, cellHasFocus) -> {
-            JLabel l = new JLabel(value == null ? "" : value.getNombre());
-            l.setOpaque(true);
-            l.setBorder(new EmptyBorder(8, 12, 8, 12));
-            if (isSelected) {
-                l.setBackground(new Color(0xE0F2FE));
-                l.setForeground(new Color(0x0F172A));
-            } else {
-                l.setBackground(Color.WHITE);
-                l.setForeground(new Color(0x111827));
-            }
-            return l;
-        });
+        // right: menu button + avatar
+        JPanel right = new JPanel();
+        right.setOpaque(false);
+        right.setLayout(new BoxLayout(right, BoxLayout.X_AXIS));
 
-        // Editor del combo
-        Component editorComp = cbProductos.getEditor().getEditorComponent();
-        txtBuscarEditor = (JTextField) editorComp;
-        txtBuscarEditor.setBorder(null);
-        txtBuscarEditor.setFont(new Font("SansSerif", Font.PLAIN, 18));
-        txtBuscarEditor.setToolTipText("Buscar producto por nombre...");
-
-        ((AbstractDocument) txtBuscarEditor.getDocument()).setDocumentFilter(new OnlyLettersFilter());
-
-        JLabel lblSel = new JLabel("Seleccionado: (ninguno)");
-        lblSel.setForeground(new Color(0x64748B));
-        lblSel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        lblSel.setBorder(new EmptyBorder(12, 2, 0, 0));
-        lblSel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        // ✅ Filtrado en vivo (SIN reescribir el editor)
-        txtBuscarEditor.getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { filtrar(lblSel); }
-            @Override public void removeUpdate(DocumentEvent e) { filtrar(lblSel); }
-            @Override public void changedUpdate(DocumentEvent e) { filtrar(lblSel); }
-        });
-
-        // ✅ Selección real del dropdown
-        cbProductos.addActionListener(e -> {
-            if (actualizandoCombo) return;
-
-            Object sel = cbProductos.getSelectedItem();
-            if (sel instanceof Producto) {
-                Producto p = (Producto) sel;
-                productoSeleccionado = p;
-
-                // aquí sí reescribimos porque ya es selección final
-                try {
-                    actualizandoEditor = true;
-                    txtBuscarEditor.setText(p.getNombre());
-                    txtBuscarEditor.setCaretPosition(p.getNombre().length());
-                } finally {
-                    actualizandoEditor = false;
-                }
-
-                lblSel.setText("Seleccionado: " + p.getNombre());
-                cbProductos.hidePopup();
-            }
-        });
-
-        // ✅ teclado SOLO letras al tocar el buscador
-        txtBuscarEditor.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (numericKeyboard != null) numericKeyboard.hideKb();
-                if (alphaKeyboard != null) {
-                    alphaKeyboard.attach(txtBuscarEditor);
-                    alphaKeyboard.showCenteredInOwner();
-                }
-            }
-        });
-
-        searchBox.add(cbProductos, BorderLayout.CENTER);
-        card.add(searchBox);
-        card.add(lblSel);
-
-        card.add(Box.createVerticalStrut(18));
-        JLabel tip = new JLabel("Tip: escribe y selecciona de la lista. Enter o doble click agrega.");
-        tip.setForeground(new Color(0x64748B));
-        tip.setFont(new Font("SansSerif", Font.BOLD, 13));
-        tip.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(tip);
-
-        return card;
-    }
-
-    // ✅ Filtrado sin sobreescribir el editor
-    private void filtrar(JLabel lblSel) {
-        if (actualizandoEditor) return;
-
-        productoSeleccionado = null;
-        lblSel.setText("Seleccionado: (ninguno)");
-
-        String t = txtBuscarEditor.getText();
-        int caret = txtBuscarEditor.getCaretPosition();
-
-        if (t == null || t.trim().isEmpty()) {
-            actualizandoCombo = true;
-            cbProductos.setModel(new DefaultComboBoxModel<>());
-            actualizandoCombo = false;
-            cbProductos.hidePopup();
-            return;
-        }
-
-        List<Producto> matches = filtrarProductos(t);
-
-        actualizandoCombo = true;
-        DefaultComboBoxModel<Producto> model = new DefaultComboBoxModel<>();
-        for (Producto p : matches) model.addElement(p);
-        cbProductos.setModel(model);
-        actualizandoCombo = false;
-
-        // NO tocar el texto; solo restaurar caret si el Look&Feel lo mueve
-        SwingUtilities.invokeLater(() -> {
-            try {
-                actualizandoEditor = true;
-                int safe = Math.min(caret, txtBuscarEditor.getText().length());
-                txtBuscarEditor.setCaretPosition(safe);
-            } finally {
-                actualizandoEditor = false;
-            }
-
-            if (!matches.isEmpty()) cbProductos.showPopup();
-            else cbProductos.hidePopup();
-        });
-    }
-
-    private void cargarComboInicialVacio() {
-        actualizandoCombo = true;
-        cbProductos.setModel(new DefaultComboBoxModel<>());
-        actualizandoCombo = false;
-        // ✅ NO limpiar editor aquí (evita "sobreponer")
-    }
-
-    private List<Producto> filtrarProductos(String texto) {
-        String f = texto.trim().toLowerCase();
-        List<Producto> res = new ArrayList<>();
-        for (Producto p : productosCache) {
-            String nombre = p.getNombre() == null ? "" : p.getNombre();
-            if (nombre.toLowerCase().contains(f)) res.add(p);
-        }
-        return res;
-    }
-
-    // ============================
-    //  ACCIONES
-    // ============================
-    private JComponent buildAcciones() {
-        JPanel card = new JPanel();
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBackground(Color.WHITE);
-        card.setPreferredSize(new Dimension(360, 0));
-        card.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0xE2E8F0), 1, true),
-                new EmptyBorder(16, 16, 16, 16)
-        ));
-
-        JLabel lblCant = new JLabel("Cantidad");
-        lblCant.setFont(new Font("SansSerif", Font.BOLD, 18));
-        lblCant.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        txtCantidad = new JTextField("1");
-        txtCantidad.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
-        txtCantidad.setFont(new Font("SansSerif", Font.BOLD, 20));
-        txtCantidad.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0xCBD5E1), 1, true),
-                new EmptyBorder(10, 12, 10, 12)
-        ));
-
-        ((AbstractDocument) txtCantidad.getDocument()).setDocumentFilter(new OnlyDigitsFilter());
-
-        txtCantidad.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (alphaKeyboard != null) alphaKeyboard.hideKb();
-                if (numericKeyboard != null) {
-                    numericKeyboard.attach(txtCantidad);
-                    numericKeyboard.showCenteredInOwner();
-                }
-            }
-        });
-
-        btnAgregar = new JButton("Agregar Producto");
-        btnAgregar.setFont(new Font("SansSerif", Font.BOLD, 20));
-        btnAgregar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
-        btnAgregar.addActionListener(e -> agregarProducto());
-
-        btnFinalizar = new JButton("Finalizar Pedido");
-        btnFinalizar.setFont(new Font("SansSerif", Font.BOLD, 20));
-        btnFinalizar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
-        btnFinalizar.addActionListener(e -> finalizarPedido());
-
-        btnCancelar = new JButton("Cancelar Pedido");
-        btnCancelar.setFont(new Font("SansSerif", Font.BOLD, 20));
-        btnCancelar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
-        btnCancelar.addActionListener(e -> cancelarPedido());
-
-        JButton btnMenu = new JButton("Menú Principal");
-        btnMenu.setFont(new Font("SansSerif", Font.BOLD, 20));
-        btnMenu.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
-        btnMenu.addActionListener(e -> volverAlMenu());
-
-        card.add(lblCant);
-        card.add(Box.createVerticalStrut(8));
-        card.add(txtCantidad);
-        card.add(Box.createVerticalStrut(18));
-        card.add(btnAgregar);
-        card.add(Box.createVerticalStrut(12));
-        card.add(btnFinalizar);
-        card.add(Box.createVerticalStrut(12));
-        card.add(btnCancelar);
-        card.add(Box.createVerticalStrut(12));
-        card.add(btnMenu);
-
-        return card;
-    }
-
-    private void cargarProductos() {
-        productosCache = new ArrayList<>(productoController.listar());
-        if (productosCache.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No hay productos cargados.", "Aviso", JOptionPane.WARNING_MESSAGE);
-            btnAgregar.setEnabled(false);
-            cbProductos.setEnabled(false);
-        }
-    }
-
-    private void agregarProducto() {
-        try {
-            hideAllKeyboards();
-
-            Producto producto = productoSeleccionado;
-            if (producto == null) {
-                String typed = txtBuscarEditor.getText().trim().toLowerCase();
-                for (Producto p : productosCache) {
-                    if (p.getNombre() != null && p.getNombre().trim().toLowerCase().equals(typed)) {
-                        producto = p;
-                        break;
-                    }
-                }
-            }
-
-            if (producto == null) {
-                JOptionPane.showMessageDialog(this, "Selecciona un producto de la lista.", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            int cantidad = Integer.parseInt(txtCantidad.getText().trim());
-            if (cantidad <= 0) {
-                JOptionPane.showMessageDialog(this, "La cantidad debe ser mayor a 0.", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            pedidoController.agregarProductoAPedido(pedido.getCodigoPedido(), producto, cantidad);
-
-            if (pedido.getTipoPedido().equals(Pedido.MESA) && !mesaAsignada) {
-                Integer numMesa = pedido.getNumeroMesa();
-                if (numMesa != null && mesaController.estaLibre(numMesa)) {
-                    mesaController.asignarPedido(numMesa, pedido);
-                    mesaAsignada = true;
-                }
-            }
-
-            JOptionPane.showMessageDialog(this, "Producto agregado ✅");
-
-            txtCantidad.setText("1");
-            productoSeleccionado = null;
-
-            // ✅ aquí sí limpiamos el editor a propósito (no dentro de filtrar())
-            actualizandoEditor = true;
-            txtBuscarEditor.setText("");
-            actualizandoEditor = false;
-
-            cargarComboInicialVacio();
-            txtBuscarEditor.requestFocusInWindow();
-
-        } catch (NumberFormatException nfe) {
-            JOptionPane.showMessageDialog(this, "Cantidad debe ser un número entero.", "Error", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void finalizarPedido() {
-        hideAllKeyboards();
-        JOptionPane.showMessageDialog(this, "FinalizarPedido(): integra tu lógica real aquí.");
-    }
-
-    private void cancelarPedido() {
-        hideAllKeyboards();
-        cierreControlado = true;
-        liberarMesaSiCorresponde();
-        dispose();
-    }
-
-    private void liberarMesaSiCorresponde() {
-        try {
+        JButton btnMenu = ghostButton("▦  MENÚ PRINCIPAL");
+        btnMenu.addActionListener(e -> {
             if (pedido.getTipoPedido().equals(Pedido.MESA)) {
-                Integer numMesa = pedido.getNumeroMesa();
-                if (numMesa != null && !mesaController.estaLibre(numMesa)) {
-                    mesaController.liberarMesa(numMesa);
-                }
-                mesaAsignada = false;
+                vistaMesas vm = new vistaMesas(pedidoCtrl, productoCtrl, ventaCtrl, mesaCtrl, menuPrincipalRef);
+                vm.setVisible(true);
+            } else {
+                menuPrincipalRef.setVisible(true);
             }
-        } catch (Exception ignored) {}
-    }
-
-    private void volverAlMenu() {
-        hideAllKeyboards();
-        dispose();
-
-        SwingUtilities.invokeLater(() -> {
-            for (java.awt.Frame f : java.awt.Frame.getFrames()) {
-                if (f instanceof JFrame && f.isVisible()
-                        && f.getTitle() != null
-                        && f.getTitle().contains("Cafetería UCR")) {
-                    f.toFront();
-                    f.requestFocus();
-                    break;
-                }
-            }
+            dispose();
         });
+
+        right.add(btnMenu);
+        right.add(Box.createRigidArea(new Dimension(10, 0)));
+        right.add(avatar("JD"));
+
+        top.add(left, BorderLayout.WEST);
+        top.add(right, BorderLayout.EAST);
+        return top;
     }
 
-    // ============================
-    //  FILTROS
-    // ============================
-    private static class OnlyLettersFilter extends DocumentFilter {
-        private boolean ok(String s) { return s != null && s.matches("[\\p{L} ]*"); }
+    private JPanel pill(String text) {
+        JPanel p = new JPanel();
+        p.setBackground(new Color(PRIMARY.getRed(), PRIMARY.getGreen(), PRIMARY.getBlue(), 35));
+        p.setBorder(new CompoundBorder(
+                new LineBorder(new Color(0,0,0,10), 1, true),
+                new EmptyBorder(6, 10, 6, 10)
+        ));
+        p.setLayout(new BoxLayout(p, BoxLayout.X_AXIS));
 
-        @Override
-        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
-            if (string == null) return;
-            if (ok(string)) super.insertString(fb, offset, string, attr);
-            else Toolkit.getDefaultToolkit().beep();
-        }
+        JLabel l = new JLabel(text);
+        l.setFont(new Font("SansSerif", Font.BOLD, 11));
+        l.setForeground(new Color(0xB4, 0x6A, 0x07)); // naranja oscuro
 
-        @Override
-        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
-            if (text == null) return;
-            if (ok(text)) super.replace(fb, offset, length, text, attrs);
-            else Toolkit.getDefaultToolkit().beep();
-        }
+        p.add(l);
+        return p;
     }
 
-    private static class OnlyDigitsFilter extends DocumentFilter {
-        private boolean ok(String s) { return s != null && s.matches("[0-9]*"); }
+    private JComponent avatar(String initials) {
+        JPanel a = new JPanel(new GridBagLayout());
+        a.setPreferredSize(new Dimension(34, 34));
+        a.setMaximumSize(new Dimension(34, 34));
+        a.setBackground(new Color(0xF1, 0xF5, 0xF9));
+        a.setBorder(new LineBorder(new Color(0,0,0,12), 1, true));
 
-        @Override
-        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
-            if (string == null) return;
-            if (ok(string)) super.insertString(fb, offset, string, attr);
-            else Toolkit.getDefaultToolkit().beep();
-        }
-
-        @Override
-        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
-            if (text == null) return;
-            if (ok(text)) super.replace(fb, offset, length, text, attrs);
-            else Toolkit.getDefaultToolkit().beep();
-        }
+        JLabel t = new JLabel(initials);
+        t.setFont(new Font("SansSerif", Font.BOLD, 12));
+        t.setForeground(TEXT_MID);
+        a.add(t);
+        return a;
     }
 
-    // ============================
-    //  TECLADO LETRAS (Document API)
-    // ============================
-    private static class AlphaKeyboard extends JDialog {
-        private JTextField target;
+    // ================= MAIN CONTENT (2 columns) =================
+    private JComponent buildContent() {
+        JPanel content = new JPanel(new BorderLayout(14, 14));
+        content.setOpaque(false);
+        content.setBorder(new EmptyBorder(14, 14, 14, 14));
 
-        AlphaKeyboard(Window owner) {
-            super(owner);
-            setUndecorated(true);
-            setAlwaysOnTop(true);
-            setFocusableWindowState(false);
-            setAutoRequestFocus(false);
+        content.add(buildLeftColumn(), BorderLayout.CENTER);
+        content.add(buildRightSummary(), BorderLayout.EAST);
 
-            JPanel root = new JPanel(new BorderLayout(8, 8));
-            root.setBorder(new CompoundBorder(new LineBorder(new Color(0xCBD5E1), 1, true),
-                    new EmptyBorder(10, 10, 10, 10)));
-            root.setBackground(new Color(0xF8FAFC));
-            setContentPane(root);
-
-            JPanel keys = new JPanel(new GridLayout(3, 10, 6, 6));
-            keys.setOpaque(false);
-
-            String[] letters = {
-                    "Q","W","E","R","T","Y","U","I","O","P",
-                    "A","S","D","F","G","H","J","K","L","Ñ",
-                    "Z","X","C","V","B","N","M","Á","É","Í"
-            };
-
-            for (String k : letters) keys.add(keyBtn(k, () -> insert(k.toLowerCase())));
-
-            JPanel actions = new JPanel(new GridLayout(1, 4, 6, 6));
-            actions.setOpaque(false);
-            actions.add(keyBtn("Espacio", () -> insert(" ")));
-            actions.add(keyBtn("Borrar", this::backspace));
-            actions.add(keyBtn("Limpiar", this::clear));
-            actions.add(keyBtn("Cerrar", this::hideKb));
-
-            root.add(keys, BorderLayout.CENTER);
-            root.add(actions, BorderLayout.SOUTH);
-            pack();
-        }
-
-        void attach(JTextField t) { target = t; }
-
-        void showCenteredInOwner() {
-            if (getOwner() == null) return;
-            Rectangle o = getOwner().getBounds();
-            int x = o.x + (o.width - getWidth()) / 2;
-            int y = o.y + o.height - getHeight() - 70;
-            setLocation(x, y);
-            if (!isVisible()) setVisible(true);
-        }
-
-        void hideKb() { setVisible(false); }
-
-        private JButton keyBtn(String text, Runnable r) {
-            JButton b = new JButton(text);
-            b.setFont(new Font("SansSerif", Font.BOLD, 16));
-            b.setFocusPainted(false);
-            b.addActionListener(e -> r.run());
-            return b;
-        }
-
-        private void insert(String s) {
-            if (target == null) return;
-            target.requestFocusInWindow();
-            int pos = target.getCaretPosition();
-            try {
-                Document doc = target.getDocument();
-                doc.insertString(pos, s, null);
-                target.setCaretPosition(pos + s.length());
-            } catch (BadLocationException ex) {
-                Toolkit.getDefaultToolkit().beep();
-            }
-        }
-
-        private void backspace() {
-            if (target == null) return;
-            target.requestFocusInWindow();
-            int pos = target.getCaretPosition();
-            if (pos <= 0) return;
-
-            try {
-                Document doc = target.getDocument();
-                doc.remove(pos - 1, 1);
-                target.setCaretPosition(pos - 1);
-            } catch (BadLocationException ex) {
-                Toolkit.getDefaultToolkit().beep();
-            }
-        }
-
-        private void clear() {
-            if (target == null) return;
-            target.requestFocusInWindow();
-            try {
-                Document doc = target.getDocument();
-                doc.remove(0, doc.getLength());
-            } catch (BadLocationException ex) {
-                Toolkit.getDefaultToolkit().beep();
-            }
-        }
+        return content;
     }
 
-    // ============================
-    //  TECLADO NUMÉRICO (Document API)
-    // ============================
-    private static class NumericKeyboard extends JDialog {
-        private JTextField target;
+    // ================= LEFT COLUMN =================
+    private JComponent buildLeftColumn() {
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
 
-        NumericKeyboard(Window owner) {
-            super(owner);
-            setUndecorated(true);
-            setAlwaysOnTop(true);
-            setFocusableWindowState(false);
-            setAutoRequestFocus(false);
+        left.add(searchBar());
+        left.add(Box.createRigidArea(new Dimension(0, 12)));
+        left.add(productCardMock());
+        left.add(Box.createRigidArea(new Dimension(0, 12)));
+        left.add(quantityRow());
+        left.add(Box.createRigidArea(new Dimension(0, 12)));
+        left.add(notesBox());
+        left.add(Box.createRigidArea(new Dimension(0, 14)));
 
-            JPanel root = new JPanel(new BorderLayout(8, 8));
-            root.setBorder(new CompoundBorder(new LineBorder(new Color(0xCBD5E1), 1, true),
-                    new EmptyBorder(10, 10, 10, 10)));
-            root.setBackground(new Color(0xF8FAFC));
-            setContentPane(root);
+        JButton add = solidButton("🛒  AGREGAR PRODUCTO", PRIMARY, Color.WHITE, 16, 14);
+        add.setAlignmentX(Component.LEFT_ALIGNMENT);
+        add.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
 
-            JPanel keys = new JPanel(new GridLayout(4, 3, 6, 6));
-            keys.setOpaque(false);
+        // TODO: aquí conectas con tu lógica real de agregar items al pedido
+        add.addActionListener(e -> JOptionPane.showMessageDialog(this, "Agregar producto (demo)"));
 
-            String[] nums = {"7","8","9","4","5","6","1","2","3","0","⌫","Cerrar"};
-            for (String n : nums) {
-                if ("⌫".equals(n)) keys.add(keyBtn(n, this::backspace));
-                else if ("Cerrar".equals(n)) keys.add(keyBtn(n, this::hideKb));
-                else keys.add(keyBtn(n, () -> insert(n)));
+        left.add(add);
+
+        return left;
+    }
+
+    private JComponent searchBar() {
+        JTextField search = new JTextField();
+        search.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        search.setForeground(TEXT);
+        search.setBackground(Color.WHITE);
+        search.setBorder(new CompoundBorder(
+                new LineBorder(BORDER, 1, true),
+                new EmptyBorder(12, 12, 12, 12)
+        ));
+        search.setToolTipText("Buscar producto (Hamburguesa, bebida...)");
+
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setOpaque(false);
+        wrap.add(search, BorderLayout.CENTER);
+        wrap.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return wrap;
+    }
+
+    private JComponent productCardMock() {
+        JPanel card = new JPanel(new BorderLayout(12, 12));
+        card.setBackground(CARD);
+        card.setBorder(new CompoundBorder(
+                new LineBorder(BORDER, 1, true),
+                new EmptyBorder(14, 14, 14, 14)
+        ));
+        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel name = new JLabel("Hamburguesa Clásica");
+        name.setFont(new Font("SansSerif", Font.BOLD, 24));
+        name.setForeground(TEXT);
+
+        JLabel price = new JLabel("$12.50");
+        price.setFont(new Font("SansSerif", Font.BOLD, 18));
+        price.setForeground(PRIMARY);
+
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
+        top.add(name, BorderLayout.WEST);
+        top.add(price, BorderLayout.EAST);
+
+        JLabel desc = new JLabel("<html><span style='color:#64748b;'>Carne premium, lechuga, tomate y nuestra salsa secreta...</span></html>");
+        desc.setBorder(new EmptyBorder(6, 0, 0, 0));
+
+        card.add(top, BorderLayout.NORTH);
+        card.add(desc, BorderLayout.CENTER);
+        return card;
+    }
+
+    private JComponent quantityRow() {
+        JPanel row = new JPanel(new BorderLayout(10, 10));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel label = new JLabel("CANTIDAD");
+        label.setFont(new Font("SansSerif", Font.BOLD, 11));
+        label.setForeground(TEXT_MID);
+
+        JPanel controls = new JPanel(new BorderLayout(10, 0));
+        controls.setOpaque(false);
+
+        JButton minus = outlineButton("−", new Color(0,0,0,15), TEXT_MID, 18, 14);
+        JButton plus  = solidButton("+", PRIMARY, Color.WHITE, 18, 14);
+
+        JLabel qty = new JLabel("1", SwingConstants.CENTER);
+        qty.setFont(new Font("SansSerif", Font.BOLD, 18));
+        qty.setOpaque(true);
+        qty.setBackground(new Color(0xF8, 0xFA, 0xFC));
+        qty.setBorder(new LineBorder(BORDER, 1, true));
+        qty.setPreferredSize(new Dimension(80, 44));
+
+        JPanel mid = new JPanel(new BorderLayout());
+        mid.setOpaque(false);
+        mid.add(qty, BorderLayout.CENTER);
+
+        controls.add(minus, BorderLayout.WEST);
+        controls.add(mid, BorderLayout.CENTER);
+        controls.add(plus, BorderLayout.EAST);
+
+        JPanel box = new JPanel();
+        box.setOpaque(false);
+        box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
+        box.add(label);
+        box.add(Box.createRigidArea(new Dimension(0, 6)));
+        box.add(controls);
+
+        row.add(box, BorderLayout.CENTER);
+        return row;
+    }
+
+    private JComponent notesBox() {
+        JPanel box = new JPanel();
+        box.setOpaque(false);
+        box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
+        box.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel label = new JLabel("NOTAS ESPECIALES");
+        label.setFont(new Font("SansSerif", Font.BOLD, 11));
+        label.setForeground(TEXT_MID);
+
+        JTextArea area = new JTextArea(4, 20);
+        area.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setBorder(new EmptyBorder(10, 12, 10, 12));
+
+        JScrollPane sp = new JScrollPane(area);
+        sp.setBorder(new LineBorder(BORDER, 1, true));
+        sp.setBackground(Color.WHITE);
+
+        box.add(label);
+        box.add(Box.createRigidArea(new Dimension(0, 6)));
+        box.add(sp);
+        return box;
+    }
+
+    // ================= RIGHT SUMMARY =================
+    private JComponent buildRightSummary() {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setPreferredSize(new Dimension(420, 0));
+        card.setBackground(CARD);
+        card.setBorder(new LineBorder(BORDER, 1, true));
+
+        // header
+        JLabel title = new JLabel("  🧾  RESUMEN DE PEDIDO");
+        title.setFont(new Font("SansSerif", Font.BOLD, 14));
+        title.setForeground(TEXT);
+        title.setBorder(new EmptyBorder(14, 14, 14, 14));
+        card.add(title, BorderLayout.NORTH);
+
+        // items list mock
+        JPanel list = new JPanel();
+        list.setBackground(CARD);
+        list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
+        list.setBorder(new EmptyBorder(10, 14, 10, 14));
+
+        list.add(summaryItem("1x", "Hamburguesa", "Queso", "$12.00"));
+        list.add(Box.createRigidArea(new Dimension(0, 10)));
+        list.add(summaryItem("1x", "Papas Fritas", "Extra crujientes", "$8.50"));
+
+        JScrollPane sp = new JScrollPane(list);
+        sp.setBorder(null);
+        sp.getVerticalScrollBar().setUnitIncrement(16);
+
+        card.add(sp, BorderLayout.CENTER);
+
+        // bottom navy total + buttons
+        JPanel bottom = new JPanel();
+        bottom.setLayout(new BoxLayout(bottom, BoxLayout.Y_AXIS));
+        bottom.setBackground(NAVY);
+        bottom.setBorder(new EmptyBorder(14, 14, 14, 14));
+
+        JPanel totalRow = new JPanel(new BorderLayout());
+        totalRow.setOpaque(false);
+
+        JLabel totalLbl = new JLabel("TOTAL");
+        totalLbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+        totalLbl.setForeground(new Color(0x9C, 0xA3, 0xAF));
+
+        JLabel totalVal = new JLabel("$20.50", SwingConstants.RIGHT);
+        totalVal.setFont(new Font("SansSerif", Font.BOLD, 28));
+        totalVal.setForeground(PRIMARY);
+
+        totalRow.add(totalLbl, BorderLayout.WEST);
+        totalRow.add(totalVal, BorderLayout.EAST);
+
+        bottom.add(totalRow);
+        bottom.add(Box.createRigidArea(new Dimension(0, 12)));
+
+        JButton finish = solidButton("✅  FINALIZAR PEDIDO", PRIMARY, Color.WHITE, 14, 12);
+        finish.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+        finish.addActionListener(e -> {
+            if (pedido.getTipoPedido().equals(Pedido.MESA)) {
+                mesaCtrl.liberarMesa(pedido.getNumeroMesa());
             }
+            JOptionPane.showMessageDialog(this, "Pedido finalizado correctamente");
+            menuPrincipalRef.setVisible(true);
+            dispose();
+        });
 
-            JPanel actions = new JPanel(new GridLayout(1, 1, 6, 6));
-            actions.setOpaque(false);
-            actions.add(keyBtn("Limpiar", this::clear));
-
-            root.add(keys, BorderLayout.CENTER);
-            root.add(actions, BorderLayout.SOUTH);
-            pack();
-        }
-
-        void attach(JTextField t) { target = t; }
-
-        void showCenteredInOwner() {
-            if (getOwner() == null) return;
-            Rectangle o = getOwner().getBounds();
-            int x = o.x + (o.width - getWidth()) / 2;
-            int y = o.y + o.height - getHeight() - 70;
-            setLocation(x, y);
-            if (!isVisible()) setVisible(true);
-        }
-
-        void hideKb() { setVisible(false); }
-
-        private JButton keyBtn(String text, Runnable r) {
-            JButton b = new JButton(text);
-            b.setFont(new Font("SansSerif", Font.BOLD, 16));
-            b.setFocusPainted(false);
-            b.addActionListener(e -> r.run());
-            return b;
-        }
-
-        private void insert(String s) {
-            if (target == null) return;
-            target.requestFocusInWindow();
-            int pos = target.getCaretPosition();
-            try {
-                Document doc = target.getDocument();
-                doc.insertString(pos, s, null);
-                target.setCaretPosition(pos + s.length());
-            } catch (BadLocationException ex) {
-                Toolkit.getDefaultToolkit().beep();
+        JButton cancel = outlineButton("✖  CANCELAR PEDIDO", DANGER, DANGER, 14, 12);
+        cancel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+        cancel.addActionListener(e -> {
+            if (pedido.getTipoPedido().equals(Pedido.MESA)) {
+                mesaCtrl.liberarMesa(pedido.getNumeroMesa());
             }
-        }
+            JOptionPane.showMessageDialog(this, "Pedido cancelado");
+            menuPrincipalRef.setVisible(true);
+            dispose();
+        });
 
-        private void backspace() {
-            if (target == null) return;
-            target.requestFocusInWindow();
-            int pos = target.getCaretPosition();
-            if (pos <= 0) return;
+        bottom.add(finish);
+        bottom.add(Box.createRigidArea(new Dimension(0, 10)));
+        bottom.add(cancel);
 
-            try {
-                Document doc = target.getDocument();
-                doc.remove(pos - 1, 1);
-                target.setCaretPosition(pos - 1);
-            } catch (BadLocationException ex) {
-                Toolkit.getDefaultToolkit().beep();
+        JPanel bottomWrap = new JPanel(new BorderLayout());
+        bottomWrap.setBackground(NAVY);
+        bottomWrap.add(bottom, BorderLayout.CENTER);
+
+        card.add(bottomWrap, BorderLayout.SOUTH);
+
+        return card;
+    }
+
+    private JComponent summaryItem(String qty, String name, String sub, String price) {
+        JPanel row = new JPanel(new BorderLayout(10, 0));
+        row.setBackground(new Color(0xF8, 0xFA, 0xFC));
+        row.setBorder(new CompoundBorder(
+                new LineBorder(new Color(0,0,0,10), 1, true),
+                new EmptyBorder(10, 10, 10, 10)
+        ));
+
+        JLabel q = new JLabel(qty);
+        q.setFont(new Font("SansSerif", Font.BOLD, 12));
+        q.setForeground(PRIMARY);
+
+        JPanel mid = new JPanel();
+        mid.setOpaque(false);
+        mid.setLayout(new BoxLayout(mid, BoxLayout.Y_AXIS));
+
+        JLabel n = new JLabel(name);
+        n.setFont(new Font("SansSerif", Font.BOLD, 13));
+        n.setForeground(TEXT);
+
+        JLabel s = new JLabel(sub);
+        s.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        s.setForeground(TEXT_MID);
+
+        mid.add(n);
+        mid.add(Box.createRigidArea(new Dimension(0, 2)));
+        mid.add(s);
+
+        JLabel p = new JLabel(price, SwingConstants.RIGHT);
+        p.setFont(new Font("SansSerif", Font.BOLD, 12));
+        p.setForeground(TEXT);
+
+        row.add(q, BorderLayout.WEST);
+        row.add(mid, BorderLayout.CENTER);
+        row.add(p, BorderLayout.EAST);
+
+        return row;
+    }
+
+    // ================= BUTTONS (LAF-proof) =================
+    private JButton solidButton(String text, Color bg, Color fg, int fontSize, int pad) {
+        JButton b = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
             }
-        }
+        };
+        b.setFont(new Font("SansSerif", Font.BOLD, fontSize));
+        b.setForeground(fg);
+        b.setContentAreaFilled(false);
+        b.setOpaque(false);
+        b.setBorder(new CompoundBorder(
+                new LineBorder(new Color(0,0,0,18), 1, true),
+                new EmptyBorder(pad, 16, pad, 16)
+        ));
+        b.setFocusPainted(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
 
-        private void clear() {
-            if (target == null) return;
-            target.requestFocusInWindow();
-            try {
-                Document doc = target.getDocument();
-                doc.remove(0, doc.getLength());
-            } catch (BadLocationException ex) {
-                Toolkit.getDefaultToolkit().beep();
-            }
-        }
+    private JButton outlineButton(String text, Color borderColor, Color fg, int fontSize, int pad) {
+        JButton b = new JButton(text);
+        b.setFont(new Font("SansSerif", Font.BOLD, fontSize));
+        b.setForeground(fg);
+        b.setContentAreaFilled(false);
+        b.setOpaque(false);
+        b.setBorder(new CompoundBorder(
+                new LineBorder(borderColor, 2, true),
+                new EmptyBorder(pad, 16, pad, 16)
+        ));
+        b.setFocusPainted(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    private JButton ghostButton(String text) {
+        JButton b = new JButton(text);
+        b.setFont(new Font("SansSerif", Font.BOLD, 12));
+        b.setForeground(TEXT_MID);
+        b.setBackground(new Color(0xF1, 0xF5, 0xF9));
+        b.setOpaque(true);
+        b.setContentAreaFilled(true);
+        b.setBorder(new CompoundBorder(
+                new LineBorder(new Color(0,0,0,12), 1, true),
+                new EmptyBorder(8, 12, 8, 12)
+        ));
+        b.setFocusPainted(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
     }
 }

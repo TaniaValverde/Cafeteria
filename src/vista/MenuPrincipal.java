@@ -115,33 +115,41 @@ public class MenuPrincipal extends JFrame {
     }
 
     // ✅ Constructor REAL: vistaMesas(PedidoController, ProductoController, VentaController, MesaController)
-    private void abrirMesas() {
-        vistaMesas vm = new vistaMesas(
-                pedidoCtrl,
-                productoCtrl,
-                ventaCtrl,
-                mesaCtrl
-        );
-        vm.setVisible(true);
-    }
-
-    // ✅ Constructor REAL: vistaPedido(Pedido, PedidoController, ProductoController, VentaController, MesaController)
+   private void abrirMesas() {
+    vistaMesas vm = new vistaMesas(
+            pedidoCtrl,
+            productoCtrl,
+            ventaCtrl,
+            mesaCtrl,
+            this // ✅ referencia real del menú principal
+    );
+    vm.setVisible(true);
+    this.setVisible(false); // ✅ para que no queden dos ventanas encima
+}
+   
+    
     private void abrirParaLlevar() {
 
-        int codigo = (int) (System.currentTimeMillis() % 100000); // código rápido único
-        String tipo = "PARA_LLEVAR";
-        Integer numeroMesa = null; // para llevar no tiene mesa
-
-        Pedido pedidoNuevo = new Pedido(codigo, tipo, numeroMesa);
-
+        int codigo = pedidoCtrl.cantidadPedidos() + 1;
+        while (pedidoCtrl.buscarPedido(codigo) != null) {
+            codigo++;
+        }
+        Pedido pedido = pedidoCtrl.crearPedido(
+                codigo,
+                Pedido.PARA_LLEVAR,
+                null
+        );
         vistaPedido vp = new vistaPedido(
-                pedidoNuevo,
+                pedido,
                 pedidoCtrl,
                 productoCtrl,
                 ventaCtrl,
-                mesaCtrl
+                mesaCtrl,
+                this
         );
         vp.setVisible(true);
+        this.setVisible(false);
+
     }
 
     // ✅ Tu constructor REAL es: public vistaFactura()
