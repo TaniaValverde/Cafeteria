@@ -96,6 +96,24 @@ public class ProductoController {
     }
 
     /**
+     * Updates ONLY the stock of an existing product (by code).
+     *
+     * @param codigo product code
+     * @param nuevoStock new stock
+     * @throws IOException if persistence fails
+     */
+    public void actualizarStock(String codigo, int nuevoStock) throws IOException {
+        if (nuevoStock < 0) {
+            throw new IllegalArgumentException("El stock no puede ser negativo.");
+        }
+
+        Producto p = buscarPorCodigo(codigo);
+        p.setStock(nuevoStock);
+
+        guardarCambios();
+    }
+
+    /**
      * Deletes a product by its code.
      *
      * @param codigo product code

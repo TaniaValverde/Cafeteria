@@ -4,7 +4,6 @@ import Controlador.ProductoController;
 import Model.Producto;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FlowLayout;
 import java.io.IOException;
@@ -106,6 +105,7 @@ public class vistaInventario extends JFrame {
         btnGuardar = new JButton("Guardar Cambios");
         btnGuardar.setFont(new Font("SansSerif", Font.BOLD, 14));
         btnGuardar.addActionListener(e -> guardarCambios());
+
         JButton btnMenu = new JButton("Menú Principal");
         btnMenu.setFont(f);
         btnMenu.addActionListener(e -> volverAlMenu());
@@ -134,11 +134,11 @@ public class vistaInventario extends JFrame {
         List<Producto> productos = productoController.listar();
         for (Producto p : productos) {
             Object[] row = {
-                p.getCodigo(),
-                p.getNombre(),
-                p.getCategoria(),
-                p.getPrecio(),
-                p.getStock()
+                    p.getCodigo(),
+                    p.getNombre(),
+                    p.getCategoria(),
+                    p.getPrecio(),
+                    p.getStock()
             };
             modelo.addRow(row);
         }
@@ -161,11 +161,11 @@ public class vistaInventario extends JFrame {
 
             if (cod.contains(q) || nom.contains(q)) {
                 Object[] row = {
-                    p.getCodigo(),
-                    p.getNombre(),
-                    p.getCategoria(),
-                    p.getPrecio(),
-                    p.getStock()
+                        p.getCodigo(),
+                        p.getNombre(),
+                        p.getCategoria(),
+                        p.getPrecio(),
+                        p.getStock()
                 };
                 modelo.addRow(row);
             }
@@ -202,8 +202,6 @@ public class vistaInventario extends JFrame {
     }
 
     private void guardarCambios() {
-        // Guardamos fila por fila usando el método modificar del controller
-        // modificar(codigo, categoria, precio, stock)
         int filas = modelo.getRowCount();
         if (filas == 0) {
             JOptionPane.showMessageDialog(this, "No hay productos para guardar.",
@@ -214,17 +212,8 @@ public class vistaInventario extends JFrame {
         try {
             for (int i = 0; i < filas; i++) {
                 String codigo = String.valueOf(modelo.getValueAt(i, 0)).trim();
-                String categoria = String.valueOf(modelo.getValueAt(i, 2)).trim();
 
-                double precio;
                 int stock;
-
-                try {
-                    precio = Double.parseDouble(String.valueOf(modelo.getValueAt(i, 3)));
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("Precio inválido en producto " + codigo);
-                }
-
                 try {
                     stock = Integer.parseInt(String.valueOf(modelo.getValueAt(i, 4)));
                 } catch (NumberFormatException e) {
@@ -235,14 +224,13 @@ public class vistaInventario extends JFrame {
                     throw new IllegalArgumentException("Stock negativo en producto " + codigo);
                 }
 
-                // Esto guarda y persiste
-                productoController.modificar(codigo, categoria, precio, stock);
+                // ✅ SOLO actualiza stock (no toca categoría/precio)
+                productoController.actualizarStock(codigo, stock);
             }
 
             JOptionPane.showMessageDialog(this, "Inventario guardado correctamente ✅",
                     "Inventario", JOptionPane.INFORMATION_MESSAGE);
 
-            // Refrescar por si hay ordenamiento u otros cambios
             cargarTabla();
 
         } catch (IOException ex) {
@@ -254,20 +242,20 @@ public class vistaInventario extends JFrame {
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+
     private void volverAlMenu() {
-    dispose();
+        dispose();
 
-    SwingUtilities.invokeLater(() -> {
-        for (java.awt.Frame f : java.awt.Frame.getFrames()) {
-            if (f instanceof JFrame && f.isVisible()
-                    && f.getTitle() != null
-                    && f.getTitle().contains("Cafetería UCR")) {
-                f.toFront();
-                f.requestFocus();
-                break;
+        SwingUtilities.invokeLater(() -> {
+            for (java.awt.Frame f : java.awt.Frame.getFrames()) {
+                if (f instanceof JFrame && f.isVisible()
+                        && f.getTitle() != null
+                        && f.getTitle().contains("Cafetería UCR")) {
+                    f.toFront();
+                    f.requestFocus();
+                    break;
+                }
             }
-        }
-    });
-}
-
+        });
+    }
 }

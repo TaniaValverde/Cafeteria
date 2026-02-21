@@ -66,13 +66,16 @@ public class vistaProducto extends JFrame {
 
         setContentPane(buildRoot());
 
-        // ✅ Aplicar filtros de entrada (NUM / LETRAS) una vez creados los campos
+        // ✅ Aplicar filtros de entrada una vez creados los campos
         applyInputFilters();
 
         wireEvents();
 
         recargarTabla();
         actualizarFooter();
+
+        // ✅ En modo inicial (agregar): stock sí se puede escribir
+        txtStock.setEnabled(true);
     }
 
     // =========================
@@ -169,7 +172,6 @@ public class vistaProducto extends JFrame {
         btnMenu = ghostButton("⬅ Menú Principal");
         right.add(btnMenu);
         right.add(Box.createRigidArea(new Dimension(10, 0)));
-
         right.add(pill);
 
         header.add(left, BorderLayout.WEST);
@@ -208,12 +210,12 @@ public class vistaProducto extends JFrame {
         c.fill = GridBagConstraints.HORIZONTAL;
         c.gridy = 0;
 
-        // Código (solo números)
+        // Código
         c.gridx = 0;
         c.weightx = 0.9;
         grid.add(fieldGroup("Código (txtCodigo)", txtCodigo = input("Solo números. Ej: 1001")), c);
 
-        // Nombre (solo letras)
+        // Nombre
         c.gridx = 1;
         c.weightx = 2.5;
         grid.add(fieldGroup("Nombre (txtNombre)", txtNombre = input("Café Americano Grande")), c);
@@ -225,7 +227,7 @@ public class vistaProducto extends JFrame {
         styleCombo(cmbCategoria);
         grid.add(fieldGroup("Categoría (cmbCategoria)", cmbCategoria), c);
 
-        // Precio + Stock en panel
+        // Precio + Stock (en formulario sí se ve; pero Stock solo se usa en AGREGAR)
         c.gridx = 3;
         c.weightx = 1.8;
         JPanel precioStock = new JPanel(new GridLayout(1, 2, 10, 0));
@@ -235,7 +237,7 @@ public class vistaProducto extends JFrame {
         txtStock = inputCentered("50");
 
         precioStock.add(fieldGroup("Precio", txtPrecio));
-        precioStock.add(fieldGroup("Stock", txtStock));
+        precioStock.add(fieldGroup("Stock (solo al agregar)", txtStock));
 
         c.insets = new Insets(0, 0, 0, 0);
         grid.add(precioStock, c);
@@ -281,7 +283,7 @@ public class vistaProducto extends JFrame {
                 new EmptyBorder(0, 0, 0, 0)
         ));
 
-        // Model + table
+        // ✅ Modelo mantiene Stock, pero NO se verá en la tabla
         modelo = new DefaultTableModel(new String[]{"Código", "Nombre del Producto", "Categoría", "Precio", "Stock"}, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
@@ -297,11 +299,13 @@ public class vistaProducto extends JFrame {
         tabla.getTableHeader().setBackground(new Color(0xF8, 0xFA, 0xFC));
         tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        // Align numeric to right
+        // Align numeric to right (precio)
         DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
         rightRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
         tabla.getColumnModel().getColumn(3).setCellRenderer(rightRenderer);
-        tabla.getColumnModel().getColumn(4).setCellRenderer(rightRenderer);
+
+        // ✅ OCULTAR columna Stock en la vista (pero queda en el modelo)
+        tabla.removeColumn(tabla.getColumnModel().getColumn(4));
 
         JScrollPane sp = new JScrollPane(tabla);
         sp.setBorder(null);
@@ -381,9 +385,7 @@ public class vistaProducto extends JFrame {
         btnLimpiar.addActionListener(e -> limpiarFormulario());
 
         btnAgregar.addActionListener(e -> onAgregar());
-
         btnModificar.addActionListener(e -> onModificar());
-
         btnEliminar.addActionListener(e -> onEliminar());
 
         tabla.getSelectionModel().addListSelectionListener((ListSelectionEvent e) -> {
@@ -426,10 +428,12 @@ public class vistaProducto extends JFrame {
 
     private void onModificar() {
         try {
-            // Para modificar, el código y nombre ya vienen de la fila seleccionada (nombre está deshabilitado)
             DatosForm d = leerFormulario(false);
 
-            productoController.modificar(d.codigo, d.categoria, d.precio, d.stock);
+            // ✅ Mantener stock actual (aquí NO se edita stock)
+            int stockActual = productoController.buscarPorCodigo(d.codigo).getStock();
+
+            productoController.modificar(d.codigo, d.categoria, d.precio, stockActual);
 
             recargarTabla();
             actualizarFooterConHora();
@@ -458,6 +462,7 @@ public class vistaProducto extends JFrame {
             return;
         }
 
+        // OJO: la tabla oculta Stock, pero el modelo sigue igual
         String codigo = String.valueOf(modelo.getValueAt(row, 0));
 
         int op = JOptionPane.showConfirmDialog(this,
@@ -465,9 +470,7 @@ public class vistaProducto extends JFrame {
                 "Confirmar",
                 JOptionPane.YES_NO_OPTION);
 
-        if (op != JOptionPane.YES_OPTION) {
-            return;
-        }
+        if (op != JOptionPane.YES_OPTION) return;
 
         try {
             productoController.eliminar(codigo);
@@ -493,11 +496,11 @@ public class vistaProducto extends JFrame {
         List<Producto> lista = productoController.listar();
         for (Producto p : lista) {
             modelo.addRow(new Object[]{
-                p.getCodigo(),
-                p.getNombre(),
-                p.getCategoria(),
-                p.getPrecio(),
-                p.getStock()
+                    p.getCodigo(),
+                    p.getNombre(),
+                    p.getCategoria(),
+                    p.getPrecio(),
+                    p.getStock() // ✅ se guarda en el modelo, aunque no se vea
             });
         }
 
@@ -506,19 +509,22 @@ public class vistaProducto extends JFrame {
 
     private void cargarSeleccionEnFormulario() {
         int row = tabla.getSelectedRow();
-        if (row < 0) {
-            return;
-        }
+        if (row < 0) return;
 
         txtCodigo.setText(String.valueOf(modelo.getValueAt(row, 0)));
         txtNombre.setText(String.valueOf(modelo.getValueAt(row, 1)));
         cmbCategoria.setSelectedItem(String.valueOf(modelo.getValueAt(row, 2)));
         txtPrecio.setText(String.valueOf(modelo.getValueAt(row, 3)));
-        txtStock.setText(String.valueOf(modelo.getValueAt(row, 4)));
 
-        // En tu controller NO se modifica nombre: lo dejamos readonly cuando ya existe
+        // ✅ NO mostrar stock al seleccionar (solo inventario)
+        txtStock.setText("");
+
+        // Código y nombre readonly cuando ya existe
         txtCodigo.setEnabled(false);
         txtNombre.setEnabled(false);
+
+        // ✅ Stock NO editable en modificar
+        txtStock.setEnabled(false);
     }
 
     private void limpiarFormulario() {
@@ -530,6 +536,10 @@ public class vistaProducto extends JFrame {
 
         txtCodigo.setEnabled(true);
         txtNombre.setEnabled(true);
+
+        // ✅ En modo agregar sí se permite escribir stock
+        txtStock.setEnabled(true);
+
         tabla.clearSelection();
     }
 
@@ -541,41 +551,29 @@ public class vistaProducto extends JFrame {
         String nombre = txtNombre.getText().trim();
         String categoria = String.valueOf(cmbCategoria.getSelectedItem()).trim();
 
-        // ✅ precio acepta coma o punto
         String sPrecio = txtPrecio.getText().trim().replace(',', '.');
         String sStock = txtStock.getText().trim();
 
-        if (codigo.isEmpty()) {
-            throw new IllegalArgumentException("El código es obligatorio.");
-        }
-        if (esAgregar && nombre.isEmpty()) {
-            throw new IllegalArgumentException("El nombre es obligatorio.");
-        }
-        if (!esAgregar && nombre.isEmpty()) {
-            // al modificar está deshabilitado, pero por seguridad
-            nombre = txtNombre.getText().trim();
-        }
+        if (codigo.isEmpty()) throw new IllegalArgumentException("El código es obligatorio.");
+        if (esAgregar && nombre.isEmpty()) throw new IllegalArgumentException("El nombre es obligatorio.");
 
         double precio;
-        int stock;
-
         try {
             precio = Double.parseDouble(sPrecio);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Precio inválido. Ej: 2.50");
         }
+        if (precio < 0) throw new IllegalArgumentException("El precio no puede ser negativo.");
 
-        try {
-            stock = Integer.parseInt(sStock);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Stock inválido. Ej: 50");
-        }
-
-        if (precio < 0) {
-            throw new IllegalArgumentException("El precio no puede ser negativo.");
-        }
-        if (stock < 0) {
-            throw new IllegalArgumentException("El stock no puede ser negativo.");
+        int stock = 0;
+        if (esAgregar) {
+            // ✅ Solo al agregar se lee y valida el stock
+            try {
+                stock = Integer.parseInt(sStock);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Stock inválido. Ej: 50");
+            }
+            if (stock < 0) throw new IllegalArgumentException("El stock no puede ser negativo.");
         }
 
         return new DatosForm(codigo, nombre, categoria, precio, stock);
@@ -745,9 +743,8 @@ public class vistaProducto extends JFrame {
         @Override
         public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr)
                 throws BadLocationException {
-            if (string == null) {
-                return;
-            }
+            if (string == null) return;
+
             String current = fb.getDocument().getText(0, fb.getDocument().getLength());
             String next = current.substring(0, offset) + string + current.substring(offset);
             if (next.matches(allowedRegex)) {
@@ -758,9 +755,8 @@ public class vistaProducto extends JFrame {
         @Override
         public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
                 throws BadLocationException {
-            if (text == null) {
-                text = "";
-            }
+            if (text == null) text = "";
+
             String current = fb.getDocument().getText(0, fb.getDocument().getLength());
             String next = current.substring(0, offset) + text + current.substring(offset + length);
             if (next.matches(allowedRegex)) {
@@ -768,5 +764,4 @@ public class vistaProducto extends JFrame {
             }
         }
     }
-
 }
