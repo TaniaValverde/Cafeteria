@@ -2,7 +2,10 @@ package Model;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 public class Venta {
 
@@ -14,7 +17,7 @@ public class Venta {
     private String id;
     private LocalDateTime fechaHora;
     private int mesaNumero;
-    private int codigoPedido; // ✅ NUEVO
+    private int codigoPedido; // ✅ ya existe en tu ZIP
     private double taxRate;
 
     private String estado;
@@ -28,6 +31,15 @@ public class Venta {
         private final double precioUnitario;
 
         public LineaVenta(Producto producto, int cantidad, double precioUnitario) {
+            if (producto == null) {
+                throw new IllegalArgumentException("Producto no puede ser null.");
+            }
+            if (cantidad <= 0) {
+                throw new IllegalArgumentException("La cantidad debe ser > 0.");
+            }
+            if (precioUnitario < 0) {
+                throw new IllegalArgumentException("El precio unitario no puede ser negativo.");
+            }
             this.producto = producto;
             this.cantidad = cantidad;
             this.precioUnitario = precioUnitario;
@@ -39,12 +51,25 @@ public class Venta {
         public double getSubtotal() { return precioUnitario * cantidad; }
     }
 
+    // ✅ Constructor que pide VentaTest: new Venta("V1", now, 1)
+    public Venta(String id, LocalDateTime fechaHora, int mesaNumero) {
+        this(id, fechaHora, mesaNumero, 0, DEFAULT_TAX_RATE);
+    }
+
+    // ✅ Constructor que pide VentaTest: new Venta("V1", now, 1, 0.10)
+    public Venta(String id, LocalDateTime fechaHora, int mesaNumero, double taxRate) {
+        this(id, fechaHora, mesaNumero, 0, taxRate);
+    }
+
+    // ✅ Constructor completo (ya existía en tu ZIP, lo mantenemos)
     public Venta(String id, LocalDateTime fechaHora, int mesaNumero, int codigoPedido, double taxRate) {
-        this.id = id;
-        this.fechaHora = fechaHora;
-        this.mesaNumero = mesaNumero;
-        this.codigoPedido = codigoPedido; // ✅
-        this.taxRate = taxRate;
+        setId(id);
+        setFechaHora(fechaHora);
+        setMesaNumero(mesaNumero);
+
+        this.codigoPedido = Math.max(0, codigoPedido);
+        setTaxRate(taxRate);
+
         this.estado = "PENDIENTE";
         this.metodoPago = "";
     }
@@ -52,30 +77,75 @@ public class Venta {
     public String getId() { return id; }
     public LocalDateTime getFechaHora() { return fechaHora; }
     public int getMesaNumero() { return mesaNumero; }
-    public int getCodigoPedido() { return codigoPedido; } // ✅
+    public int getCodigoPedido() { return codigoPedido; }
     public double getTaxRate() { return taxRate; }
     public String getEstado() { return estado; }
     public String getMetodoPago() { return metodoPago; }
 
+    public final void setId(String id) {
+        if (id == null || id.trim().isEmpty()) {
+            throw new IllegalArgumentException("ID no puede ser vacío.");
+        }
+        this.id = id.trim();
+    }
+
+    public final void setFechaHora(LocalDateTime fechaHora) {
+        if (fechaHora == null) {
+            throw new IllegalArgumentException("fechaHora no puede ser null.");
+        }
+        this.fechaHora = fechaHora;
+    }
+
+    public final void setMesaNumero(int mesaNumero) {
+        boolean valido = mesaNumero == PARA_LLEVAR || (mesaNumero >= 1 && mesaNumero <= 5);
+        if (!valido) {
+            throw new IllegalArgumentException("Mesa inválida (0 para llevar o 1..5).");
+        }
+        this.mesaNumero = mesaNumero;
+    }
+
+    public final void setTaxRate(double taxRate) {
+        if (taxRate < 0) {
+            throw new IllegalArgumentException("taxRate no puede ser negativo.");
+        }
+        this.taxRate = taxRate;
+    }
+
     public void setEstado(String estado) { this.estado = estado; }
     public void setMetodoPago(String metodoPago) { this.metodoPago = metodoPago; }
 
-    public boolean esParaLlevar() { return mesaNumero == PARA_LLEVAR; }
+    public boolean esParaLlevar() {
+        return mesaNumero == PARA_LLEVAR;
+    }
 
     public void agregarLinea(Producto producto, int cantidad) {
+        if (producto == null) {
+            throw new IllegalArgumentException("Producto no puede ser null.");
+        }
+        if (cantidad <= 0) {
+            throw new IllegalArgumentException("La cantidad debe ser > 0.");
+        }
         lineas.add(new LineaVenta(producto, cantidad, producto.getPrecio()));
     }
 
-    public List<LineaVenta> getLineas() { return lineas; }
+    // ✅ VentaTest exige lista INMODIFICABLE
+    public List<LineaVenta> getLineas() {
+        return Collections.unmodifiableList(lineas);
+    }
 
     public double getSubtotal() {
         return lineas.stream().mapToDouble(LineaVenta::getSubtotal).sum();
     }
 
-    public double getImpuesto() { return getSubtotal() * taxRate; }
-    public double getTotal() { return getSubtotal() + getImpuesto(); }
+    public double getImpuesto() {
+        return getSubtotal() * taxRate;
+    }
 
-    // ✅ CSV actualizado
+    public double getTotal() {
+        return getSubtotal() + getImpuesto();
+    }
+
+    // ✅ CSV actualizado (tu formato de 8 campos)
     public String toCsv() {
         StringBuilder items = new StringBuilder();
         for (int i = 0; i < lineas.size(); i++) {
@@ -90,55 +160,96 @@ public class Venta {
                 id,
                 fechaHora.format(DT_FORMAT),
                 String.valueOf(mesaNumero),
-                String.valueOf(codigoPedido), // ✅
+                String.valueOf(codigoPedido),
                 String.valueOf(taxRate),
-                estado,
-                metodoPago,
+                estado == null ? "" : estado,
+                metodoPago == null ? "" : metodoPago,
                 items.toString());
     }
 
     public static Venta fromCsv(String line) {
+        if (line == null || line.trim().isEmpty()) {
+            throw new IllegalArgumentException("CSV de venta vacío.");
+        }
+
         String[] parts = line.split(",", -1);
 
-        String id = parts[0];
-        LocalDateTime dt = LocalDateTime.parse(parts[1], DT_FORMAT);
-        int mesa = Integer.parseInt(parts[2]);
-
-        int codigoPedido = 0;
-        double tax;
-        String estado;
-        String metodo;
-        String items;
-
-        if (parts.length >= 8) {
-            codigoPedido = Integer.parseInt(parts[3]);
-            tax = Double.parseDouble(parts[4]);
-            estado = parts[5];
-            metodo = parts[6];
-            items = parts[7];
-        } else {
-            tax = Double.parseDouble(parts[3]);
-            estado = parts[4];
-            metodo = parts[5];
-            items = parts.length > 6 ? parts[6] : "";
+        // Para tu formato: mínimo deberían existir 4 (y normalmente 8)
+        if (parts.length < 4) {
+            throw new IllegalArgumentException("CSV de venta incompleto.");
         }
 
-        Venta v = new Venta(id, dt, mesa, codigoPedido, tax);
-        v.setEstado(estado);
-        v.setMetodoPago(metodo);
+        try {
+            String id = parts[0];
+            LocalDateTime dt = LocalDateTime.parse(parts[1], DT_FORMAT);
+            int mesa = Integer.parseInt(parts[2]);
 
-        if (!items.isEmpty()) {
-            String[] itemParts = items.split(";");
-            for (String it : itemParts) {
-                String[] f = it.split(":");
-                Producto p = new Producto(f[0], "N/A", "N/A",
-                        Double.parseDouble(f[2]), 0);
-                v.lineas.add(new LineaVenta(p,
-                        Integer.parseInt(f[1]),
-                        Double.parseDouble(f[2])));
+            int codigoPedido = 0;
+            double tax;
+            String estado = "PENDIENTE";
+            String metodo = "";
+            String items = "";
+
+            if (parts.length >= 8) {
+                codigoPedido = parseIntSafe(parts[3], 0);
+                tax = Double.parseDouble(parts[4]);
+                estado = parts[5];
+                metodo = parts[6];
+                items = parts[7];
+            } else {
+                // fallback por compatibilidad (si quedara un formato viejo)
+                tax = Double.parseDouble(parts[3]);
+                if (parts.length >= 5) estado = parts[4];
+                if (parts.length >= 6) metodo = parts[5];
+                if (parts.length >= 7) items = parts[6];
             }
-        }
 
-        return v;
+            Venta v = new Venta(id, dt, mesa, codigoPedido, tax);
+            v.setEstado(estado);
+            v.setMetodoPago(metodo);
+
+            if (items != null && !items.isEmpty()) {
+                String[] itemParts = items.split(";");
+                for (String it : itemParts) {
+                    if (it == null || it.isEmpty()) continue;
+
+                    String[] f = it.split(":");
+                    if (f.length < 3) {
+                        throw new IllegalArgumentException("Item inválido en CSV de venta.");
+                    }
+
+                    String codigoProd = f[0];
+                    int cantidad = Integer.parseInt(f[1]);
+                    double precioUnit = Double.parseDouble(f[2]);
+
+                    Producto p = new Producto(codigoProd, "N/A", "N/A", precioUnit, 0);
+                    v.lineas.add(new LineaVenta(p, cantidad, precioUnit));
+                }
+            }
+
+            return v;
+        } catch (Exception ex) {
+            // importante para VentaDAOTest: línea mala debe fallar -> DAO la ignora
+            throw new IllegalArgumentException("CSV de venta inválido.", ex);
+        }
+    }
+
+    private static int parseIntSafe(String s, int def) {
+        try { return Integer.parseInt(s); }
+        catch (Exception e) { return def; }
+    }
+
+    // ✅ VentaDAOTest usa contains(new Venta("V001", now, 1)) -> equals por ID
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Venta)) return false;
+        Venta venta = (Venta) o;
+        return Objects.equals(id, venta.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }
