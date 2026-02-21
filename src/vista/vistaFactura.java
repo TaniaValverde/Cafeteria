@@ -3,7 +3,7 @@ package vista;
 import Controlador.MesaController;
 import Controlador.VentaController;
 import Model.Venta;
-
+import vista.vistaImpresionFactura;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -373,8 +373,14 @@ public class vistaFactura extends JFrame {
                 mesaCtrl.liberarMesa(n);
             }
 
-            areaFactura.setText(ventaCtrl.generarTextoFactura(ventaSeleccionada));
-            JOptionPane.showMessageDialog(this, "Venta cobrada correctamente ✅");
+            String textoFactura = ventaCtrl.generarTextoFactura(ventaSeleccionada);
+areaFactura.setText(textoFactura);
+
+// ✅ Abrir ventana de impresión
+vistaImpresionFactura dlg = new vistaImpresionFactura(this, textoFactura);
+dlg.setVisible(true);
+
+JOptionPane.showMessageDialog(this, "Venta cobrada correctamente ✅");
 
             ventaSeleccionada = null;
             areaFactura.setText("");
