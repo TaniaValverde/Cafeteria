@@ -12,6 +12,8 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class vistaMesas extends JFrame {
 
@@ -21,15 +23,16 @@ public class vistaMesas extends JFrame {
     private final MesaController mesaCtrl;
     private final MenuPrincipal menuPrincipalRef;
 
-    // ===== Palette (similar to your vistaMesas + vistaProducto style) =====
-    private static final Color PRIMARY = Color.decode("#ee9d2b");          // naranja
+    private JPanel gridMesas;
+
+    // ===== Palette =====
+    private static final Color PRIMARY = Color.decode("#ee9d2b");
     private static final Color WHITE = Color.WHITE;
     private static final Color SLATE_100 = Color.decode("#f1f5f9");
     private static final Color SLATE_200 = Color.decode("#e2e8f0");
     private static final Color SLATE_800 = Color.decode("#1e293b");
     private static final Color SLATE_900 = Color.decode("#0f172a");
-    private static final Color TEXT_MID = Color.decode("#64748b");         // slate-500-ish
-    private static final Color BORDER = Color.decode("#e5e7eb");           // similar to vistaProducto
+    private static final Color TEXT_MID = Color.decode("#64748b");
     private static final Color RED_500 = Color.decode("#ef4444");
     private static final Color GREEN_500 = Color.decode("#10b981");
 
@@ -46,10 +49,17 @@ public class vistaMesas extends JFrame {
         this.menuPrincipalRef = menuPrincipalRef;
 
         initUI();
+
+        // ✅ refresca siempre que la ventana vuelve al frente
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowActivated(WindowEvent e) {
+                if (gridMesas != null) recargarMesas();
+            }
+        });
     }
 
     private void initUI() {
-
         setTitle("Mapa de Mesas");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -61,9 +71,7 @@ public class vistaMesas extends JFrame {
         add(buildBody(), BorderLayout.CENTER);
     }
 
-    // ================= HEADER =================
     private JPanel buildHeader() {
-
         JPanel header = new JPanel(new BorderLayout(12, 12));
         header.setBackground(WHITE);
         header.setBorder(new CompoundBorder(
@@ -75,9 +83,8 @@ public class vistaMesas extends JFrame {
         title.setFont(new Font("SansSerif", Font.BOLD, 26));
         title.setForeground(SLATE_900);
 
-        // ✅ Estilo "ghostButton" (como tu vistaProducto)
         JButton menuBtn = ghostButton("⬅ MENÚ PRINCIPAL");
-        menuBtn.setPreferredSize(new Dimension(230, 45)); // opcional
+        menuBtn.setPreferredSize(new Dimension(230, 45));
 
         menuBtn.addActionListener(e -> {
             if (menuPrincipalRef != null) {
@@ -92,25 +99,31 @@ public class vistaMesas extends JFrame {
         return header;
     }
 
-    // ================= BODY =================
     private JPanel buildBody() {
-
         JPanel body = new JPanel(new GridBagLayout());
         body.setBackground(SLATE_100);
 
-        JPanel grid = new JPanel(new GridLayout(2, 3, 40, 40));
-        grid.setBackground(SLATE_100);
-        grid.setBorder(new EmptyBorder(40, 40, 40, 40));
+        gridMesas = new JPanel(new GridLayout(2, 3, 40, 40));
+        gridMesas.setBackground(SLATE_100);
+        gridMesas.setBorder(new EmptyBorder(40, 40, 40, 40));
 
-        for (int i = 1; i <= 5; i++) {
-            grid.add(buildMesaCard(i));
-        }
+        recargarMesas();
 
-        body.add(grid);
+        body.add(gridMesas);
         return body;
     }
 
-    // ================= MESA CARD =================
+    private void recargarMesas() {
+        gridMesas.removeAll();
+
+        for (int i = 1; i <= 5; i++) {
+            gridMesas.add(buildMesaCard(i));
+        }
+
+        gridMesas.revalidate();
+        gridMesas.repaint();
+    }
+
     private JPanel buildMesaCard(int numeroMesa) {
 
         boolean libre = mesaCtrl.estaLibre(numeroMesa);
@@ -124,16 +137,33 @@ public class vistaMesas extends JFrame {
         numero.setFont(new Font("SansSerif", Font.BOLD, 32));
         numero.setForeground(SLATE_800);
 
-        JLabel estado = new JLabel(libre ? "LIBRE" : "OCUPADA", SwingConstants.CENTER);
-        estado.setFont(new Font("SansSerif", Font.BOLD, 18));
-        estado.setForeground(libre ? GREEN_500 : RED_500);
+        String textoEstado;
+        Color colorEstado;
+
+        if (libre) {
+            textoEstado = "LIBRE";
+            colorEstado = GREEN_500;
+        } else {
+            Mesa mesa = mesaCtrl.obtenerMesa(numeroMesa);
+            Pedido p = mesa.getPedidoActual();
+
+            if (p != null) {
+                textoEstado = "OCUPADA • ORDEN #" + p.getCodigoPedido();
+            } else {
+                textoEstado = "OCUPADA";
+            }
+            colorEstado = RED_500;
+        }
+
+        JLabel estado = new JLabel(textoEstado, SwingConstants.CENTER);
+        estado.setFont(new Font("SansSerif", Font.BOLD, 16));
+        estado.setForeground(colorEstado);
         estado.setBorder(new EmptyBorder(0, 0, 12, 0));
 
         card.add(numero, BorderLayout.CENTER);
         card.add(estado, BorderLayout.SOUTH);
 
         card.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
         card.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 abrirPedido(numeroMesa);
@@ -143,64 +173,61 @@ public class vistaMesas extends JFrame {
         return card;
     }
 
-    // ================= ABRIR / CREAR PEDIDO =================
     private void abrirPedido(int numeroMesa) {
-
         try {
+            Pedido pedido;
 
             if (mesaCtrl.estaLibre(numeroMesa)) {
-
                 int codigo = pedidoCtrl.cantidadPedidos() + 1;
-                while (pedidoCtrl.buscarPedido(codigo) != null) {
-                    codigo++;
-                }
+                while (pedidoCtrl.buscarPedido(codigo) != null) codigo++;
 
-                Pedido pedido = pedidoCtrl.crearPedido(
-                        codigo,
-                        Pedido.MESA,
-                        numeroMesa
-                );
-
+                pedido = pedidoCtrl.crearPedido(codigo, Pedido.MESA, numeroMesa);
                 mesaCtrl.asignarPedido(numeroMesa, pedido);
 
-                vistaPedido vp = new vistaPedido(
-                        pedido,
-                        pedidoCtrl,
-                        productoCtrl,
-                        ventaCtrl,
-                        mesaCtrl,
-                        menuPrincipalRef
-                );
-
-                vp.setVisible(true);
-                dispose();
-
             } else {
-
                 Mesa mesa = mesaCtrl.obtenerMesa(numeroMesa);
-                Pedido pedido = mesa.getPedidoActual();
+                pedido = mesa.getPedidoActual();
 
-                vistaPedido vp = new vistaPedido(
-                        pedido,
-                        pedidoCtrl,
-                        productoCtrl,
-                        ventaCtrl,
-                        mesaCtrl,
-                        menuPrincipalRef
-                );
-
-                vp.setVisible(true);
-                dispose();
+                if (pedido == null) {
+                    JOptionPane.showMessageDialog(this, "No se encontró pedido para esta mesa.");
+                    return;
+                }
             }
+
+            vistaPedido vp = new vistaPedido(
+                    pedido,
+                    pedidoCtrl,
+                    productoCtrl,
+                    ventaCtrl,
+                    mesaCtrl,
+                    menuPrincipalRef
+            );
+
+            // ✅ al cerrar el pedido, vuelves al mapa y refresca
+            vp.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosed(WindowEvent e) {
+                    vistaMesas.this.setVisible(true);
+                    recargarMesas();
+                }
+
+                @Override
+                public void windowClosing(WindowEvent e) {
+                    vistaMesas.this.setVisible(true);
+                    recargarMesas();
+                }
+            });
+
+            vp.setVisible(true);
+
+            // ✅ NO destruir la ventana (si la destruyes, luego se pierde el estado al recrearla)
+            setVisible(false);
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage());
         }
     }
 
-    // ================= BUTTON STYLES (from vistaProducto reference) =================
-
-    // ✅ Botón tipo "ghost" como en vistaProducto (fondo gris claro + borde suave)
     private JButton ghostButton(String text) {
         JButton b = new JButton(text);
         b.setFont(new Font("SansSerif", Font.BOLD, 14));
@@ -210,29 +237,6 @@ public class vistaMesas extends JFrame {
 
         b.setBorder(new CompoundBorder(
                 new LineBorder(new Color(0, 0, 0, 12), 1, true),
-                new EmptyBorder(10, 16, 10, 16)
-        ));
-
-        // 🔥 Claves para que SIEMPRE pinte el fondo (cualquier LookAndFeel)
-        b.setOpaque(true);
-        b.setContentAreaFilled(true);
-        b.setBorderPainted(true);
-
-        b.setFocusPainted(false);
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return b;
-    }
-
-    // (Opcional) Si algún día quieres un botón primario naranja
-    @SuppressWarnings("unused")
-    private JButton primaryButton(String text) {
-        JButton b = new JButton(text);
-        b.setFont(new Font("SansSerif", Font.BOLD, 14));
-        b.setBackground(PRIMARY);
-        b.setForeground(Color.WHITE);
-
-        b.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0, 0, 0, 10), 1, true),
                 new EmptyBorder(10, 16, 10, 16)
         ));
 

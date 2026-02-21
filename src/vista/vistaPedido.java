@@ -559,36 +559,28 @@ public class vistaPedido extends JFrame {
     }
 
     private void onFinalizar() {
-        try {
-            boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
+    try {
 
-            Mesa mesa = null;
-            if (!paraLlevar) {
-                mesa = mesaCtrl.obtenerMesa(pedido.getNumeroMesa());
-            }
+        boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
 
-            // ✅ Esto GUARDA la venta en ventaDAO y persiste productos (según tu VentaController)
-            Venta v = ventaCtrl.finalizarVenta(null, mesa, paraLlevar);
-
-            // ✅ Mesa: se libera al terminar (porque ya terminó la atención)
-            if (!paraLlevar) {
-                mesaCtrl.liberarMesa(pedido.getNumeroMesa());
-            }
-
-           JOptionPane.showMessageDialog(this, "Venta guardada: " + v.getId());
-
-            menuPrincipalRef.setVisible(true);
-            dispose();
-
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "No se pudo guardar la venta:\n" + ex.getMessage(),
-                    "Error IO", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error al finalizar:\n" + ex.getMessage(),
-                    "Error", JOptionPane.ERROR_MESSAGE);
+        Mesa mesa = null;
+        if (!paraLlevar) {
+            mesa = mesaCtrl.obtenerMesa(pedido.getNumeroMesa());
         }
-    }
 
+        Venta v = ventaCtrl.finalizarVenta(null, mesa, paraLlevar);
+
+        // ❌ YA NO SE LIBERA LA MESA AQUÍ
+
+        JOptionPane.showMessageDialog(this, "Pedido finalizado. Pase a facturación.");
+
+        menuPrincipalRef.setVisible(true);
+        dispose();
+
+    } catch (IOException ex) {
+        JOptionPane.showMessageDialog(this, "No se pudo guardar la venta:\n" + ex.getMessage());
+    }
+}
     private void onCancelar() {
         try {
             boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
