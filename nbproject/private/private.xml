@@ -5,8 +5,6 @@
         <group>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/test/testControlador/VentaControllerTest.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Model/Factura.java</file>
-            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/test/testPersistencia/VentaDAOTest.java</file>
-            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/test/testModel/VentaTest.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Controlador/PedidoController.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/test/testControlador/ReporteControllerTest.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Persistencia/ProductoDAO.java</file>
@@ -35,6 +33,7 @@
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/test/testPersistencia/ClienteDAOTest.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/vista/vistaFactura.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/test/testPersistencia/ProductoDAOTest.java</file>
+            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/vista/vistaReporte.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/test/testModel/MesaTest.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Model/Mesa.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/test/testModel/ComidaTest.java</file>

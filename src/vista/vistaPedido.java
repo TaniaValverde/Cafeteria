@@ -374,7 +374,12 @@ public class vistaPedido extends JFrame {
         resumenItemsPanel.setLayout(new BoxLayout(resumenItemsPanel, BoxLayout.Y_AXIS));
         resumenItemsPanel.setBorder(new EmptyBorder(10, 14, 10, 14));
 
-        JScrollPane sp = new JScrollPane(resumenItemsPanel);
+        // ✅ OPCIÓN 1: WRAPPER para que el BoxLayout NO estire filas cuando hay pocos items
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setBackground(CARD);
+        wrap.add(resumenItemsPanel, BorderLayout.NORTH);
+
+        JScrollPane sp = new JScrollPane(wrap);
         sp.setBorder(null);
         sp.getVerticalScrollBar().setUnitIncrement(16);
         card.add(sp, BorderLayout.CENTER);
@@ -472,7 +477,7 @@ public class vistaPedido extends JFrame {
                 new EmptyBorder(10, 10, 10, 10)
         ));
 
-        // ✅ BOTONES COMPACTOS (cambio principal)
+        // ✅ BOTONES COMPACTOS
         JButton minus = new JButton("−");
         minus.setFont(new Font("SansSerif", Font.BOLD, 14));
         minus.setPreferredSize(new Dimension(36, 36));
@@ -702,7 +707,6 @@ public class vistaPedido extends JFrame {
 
     private void onFinalizar() {
         try {
-
             boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
 
             Mesa mesa = null;
@@ -711,8 +715,6 @@ public class vistaPedido extends JFrame {
             }
 
             Venta v = ventaCtrl.finalizarVenta(null, mesa, paraLlevar);
-
-            // ❌ YA NO SE LIBERA LA MESA AQUÍ
 
             JOptionPane.showMessageDialog(this, "Pedido finalizado. Pase a facturación.");
 
@@ -726,7 +728,6 @@ public class vistaPedido extends JFrame {
 
     private void onCancelar() {
         try {
-
             // ✅ BORRA la venta pendiente asociada a este pedido
             ventaCtrl.eliminarPendientePorCodigoPedido(pedido.getCodigoPedido());
 
