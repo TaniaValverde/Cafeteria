@@ -15,11 +15,16 @@ import java.awt.*;
 import java.io.IOException;
 import java.util.List;
 
+// ✅ IMPORTS MONEDA
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
+
 public class vistaPedido extends JFrame {
 
     // ===== Controllers =====
     private final Pedido pedido;
-    private final PedidoController pedidoCtrl;          // (no lo uso mucho aquí, pero lo mantengo)
+    private final PedidoController pedidoCtrl;
     private final ProductoController productoCtrl;
     private final VentaController ventaCtrl;
     private final MesaController mesaCtrl;
@@ -35,6 +40,22 @@ public class vistaPedido extends JFrame {
     private static final Color PRIMARY = new Color(0xEE, 0x9D, 0x2B);
     private static final Color NAVY = new Color(0x0B, 0x12, 0x22);
     private static final Color DANGER = new Color(0xEF, 0x44, 0x44);
+
+    // ===== FORMATO COLONES (FORZADO ₡) =====
+    private final DecimalFormat colones;
+
+    {
+        DecimalFormatSymbols sym = new DecimalFormatSymbols(new Locale("es", "CR"));
+        sym.setCurrencySymbol("₡");                 // 🔥 fuerza símbolo colón
+        sym.setMonetaryDecimalSeparator(',');       // decimal ,
+        sym.setGroupingSeparator('.');              // miles .
+
+        colones = new DecimalFormat("¤#,##0.00", sym); // ¤ = símbolo moneda
+    }
+
+    private String money(double value) {
+        return colones.format(value);
+    }
 
     // ===== UI state =====
     private JTextField txtBuscar;
@@ -70,7 +91,6 @@ public class vistaPedido extends JFrame {
         this.menuPrincipalRef = menuPrincipalRef;
 
         // ✅ CLAVE: sincroniza el pedido con VentaController
-        // Así agregar productos y finalizar venta usarán ESTE pedido.
         this.ventaCtrl.setPedidoActual(pedido);
 
         initUI();
@@ -202,12 +222,9 @@ public class vistaPedido extends JFrame {
         txtBuscar.setToolTipText("Buscar producto (Hamburguesa, bebida...)");
 
         txtBuscar.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            @Override
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { filtrarProductos(txtBuscar.getText()); }
-            @Override
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { filtrarProductos(txtBuscar.getText()); }
-            @Override
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { filtrarProductos(txtBuscar.getText()); }
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { filtrarProductos(txtBuscar.getText()); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { filtrarProductos(txtBuscar.getText()); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { filtrarProductos(txtBuscar.getText()); }
         });
 
         txtBuscar.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -224,7 +241,7 @@ public class vistaPedido extends JFrame {
         // renderer: Nombre - Precio
         listaProductos.setCellRenderer((list, value, index, isSelected, cellHasFocus) -> {
             String nombre = value.getNombre();
-            String precio = String.format("$%.2f", value.getPrecio());
+            String precio = money(value.getPrecio()); // ✅ ₡ forzado
 
             JLabel l = new JLabel(nombre + "   —   " + precio);
             l.setOpaque(true);
@@ -268,7 +285,7 @@ public class vistaPedido extends JFrame {
         lblProdNombre.setFont(new Font("SansSerif", Font.BOLD, 24));
         lblProdNombre.setForeground(TEXT);
 
-        lblProdPrecio = new JLabel("$0.00", SwingConstants.RIGHT);
+        lblProdPrecio = new JLabel(money(0), SwingConstants.RIGHT); // ✅ ₡ forzado
         lblProdPrecio.setFont(new Font("SansSerif", Font.BOLD, 18));
         lblProdPrecio.setForeground(PRIMARY);
 
@@ -377,7 +394,6 @@ public class vistaPedido extends JFrame {
         resumenItemsPanel.setLayout(new BoxLayout(resumenItemsPanel, BoxLayout.Y_AXIS));
         resumenItemsPanel.setBorder(new EmptyBorder(10, 14, 10, 14));
 
-        // ✅ wrapper para que el BoxLayout NO estire filas cuando hay pocos items
         JPanel wrap = new JPanel(new BorderLayout());
         wrap.setBackground(CARD);
         wrap.add(resumenItemsPanel, BorderLayout.NORTH);
@@ -387,7 +403,6 @@ public class vistaPedido extends JFrame {
         sp.getVerticalScrollBar().setUnitIncrement(16);
         card.add(sp, BorderLayout.CENTER);
 
-        // bottom
         JPanel bottom = new JPanel();
         bottom.setLayout(new BoxLayout(bottom, BoxLayout.Y_AXIS));
         bottom.setBackground(NAVY);
@@ -400,7 +415,7 @@ public class vistaPedido extends JFrame {
         totalLbl.setFont(new Font("SansSerif", Font.BOLD, 12));
         totalLbl.setForeground(new Color(0x9C, 0xA3, 0xAF));
 
-        lblTotalValor = new JLabel("$0.00", SwingConstants.RIGHT);
+        lblTotalValor = new JLabel(money(0), SwingConstants.RIGHT); // ✅ ₡ forzado
         lblTotalValor.setFont(new Font("SansSerif", Font.BOLD, 28));
         lblTotalValor.setForeground(PRIMARY);
 
@@ -430,83 +445,38 @@ public class vistaPedido extends JFrame {
         return card;
     }
 
-    private JComponent summaryItem(String qty, String name, String sub, String price) {
-        JPanel row = new JPanel(new BorderLayout(10, 0));
-        row.setBackground(new Color(0xF8, 0xFA, 0xFC));
-        row.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0,0,0,10), 1, true),
-                new EmptyBorder(10, 10, 10, 10)
-        ));
+    // ✅ botón mini para cantidad (MISMO estilo para + y -)
+    private JButton qtyMiniButton(String text) {
+        JButton b = new JButton(text);
 
-        JLabel q = new JLabel(qty);
-        q.setFont(new Font("SansSerif", Font.BOLD, 12));
-        q.setForeground(PRIMARY);
+        b.setFont(new Font("SansSerif", Font.BOLD, 16));
+        b.setForeground(TEXT_MID);
+        b.setBackground(Color.WHITE);
 
-        JPanel mid = new JPanel();
-        mid.setOpaque(false);
-        mid.setLayout(new BoxLayout(mid, BoxLayout.Y_AXIS));
+        b.setMargin(new Insets(0, 0, 0, 0));
+        b.setHorizontalAlignment(SwingConstants.CENTER);
+        b.setVerticalAlignment(SwingConstants.CENTER);
+        b.setHorizontalTextPosition(SwingConstants.CENTER);
+        b.setVerticalTextPosition(SwingConstants.CENTER);
+        b.setIconTextGap(0);
 
-        JLabel n = new JLabel(name);
-        n.setFont(new Font("SansSerif", Font.BOLD, 13));
-        n.setForeground(TEXT);
+        b.setFocusPainted(false);
+        b.setFocusable(false);
 
-        JLabel s = new JLabel(sub == null ? "" : sub);
-        s.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        s.setForeground(TEXT_MID);
+        b.setContentAreaFilled(true);
+        b.setOpaque(true);
 
-        mid.add(n);
-        if (sub != null && !sub.isBlank()) {
-            mid.add(Box.createRigidArea(new Dimension(0, 2)));
-            mid.add(s);
-        }
+        b.setBorder(new LineBorder(BORDER, 1, true));
 
-        JLabel p = new JLabel(price, SwingConstants.RIGHT);
-        p.setFont(new Font("SansSerif", Font.BOLD, 12));
-        p.setForeground(TEXT);
+        b.setPreferredSize(new Dimension(36, 36));
+        b.setMinimumSize(new Dimension(36, 36));
+        b.setMaximumSize(new Dimension(36, 36));
 
-        row.add(q, BorderLayout.WEST);
-        row.add(mid, BorderLayout.CENTER);
-        row.add(p, BorderLayout.EAST);
-
-        return row;
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
     }
 
-    // ✅ NUEVO: botón mini para cantidad (MISMO estilo para + y -)
-    private JButton qtyMiniButton(String text) {
-    JButton b = new JButton(text);
-
-    b.setFont(new Font("SansSerif", Font.BOLD, 16));
-    b.setForeground(TEXT_MID);
-    b.setBackground(Color.WHITE);
-
-    // 🔥 CLAVE: sin márgenes (si no, el "+" se recorta y desaparece)
-    b.setMargin(new Insets(0, 0, 0, 0));
-
-    // centrado total
-    b.setHorizontalAlignment(SwingConstants.CENTER);
-    b.setVerticalAlignment(SwingConstants.CENTER);
-    b.setHorizontalTextPosition(SwingConstants.CENTER);
-    b.setVerticalTextPosition(SwingConstants.CENTER);
-    b.setIconTextGap(0);
-
-    b.setFocusPainted(false);
-    b.setFocusable(false);
-
-    // pintura simple, LAF-proof
-    b.setContentAreaFilled(true);
-    b.setOpaque(true);
-
-    b.setBorder(new LineBorder(BORDER, 1, true));
-
-    b.setPreferredSize(new Dimension(36, 36));
-    b.setMinimumSize(new Dimension(36, 36));
-    b.setMaximumSize(new Dimension(36, 36));
-
-    b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-    return b;
-}
-
-    // ✅ NUEVO: item editable ( + / - / eliminar )
+    // ✅ item editable (+ / - / eliminar)
     private JComponent summaryItemEditable(Producto p, int cant) {
         JPanel row = new JPanel(new BorderLayout(10, 0));
         row.setBackground(new Color(0xF8, 0xFA, 0xFC));
@@ -515,7 +485,6 @@ public class vistaPedido extends JFrame {
                 new EmptyBorder(10, 10, 10, 10)
         ));
 
-        // ✅ BOTONES COMPACTOS (ahora + igual que -)
         JButton minus = qtyMiniButton("−");
         JButton plus  = qtyMiniButton("+");
 
@@ -539,12 +508,11 @@ public class vistaPedido extends JFrame {
         JLabel n = new JLabel(p.getNombre());
         n.setFont(new Font("SansSerif", Font.BOLD, 13));
         n.setForeground(TEXT);
-
         mid.add(n);
 
         double sub = p.getPrecio() * cant;
 
-        JLabel subtotal = new JLabel(String.format("$%.2f", sub), SwingConstants.RIGHT);
+        JLabel subtotal = new JLabel(money(sub), SwingConstants.RIGHT); // ✅ ₡ forzado
         subtotal.setFont(new Font("SansSerif", Font.BOLD, 12));
         subtotal.setForeground(TEXT);
 
@@ -557,7 +525,6 @@ public class vistaPedido extends JFrame {
         right.add(Box.createRigidArea(new Dimension(10, 0)));
         right.add(trash);
 
-        // acciones
         plus.addActionListener(e -> {
             try {
                 ventaCtrl.agregarProductoAlPedido(p, 1);
@@ -600,7 +567,7 @@ public class vistaPedido extends JFrame {
         return row;
     }
 
-    // ✅ NUEVO: helpers para restar/eliminar (usa tu controller para que mantenga reglas/stock)
+    // helpers para restar/eliminar
     private void cambiarCantidadProductoEnPedido(Producto p, int delta) throws Exception {
         int actual = pedido.getCantidadDeProducto(p);
         int nuevo = actual + delta;
@@ -614,7 +581,6 @@ public class vistaPedido extends JFrame {
         if (delta > 0) {
             ventaCtrl.agregarProductoAlPedido(p, delta);
         } else {
-            // Requiere método en VentaController (inverso a agregar)
             ventaCtrl.quitarProductoDelPedido(p, Math.abs(delta));
         }
 
@@ -624,19 +590,15 @@ public class vistaPedido extends JFrame {
     private void eliminarProductoDelPedido(Producto p) throws Exception {
         int cant = pedido.getCantidadDeProducto(p);
         if (cant <= 0) return;
-
-        // Requiere método en VentaController (quita y devuelve stock)
         ventaCtrl.quitarProductoDelPedido(p, cant);
     }
 
     // ================= LOGIC =================
-
     private void cargarProductosInicial() {
         productosModel.clear();
         List<Producto> lista = productoCtrl.listar();
         for (Producto p : lista) productosModel.addElement(p);
 
-        // selecciona el primero si existe
         if (!lista.isEmpty()) {
             listaProductos.setSelectedIndex(0);
         }
@@ -664,13 +626,13 @@ public class vistaPedido extends JFrame {
     private void actualizarCardProducto(Producto p) {
         if (p == null) {
             lblProdNombre.setText("Selecciona un producto…");
-            lblProdPrecio.setText("$0.00");
+            lblProdPrecio.setText(money(0));
             lblProdDesc.setText("<html><span style='color:#64748b;'>—</span></html>");
             return;
         }
 
         lblProdNombre.setText(p.getNombre());
-        lblProdPrecio.setText(String.format("$%.2f", p.getPrecio()));
+        lblProdPrecio.setText(money(p.getPrecio()));
         lblProdDesc.setText("<html><span style='color:#64748b;'>Disponible en catálogo</span></html>");
     }
 
@@ -681,10 +643,8 @@ public class vistaPedido extends JFrame {
         }
 
         try {
-            // ✅ usa VentaController para que haga validar stock + descontar stock + agregar al pedidoActual
             ventaCtrl.agregarProductoAlPedido(productoSeleccionado, cantidadSeleccionada);
 
-            // reset UI
             cantidadSeleccionada = 1;
             lblCantidad.setText("1");
             txtNotas.setText("");
@@ -709,12 +669,11 @@ public class vistaPedido extends JFrame {
             double sub = p.getPrecio() * cant;
             total += sub;
 
-            // ✅ ahora es editable
             resumenItemsPanel.add(summaryItemEditable(p, cant));
             resumenItemsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         }
 
-        lblTotalValor.setText(String.format("$%.2f", total));
+        lblTotalValor.setText(money(total)); // ✅ ₡ forzado
 
         resumenItemsPanel.revalidate();
         resumenItemsPanel.repaint();
@@ -743,7 +702,6 @@ public class vistaPedido extends JFrame {
 
     private void onCancelar() {
         try {
-            // ✅ BORRA la venta pendiente asociada a este pedido
             ventaCtrl.eliminarPendientePorCodigoPedido(pedido.getCodigoPedido());
 
             boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
@@ -766,7 +724,6 @@ public class vistaPedido extends JFrame {
     }
 
     private void volverAtras() {
-        // regresar sin finalizar: para mesa vuelve a mapa de mesas
         if (pedido.getTipoPedido().equals(Pedido.MESA)) {
             vistaMesas vm = new vistaMesas(pedidoCtrl, productoCtrl, ventaCtrl, mesaCtrl, menuPrincipalRef);
             vm.setVisible(true);
