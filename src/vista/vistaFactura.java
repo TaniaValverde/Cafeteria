@@ -42,7 +42,7 @@ public class vistaFactura extends JFrame {
     // ✅ Colores tabla
     private static final Color ROW_ALT = new Color(0xF8, 0xFA, 0xFC);      // zebra suave
     private static final Color ROW_SEL = new Color(0xE0, 0xF2, 0xFE);      // azul suave
-    private static final Color ROW_SEL_BORDER = new Color(0x38, 0xBDF, 0x8); // (aprox)
+    private static final Color ROW_SEL_BORDER = new Color(0x38BDF8); // (aprox)
 
     // ✅ Formato fecha corto
     private static final DateTimeFormatter FECHA_CORTA =
@@ -216,11 +216,12 @@ public class vistaFactura extends JFrame {
                 }
 
                 if (isSelected) {
-                    c.setBackground(ROW_SEL);
-                    c.setBorder(new CompoundBorder(
-                            BorderFactory.createMatteBorder(1, 1, 1, 1, new Color(0,0,0,20)),
-                            c.getBorder()
-                    ));
+    c.setBackground(ROW_SEL);
+    c.setBorder(new CompoundBorder(
+            BorderFactory.createMatteBorder(1, 1, 1, 1, ROW_SEL_BORDER), // ✅ AQUÍ
+            c.getBorder()
+    ));
+
                 } else {
                     c.setBackground(row % 2 == 0 ? Color.WHITE : ROW_ALT);
                 }
