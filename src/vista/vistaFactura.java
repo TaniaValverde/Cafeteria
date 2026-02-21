@@ -1,5 +1,6 @@
 package vista;
 
+import Controlador.MesaController;
 import Controlador.VentaController;
 import Model.Venta;
 
@@ -19,6 +20,7 @@ import java.util.List;
 public class vistaFactura extends JFrame {
 
     private final VentaController ventaCtrl;
+    private final MesaController mesaCtrl; // ✅ NUEVO
 
     private JTable tabla;
     private DefaultTableModel modelo;
@@ -29,7 +31,7 @@ public class vistaFactura extends JFrame {
 
     private Venta ventaSeleccionada;
 
-    // ===== Palette (igual vibe que vistaPedido) =====
+    // ===== Palette =====
     private static final Color BG = new Color(0xF5, 0xF7, 0xFA);
     private static final Color CARD = Color.WHITE;
     private static final Color BORDER = new Color(0xE5, 0xE7, 0xEB);
@@ -40,16 +42,18 @@ public class vistaFactura extends JFrame {
     private static final Color NAVY = new Color(0x0B, 0x12, 0x22);
 
     // ✅ Colores tabla
-    private static final Color ROW_ALT = new Color(0xF8, 0xFA, 0xFC);      // zebra suave
-    private static final Color ROW_SEL = new Color(0xE0, 0xF2, 0xFE);      // azul suave
-    private static final Color ROW_SEL_BORDER = new Color(0x38BDF8); // (aprox)
+    private static final Color ROW_ALT = new Color(0xF8, 0xFA, 0xFC);
+    private static final Color ROW_SEL = new Color(0xE0, 0xF2, 0xFE);
+    private static final Color ROW_SEL_BORDER = new Color(0x38BDF8);
 
     // ✅ Formato fecha corto
     private static final DateTimeFormatter FECHA_CORTA =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    public vistaFactura(VentaController ventaCtrl) {
+    // ✅ CAMBIO: ahora recibe MesaController también
+    public vistaFactura(VentaController ventaCtrl, MesaController mesaCtrl) {
         this.ventaCtrl = ventaCtrl;
+        this.mesaCtrl = mesaCtrl;
 
         setTitle("Facturas Pendientes - Cafetería UCR");
         setSize(1100, 680);
@@ -125,10 +129,7 @@ public class vistaFactura extends JFrame {
         tabla.setShowGrid(true);
         tabla.setGridColor(new Color(0,0,0,20));
 
-        // ✅ Header plano naranja (NO botón)
         aplicarHeaderNaranjaPlano();
-
-        // ✅ Renderer de celdas: zebra + fila seleccionada elegante
         aplicarEstiloFilas();
 
         tabla.getSelectionModel().addListSelectionListener(e -> {
@@ -160,7 +161,6 @@ public class vistaFactura extends JFrame {
         });
     }
 
-    // ✅ Header naranja plano (sin relieve tipo botón de Windows)
     private void aplicarHeaderNaranjaPlano() {
         JTableHeader header = tabla.getTableHeader();
         header.setReorderingAllowed(false);
@@ -180,8 +180,6 @@ public class vistaFactura extends JFrame {
                 l.setOpaque(true);
                 l.setBackground(PRIMARY);
                 l.setForeground(Color.WHITE);
-
-                // borde plano inferior y separador derecho
                 l.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, new Color(0, 0, 0, 35)));
 
                 return l;
@@ -191,7 +189,6 @@ public class vistaFactura extends JFrame {
         header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(0, 0, 0, 35)));
     }
 
-    // ✅ Zebra + selección elegante
     private void aplicarEstiloFilas() {
         DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer() {
             @Override
@@ -206,7 +203,6 @@ public class vistaFactura extends JFrame {
                 c.setFont(new Font("SansSerif", Font.PLAIN, 13));
                 c.setForeground(TEXT);
 
-                // Alinear Total a la derecha, resto a la izquierda
                 if (col == 3) {
                     c.setHorizontalAlignment(SwingConstants.RIGHT);
                     c.setBorder(new EmptyBorder(0, 0, 0, 10));
@@ -216,12 +212,11 @@ public class vistaFactura extends JFrame {
                 }
 
                 if (isSelected) {
-    c.setBackground(ROW_SEL);
-    c.setBorder(new CompoundBorder(
-            BorderFactory.createMatteBorder(1, 1, 1, 1, ROW_SEL_BORDER), // ✅ AQUÍ
-            c.getBorder()
-    ));
-
+                    c.setBackground(ROW_SEL);
+                    c.setBorder(new CompoundBorder(
+                            BorderFactory.createMatteBorder(1, 1, 1, 1, ROW_SEL_BORDER),
+                            c.getBorder()
+                    ));
                 } else {
                     c.setBackground(row % 2 == 0 ? Color.WHITE : ROW_ALT);
                 }
@@ -230,7 +225,6 @@ public class vistaFactura extends JFrame {
             }
         };
 
-        // aplicarlo a todas las columnas
         for (int i = 0; i < tabla.getColumnModel().getColumnCount(); i++) {
             tabla.getColumnModel().getColumn(i).setCellRenderer(cellRenderer);
         }
@@ -255,7 +249,6 @@ public class vistaFactura extends JFrame {
         return right;
     }
 
-    // ================= FOOTER (sin superposición) =================
     private JComponent buildFooter() {
         JPanel footer = new JPanel(new GridBagLayout());
         footer.setBackground(NAVY);
@@ -371,7 +364,14 @@ public class vistaFactura extends JFrame {
         if (confirm != JOptionPane.YES_OPTION) return;
 
         try {
+            // ✅ marca pagada
             ventaCtrl.marcarComoPagada(ventaSeleccionada, metodo);
+
+            // ✅ LIBERA MESA CUANDO SE PAGA
+            if (!ventaSeleccionada.esParaLlevar()) {
+                int n = ventaSeleccionada.getMesaNumero();
+                mesaCtrl.liberarMesa(n);
+            }
 
             areaFactura.setText(ventaCtrl.generarTextoFactura(ventaSeleccionada));
             JOptionPane.showMessageDialog(this, "Venta cobrada correctamente ✅");
@@ -388,7 +388,7 @@ public class vistaFactura extends JFrame {
         }
     }
 
-    // ================= BUTTONS (estilo vistaPedido) =================
+    // ================= BUTTONS =================
     private JButton solidButton(String text, Color bg, Color fg, int fontSize, int pad) {
         JButton b = new JButton(text) {
             @Override

@@ -128,6 +128,28 @@ public void eliminarPendientePorCodigoPedido(int codigoPedido) throws IOExceptio
     ventaDAO.eliminarPendientePorCodigoPedido(codigoPedido);
 }
 
+public void quitarProductoDelPedido(Producto producto, int cantidad) {
+    if (producto == null) throw new IllegalArgumentException("Producto inválido.");
+    if (cantidad <= 0) return;
+
+    if (pedidoActual == null) {
+        throw new IllegalStateException("No hay pedido activo.");
+    }
+
+    int actual = pedidoActual.getCantidadDeProducto(producto);
+    if (actual <= 0) {
+        throw new IllegalStateException("El producto no está en el pedido.");
+    }
+    if (cantidad > actual) {
+        throw new IllegalStateException("No puedes quitar más de lo que hay en el pedido.");
+    }
+
+    // ✅ Quitar del pedido (resta cantidad o elimina)
+    pedidoActual.quitarProducto(producto, cantidad);
+
+}
+
+
     public Pedido getPedidoActual() { return pedidoActual; }
     public void setPedidoActual(Pedido pedidoActual) { this.pedidoActual = pedidoActual; }
 }

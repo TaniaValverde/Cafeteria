@@ -463,6 +463,152 @@ public class vistaPedido extends JFrame {
         return row;
     }
 
+    // ✅ NUEVO: item editable ( + / - / eliminar )
+    private JComponent summaryItemEditable(Producto p, int cant) {
+        JPanel row = new JPanel(new BorderLayout(10, 0));
+        row.setBackground(new Color(0xF8, 0xFA, 0xFC));
+        row.setBorder(new CompoundBorder(
+                new LineBorder(new Color(0,0,0,10), 1, true),
+                new EmptyBorder(10, 10, 10, 10)
+        ));
+
+        // ✅ BOTONES COMPACTOS (cambio principal)
+        JButton minus = new JButton("−");
+        minus.setFont(new Font("SansSerif", Font.BOLD, 14));
+        minus.setPreferredSize(new Dimension(36, 36));
+        minus.setMaximumSize(new Dimension(36, 36));
+        minus.setMinimumSize(new Dimension(36, 36));
+        minus.setFocusPainted(false);
+        minus.setContentAreaFilled(true);
+        minus.setOpaque(true);
+        minus.setBackground(Color.WHITE);
+        minus.setForeground(TEXT_MID);
+        minus.setBorder(new LineBorder(BORDER, 1, true));
+        minus.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        JButton plus = new JButton("+");
+        plus.setFont(new Font("SansSerif", Font.BOLD, 14));
+        plus.setPreferredSize(new Dimension(36, 36));
+        plus.setMaximumSize(new Dimension(36, 36));
+        plus.setMinimumSize(new Dimension(36, 36));
+        plus.setFocusPainted(false);
+        plus.setContentAreaFilled(true);
+        plus.setOpaque(true);
+        plus.setBackground(PRIMARY);
+        plus.setForeground(Color.WHITE);
+        plus.setBorder(new LineBorder(PRIMARY, 1, true));
+        plus.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        JLabel qty = new JLabel(cant + "x", SwingConstants.CENTER);
+        qty.setFont(new Font("SansSerif", Font.BOLD, 12));
+        qty.setOpaque(true);
+        qty.setBackground(Color.WHITE);
+        qty.setBorder(new LineBorder(BORDER, 1, true));
+        qty.setPreferredSize(new Dimension(44, 36));
+
+        JPanel qtyBox = new JPanel(new BorderLayout(6, 0));
+        qtyBox.setOpaque(false);
+        qtyBox.add(minus, BorderLayout.WEST);
+        qtyBox.add(qty, BorderLayout.CENTER);
+        qtyBox.add(plus, BorderLayout.EAST);
+
+        JPanel mid = new JPanel();
+        mid.setOpaque(false);
+        mid.setLayout(new BoxLayout(mid, BoxLayout.Y_AXIS));
+
+        JLabel n = new JLabel(p.getNombre());
+        n.setFont(new Font("SansSerif", Font.BOLD, 13));
+        n.setForeground(TEXT);
+
+        mid.add(n);
+
+        double sub = p.getPrecio() * cant;
+
+        JLabel subtotal = new JLabel(String.format("$%.2f", sub), SwingConstants.RIGHT);
+        subtotal.setFont(new Font("SansSerif", Font.BOLD, 12));
+        subtotal.setForeground(TEXT);
+
+        JButton trash = outlineButton("🗑", new Color(0,0,0,12), DANGER, 14, 8);
+
+        JPanel right = new JPanel();
+        right.setOpaque(false);
+        right.setLayout(new BoxLayout(right, BoxLayout.X_AXIS));
+        right.add(subtotal);
+        right.add(Box.createRigidArea(new Dimension(10, 0)));
+        right.add(trash);
+
+        // acciones
+        plus.addActionListener(e -> {
+            try {
+                ventaCtrl.agregarProductoAlPedido(p, 1);
+                refrescarResumen();
+            } catch (IllegalStateException ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Stock / Pedido", JOptionPane.WARNING_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error:\n" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        minus.addActionListener(e -> {
+            try {
+                cambiarCantidadProductoEnPedido(p, -1);
+            } catch (IllegalStateException ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Pedido", JOptionPane.WARNING_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error:\n" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        trash.addActionListener(e -> {
+            int r = JOptionPane.showConfirmDialog(this,
+                    "¿Eliminar " + p.getNombre() + " del pedido?",
+                    "Confirmar", JOptionPane.YES_NO_OPTION);
+            if (r == JOptionPane.YES_OPTION) {
+                try {
+                    eliminarProductoDelPedido(p);
+                    refrescarResumen();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Error:\n" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        row.add(qtyBox, BorderLayout.WEST);
+        row.add(mid, BorderLayout.CENTER);
+        row.add(right, BorderLayout.EAST);
+
+        return row;
+    }
+
+    // ✅ NUEVO: helpers para restar/eliminar (usa tu controller para que mantenga reglas/stock)
+    private void cambiarCantidadProductoEnPedido(Producto p, int delta) throws Exception {
+        int actual = pedido.getCantidadDeProducto(p);
+        int nuevo = actual + delta;
+
+        if (nuevo <= 0) {
+            eliminarProductoDelPedido(p);
+            refrescarResumen();
+            return;
+        }
+
+        if (delta > 0) {
+            ventaCtrl.agregarProductoAlPedido(p, delta);
+        } else {
+            // Requiere método en VentaController (inverso a agregar)
+            ventaCtrl.quitarProductoDelPedido(p, Math.abs(delta));
+        }
+
+        refrescarResumen();
+    }
+
+    private void eliminarProductoDelPedido(Producto p) throws Exception {
+        int cant = pedido.getCantidadDeProducto(p);
+        if (cant <= 0) return;
+
+        // Requiere método en VentaController (quita y devuelve stock)
+        ventaCtrl.quitarProductoDelPedido(p, cant);
+    }
+
     // ================= LOGIC =================
 
     private void cargarProductosInicial() {
@@ -543,12 +689,8 @@ public class vistaPedido extends JFrame {
             double sub = p.getPrecio() * cant;
             total += sub;
 
-            resumenItemsPanel.add(summaryItem(
-                    cant + "x",
-                    p.getNombre(),
-                    null,
-                    String.format("$%.2f", sub)
-            ));
+            // ✅ ahora es editable
+            resumenItemsPanel.add(summaryItemEditable(p, cant));
             resumenItemsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         }
 
@@ -559,52 +701,53 @@ public class vistaPedido extends JFrame {
     }
 
     private void onFinalizar() {
-    try {
+        try {
 
-        boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
+            boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
 
-        Mesa mesa = null;
-        if (!paraLlevar) {
-            mesa = mesaCtrl.obtenerMesa(pedido.getNumeroMesa());
+            Mesa mesa = null;
+            if (!paraLlevar) {
+                mesa = mesaCtrl.obtenerMesa(pedido.getNumeroMesa());
+            }
+
+            Venta v = ventaCtrl.finalizarVenta(null, mesa, paraLlevar);
+
+            // ❌ YA NO SE LIBERA LA MESA AQUÍ
+
+            JOptionPane.showMessageDialog(this, "Pedido finalizado. Pase a facturación.");
+
+            menuPrincipalRef.setVisible(true);
+            dispose();
+
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "No se pudo guardar la venta:\n" + ex.getMessage());
         }
-
-        Venta v = ventaCtrl.finalizarVenta(null, mesa, paraLlevar);
-
-        // ❌ YA NO SE LIBERA LA MESA AQUÍ
-
-        JOptionPane.showMessageDialog(this, "Pedido finalizado. Pase a facturación.");
-
-        menuPrincipalRef.setVisible(true);
-        dispose();
-
-    } catch (IOException ex) {
-        JOptionPane.showMessageDialog(this, "No se pudo guardar la venta:\n" + ex.getMessage());
     }
-}
+
     private void onCancelar() {
-    try {
+        try {
 
-        // ✅ BORRA la venta pendiente asociada a este pedido
-        ventaCtrl.eliminarPendientePorCodigoPedido(pedido.getCodigoPedido());
+            // ✅ BORRA la venta pendiente asociada a este pedido
+            ventaCtrl.eliminarPendientePorCodigoPedido(pedido.getCodigoPedido());
 
-        boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
+            boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
 
-        if (!paraLlevar) {
-            mesaCtrl.liberarMesa(pedido.getNumeroMesa());
+            if (!paraLlevar) {
+                mesaCtrl.liberarMesa(pedido.getNumeroMesa());
+            }
+
+            JOptionPane.showMessageDialog(this, "Pedido cancelado.");
+
+            menuPrincipalRef.setVisible(true);
+            dispose();
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Error al cancelar:\n" + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
-
-        JOptionPane.showMessageDialog(this, "Pedido cancelado.");
-
-        menuPrincipalRef.setVisible(true);
-        dispose();
-
-    } catch (Exception ex) {
-        JOptionPane.showMessageDialog(this,
-                "Error al cancelar:\n" + ex.getMessage(),
-                "Error",
-                JOptionPane.ERROR_MESSAGE);
     }
-}
 
     private void volverAtras() {
         // regresar sin finalizar: para mesa vuelve a mapa de mesas

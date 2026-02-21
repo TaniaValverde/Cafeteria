@@ -101,4 +101,41 @@ public class Pedido {
 
         return 0;
     }
+    
+   public void quitarProducto(Producto producto, int cantidad) {
+
+    if (producto == null) {
+        throw new IllegalArgumentException("Producto no puede ser null");
+    }
+
+    if (cantidad <= 0) {
+        throw new IllegalArgumentException("La cantidad debe ser mayor a 0");
+    }
+
+    for (int i = 0; i < productos.size(); i++) {
+        if (productos.get(i).equals(producto)) {
+
+            int actual = cantidades.get(i);
+
+            if (cantidad > actual) {
+                throw new IllegalStateException("No puedes quitar más de lo que hay en el pedido");
+            }
+
+            int nuevo = actual - cantidad;
+
+            if (nuevo == 0) {
+                // eliminar producto y su cantidad asociada
+                productos.remove(i);
+                cantidades.remove(i);
+            } else {
+                cantidades.set(i, nuevo);
+            }
+
+            return;
+        }
+    }
+
+    throw new IllegalStateException("El producto no está en el pedido");
+}   
+    
 }

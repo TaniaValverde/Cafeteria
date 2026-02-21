@@ -155,10 +155,8 @@ public class MenuPrincipal extends JFrame {
     // ✅ Tu constructor REAL es: public vistaFactura()
    private void abrirFacturacion() {
     try {
-        vistaFactura vf = new vistaFactura(ventaCtrl);
+        vistaFactura vf = new vistaFactura(ventaCtrl, mesaCtrl); // ✅ AHORA PASA mesaCtrl
         vf.setVisible(true);
-        // Opcional: ocultar el menú si quieres el mismo comportamiento que Mesas/Pedido
-        // this.setVisible(false);
     } catch (Exception ex) {
         ex.printStackTrace();
         JOptionPane.showMessageDialog(this,
@@ -166,6 +164,7 @@ public class MenuPrincipal extends JFrame {
                 "Error", JOptionPane.ERROR_MESSAGE);
     }
 }
+
 
     private void abrirInventario() {
         vistaInventario vi = new vistaInventario(productoCtrl);

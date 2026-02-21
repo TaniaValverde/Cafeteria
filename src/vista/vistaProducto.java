@@ -18,6 +18,9 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 
+// ✅ Para forzar que el botón respete colores (Nimbus/Windows LAF)
+import javax.swing.plaf.basic.BasicButtonUI;
+
 public class vistaProducto extends JFrame {
 
     // ===== Controller =====
@@ -34,8 +37,6 @@ public class vistaProducto extends JFrame {
     private JButton btnMenu;
     private JButton btnModificar;
     private JButton btnEliminar;
-    private JButton btnLimpiar;
-    private JButton btnRecargar;
 
     private JTable tabla;
     private DefaultTableModel modelo;
@@ -45,7 +46,7 @@ public class vistaProducto extends JFrame {
     private JLabel lblUltimaMod;
     private JLabel lblEstado;
 
-    // ===== Palette (from HTML) =====
+    // ===== Palette (existing) =====
     private static final Color PRIMARY = new Color(0x3C, 0xE6, 0x19);      // #3ce619
     private static final Color BG_LIGHT = new Color(0xF6, 0xF8, 0xF6);     // #f6f8f6
     private static final Color CARD_BG = new Color(0xF8, 0xFA, 0xF8);
@@ -54,6 +55,12 @@ public class vistaProducto extends JFrame {
     private static final Color TEXT_MID = new Color(0x64, 0x74, 0x8B);     // slate-500-ish
     private static final Color DARK_BTN = new Color(0x1F, 0x29, 0x37);     // slate-800-ish
     private static final Color DANGER = new Color(0xDC, 0x26, 0x26);       // red-600
+
+    // ===== Vista Pedido palette =====
+    private static final Color ORANGE_PRIMARY = new Color(230, 149, 36);   // naranja principal
+    private static final Color NAVY_DARK = new Color(10, 25, 47);          // azul oscuro panel
+    private static final Color RED_CANCEL = new Color(220, 53, 69);        // rojo cancelar
+    private static final Color GRAY_SOFT_BG = new Color(240, 240, 240);    // secundario gris
 
     public vistaProducto(ProductoController productoController) {
         this.productoController = productoController;
@@ -227,7 +234,7 @@ public class vistaProducto extends JFrame {
         styleCombo(cmbCategoria);
         grid.add(fieldGroup("Categoría (cmbCategoria)", cmbCategoria), c);
 
-        // Precio + Stock (en formulario sí se ve; pero Stock solo se usa en AGREGAR)
+        // Precio + Stock
         c.gridx = 3;
         c.weightx = 1.8;
         JPanel precioStock = new JPanel(new GridLayout(1, 2, 10, 0));
@@ -253,6 +260,7 @@ public class vistaProducto extends JFrame {
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         left.setOpaque(false);
 
+        // ✅ Botones con colores tipo Vista Pedido
         btnAgregar = primaryButton("➕ Agregar");
         btnModificar = darkButton("✏ Modificar");
         btnEliminar = dangerButton("🗑 Eliminar");
@@ -261,14 +269,9 @@ public class vistaProducto extends JFrame {
         left.add(btnModificar);
         left.add(btnEliminar);
 
+        // ✅ Eliminados: Limpiar / Recargar (se deja el panel derecho vacío)
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         right.setOpaque(false);
-
-        btnLimpiar = ghostButton("🧹 Limpiar");
-        btnRecargar = ghostButton("🔄 Recargar");
-
-        right.add(btnLimpiar);
-        right.add(btnRecargar);
 
         row.add(left, BorderLayout.WEST);
         row.add(right, BorderLayout.EAST);
@@ -376,13 +379,7 @@ public class vistaProducto extends JFrame {
     // ====== WIRE EVENTS ======
     // =========================
     private void wireEvents() {
-        btnRecargar.addActionListener(e -> {
-            recargarTabla();
-            actualizarFooter();
-        });
         btnMenu.addActionListener(e -> volverAlMenu());
-
-        btnLimpiar.addActionListener(e -> limpiarFormulario());
 
         btnAgregar.addActionListener(e -> onAgregar());
         btnModificar.addActionListener(e -> onModificar());
@@ -642,60 +639,72 @@ public class vistaProducto extends JFrame {
         return g;
     }
 
+    // =========================
+    // ===== BUTTON STYLES =====
+    // =========================
+    // ✅ Fuerza el pintado para que se vean igual en Nimbus/Windows
+    private void forceButtonPaint(JButton b) {
+        b.setUI(new BasicButtonUI());
+        b.setOpaque(true);
+        b.setContentAreaFilled(true);
+        b.setBorderPainted(true);
+        b.setFocusPainted(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    }
+
+    // Vista Pedido: naranja sólido + texto blanco
     private JButton primaryButton(String text) {
         JButton b = new JButton(text);
         b.setFont(new Font("SansSerif", Font.BOLD, 14));
-        b.setBackground(PRIMARY);
-        b.setForeground(TEXT_DARK);
+        b.setBackground(ORANGE_PRIMARY);
+        b.setForeground(Color.WHITE);
         b.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0, 0, 0, 10), 1, true),
+                new LineBorder(new Color(0, 0, 0, 20), 1, true),
                 new EmptyBorder(10, 16, 10, 16)
         ));
-        b.setFocusPainted(false);
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        forceButtonPaint(b);
         return b;
     }
 
+    // Vista Pedido: azul oscuro + texto blanco
     private JButton darkButton(String text) {
         JButton b = new JButton(text);
         b.setFont(new Font("SansSerif", Font.BOLD, 14));
-        b.setBackground(DARK_BTN);
+        b.setBackground(NAVY_DARK);
         b.setForeground(Color.WHITE);
         b.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0, 0, 0, 10), 1, true),
+                new LineBorder(new Color(0, 0, 0, 20), 1, true),
                 new EmptyBorder(10, 16, 10, 16)
         ));
-        b.setFocusPainted(false);
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        forceButtonPaint(b);
         return b;
     }
 
+    // Vista Pedido (Cancelar): fondo azul oscuro + borde rojo + texto rojo
     private JButton dangerButton(String text) {
         JButton b = new JButton(text);
         b.setFont(new Font("SansSerif", Font.BOLD, 14));
-        b.setBackground(Color.WHITE);
-        b.setForeground(DANGER);
+        b.setBackground(NAVY_DARK);
+        b.setForeground(RED_CANCEL);
         b.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0xFE, 0xCA, 0xCA), 1, true),
+                new LineBorder(RED_CANCEL, 2, true),
                 new EmptyBorder(10, 16, 10, 16)
         ));
-
-        b.setFocusPainted(false);
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        forceButtonPaint(b);
         return b;
     }
 
+    // Secundario (gris claro) - usado para Menú Principal
     private JButton ghostButton(String text) {
         JButton b = new JButton(text);
         b.setFont(new Font("SansSerif", Font.BOLD, 14));
-        b.setBackground(new Color(0xF1, 0xF5, 0xF9));
-        b.setForeground(TEXT_MID);
+        b.setBackground(GRAY_SOFT_BG);
+        b.setForeground(TEXT_DARK);
         b.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0, 0, 0, 12), 1, true),
+                new LineBorder(new Color(0, 0, 0, 20), 1, true),
                 new EmptyBorder(10, 16, 10, 16)
         ));
-        b.setFocusPainted(false);
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        forceButtonPaint(b);
         return b;
     }
 
