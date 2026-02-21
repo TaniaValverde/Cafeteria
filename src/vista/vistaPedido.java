@@ -202,8 +202,11 @@ public class vistaPedido extends JFrame {
         txtBuscar.setToolTipText("Buscar producto (Hamburguesa, bebida...)");
 
         txtBuscar.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
             public void insertUpdate(javax.swing.event.DocumentEvent e) { filtrarProductos(txtBuscar.getText()); }
+            @Override
             public void removeUpdate(javax.swing.event.DocumentEvent e) { filtrarProductos(txtBuscar.getText()); }
+            @Override
             public void changedUpdate(javax.swing.event.DocumentEvent e) { filtrarProductos(txtBuscar.getText()); }
         });
 
@@ -374,7 +377,7 @@ public class vistaPedido extends JFrame {
         resumenItemsPanel.setLayout(new BoxLayout(resumenItemsPanel, BoxLayout.Y_AXIS));
         resumenItemsPanel.setBorder(new EmptyBorder(10, 14, 10, 14));
 
-        // ✅ OPCIÓN 1: WRAPPER para que el BoxLayout NO estire filas cuando hay pocos items
+        // ✅ wrapper para que el BoxLayout NO estire filas cuando hay pocos items
         JPanel wrap = new JPanel(new BorderLayout());
         wrap.setBackground(CARD);
         wrap.add(resumenItemsPanel, BorderLayout.NORTH);
@@ -468,6 +471,41 @@ public class vistaPedido extends JFrame {
         return row;
     }
 
+    // ✅ NUEVO: botón mini para cantidad (MISMO estilo para + y -)
+    private JButton qtyMiniButton(String text) {
+    JButton b = new JButton(text);
+
+    b.setFont(new Font("SansSerif", Font.BOLD, 16));
+    b.setForeground(TEXT_MID);
+    b.setBackground(Color.WHITE);
+
+    // 🔥 CLAVE: sin márgenes (si no, el "+" se recorta y desaparece)
+    b.setMargin(new Insets(0, 0, 0, 0));
+
+    // centrado total
+    b.setHorizontalAlignment(SwingConstants.CENTER);
+    b.setVerticalAlignment(SwingConstants.CENTER);
+    b.setHorizontalTextPosition(SwingConstants.CENTER);
+    b.setVerticalTextPosition(SwingConstants.CENTER);
+    b.setIconTextGap(0);
+
+    b.setFocusPainted(false);
+    b.setFocusable(false);
+
+    // pintura simple, LAF-proof
+    b.setContentAreaFilled(true);
+    b.setOpaque(true);
+
+    b.setBorder(new LineBorder(BORDER, 1, true));
+
+    b.setPreferredSize(new Dimension(36, 36));
+    b.setMinimumSize(new Dimension(36, 36));
+    b.setMaximumSize(new Dimension(36, 36));
+
+    b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    return b;
+}
+
     // ✅ NUEVO: item editable ( + / - / eliminar )
     private JComponent summaryItemEditable(Producto p, int cant) {
         JPanel row = new JPanel(new BorderLayout(10, 0));
@@ -477,32 +515,9 @@ public class vistaPedido extends JFrame {
                 new EmptyBorder(10, 10, 10, 10)
         ));
 
-        // ✅ BOTONES COMPACTOS
-        JButton minus = new JButton("−");
-        minus.setFont(new Font("SansSerif", Font.BOLD, 14));
-        minus.setPreferredSize(new Dimension(36, 36));
-        minus.setMaximumSize(new Dimension(36, 36));
-        minus.setMinimumSize(new Dimension(36, 36));
-        minus.setFocusPainted(false);
-        minus.setContentAreaFilled(true);
-        minus.setOpaque(true);
-        minus.setBackground(Color.WHITE);
-        minus.setForeground(TEXT_MID);
-        minus.setBorder(new LineBorder(BORDER, 1, true));
-        minus.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-        JButton plus = new JButton("+");
-        plus.setFont(new Font("SansSerif", Font.BOLD, 14));
-        plus.setPreferredSize(new Dimension(36, 36));
-        plus.setMaximumSize(new Dimension(36, 36));
-        plus.setMinimumSize(new Dimension(36, 36));
-        plus.setFocusPainted(false);
-        plus.setContentAreaFilled(true);
-        plus.setOpaque(true);
-        plus.setBackground(PRIMARY);
-        plus.setForeground(Color.WHITE);
-        plus.setBorder(new LineBorder(PRIMARY, 1, true));
-        plus.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        // ✅ BOTONES COMPACTOS (ahora + igual que -)
+        JButton minus = qtyMiniButton("−");
+        JButton plus  = qtyMiniButton("+");
 
         JLabel qty = new JLabel(cant + "x", SwingConstants.CENTER);
         qty.setFont(new Font("SansSerif", Font.BOLD, 12));
