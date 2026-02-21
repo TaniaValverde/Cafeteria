@@ -94,6 +94,22 @@ public class VentaDAO {
         guardar(ventas);
     }
 
+    public void eliminarPendientePorCodigoPedido(int codigoPedido) throws IOException {
+    List<Venta> ventas = cargar();
+    boolean cambio = false;
+
+    for (int i = ventas.size() - 1; i >= 0; i--) {
+        Venta v = ventas.get(i);
+        if ("PENDIENTE".equalsIgnoreCase(v.getEstado())
+                && v.getCodigoPedido() == codigoPedido) {
+            ventas.remove(i);
+            cambio = true;
+        }
+    }
+
+    if (cambio) guardar(ventas);
+}
+   
     public List<Venta> listarPendientes() throws IOException {
         List<Venta> ventas = cargar();
         List<Venta> pendientes = new ArrayList<>();

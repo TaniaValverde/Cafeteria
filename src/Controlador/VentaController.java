@@ -42,29 +42,28 @@ public class VentaController {
     }
 
     public Venta finalizarVenta(Cliente cliente, Mesa mesa, boolean paraLlevar) throws IOException {
-        if (pedidoActual == null) throw new IllegalStateException("No hay pedido para finalizar");
-        if (!paraLlevar && mesa == null) throw new IllegalArgumentException("Mesa requerida para finalizar venta");
 
-        int numeroMesa = paraLlevar ? Venta.PARA_LLEVAR : mesa.getNumero();
+    int numeroMesa = paraLlevar ? Venta.PARA_LLEVAR : mesa.getNumero();
 
-        Venta venta = new Venta("V-" + System.currentTimeMillis(),
-                LocalDateTime.now(clock),
-                numeroMesa);
+    Venta venta = new Venta(
+            "V-" + System.currentTimeMillis(),
+            LocalDateTime.now(clock),
+            numeroMesa,
+            pedidoActual.getCodigoPedido(), // ✅ NUEVO
+            Venta.DEFAULT_TAX_RATE
+    );
 
-        for (Producto p : pedidoActual.getProductos()) {
-            int cantidad = pedidoActual.getCantidadDeProducto(p);
-            venta.agregarLinea(p, cantidad);
-        }
-
-        ventaDAO.guardarVenta(venta);
-
-        List<Producto> productos = productoDAO.cargar();
-        productoDAO.guardar(productos);
-
-        pedidoActual = null;
-        return venta;
+    for (Producto p : pedidoActual.getProductos()) {
+        int cantidad = pedidoActual.getCantidadDeProducto(p);
+        venta.agregarLinea(p, cantidad);
     }
 
+    ventaDAO.guardarVenta(venta);
+
+    pedidoActual = null;
+    return venta;
+}
+    
     public List<Venta> obtenerPendientes() throws IOException {
         return ventaDAO.listarPendientes();
     }
@@ -124,6 +123,10 @@ public class VentaController {
 
         return sb.toString();
     }
+    
+public void eliminarPendientePorCodigoPedido(int codigoPedido) throws IOException {
+    ventaDAO.eliminarPendientePorCodigoPedido(codigoPedido);
+}
 
     public Pedido getPedidoActual() { return pedidoActual; }
     public void setPedidoActual(Pedido pedidoActual) { this.pedidoActual = pedidoActual; }

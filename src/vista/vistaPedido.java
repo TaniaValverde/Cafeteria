@@ -582,24 +582,29 @@ public class vistaPedido extends JFrame {
     }
 }
     private void onCancelar() {
-        try {
-            boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
+    try {
 
-            // si era mesa: liberar
-            if (!paraLlevar) {
-                mesaCtrl.liberarMesa(pedido.getNumeroMesa());
-            }
+        // ✅ BORRA la venta pendiente asociada a este pedido
+        ventaCtrl.eliminarPendientePorCodigoPedido(pedido.getCodigoPedido());
 
-            JOptionPane.showMessageDialog(this, "Pedido cancelado.");
+        boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
 
-            menuPrincipalRef.setVisible(true);
-            dispose();
-
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error al cancelar:\n" + ex.getMessage(),
-                    "Error", JOptionPane.ERROR_MESSAGE);
+        if (!paraLlevar) {
+            mesaCtrl.liberarMesa(pedido.getNumeroMesa());
         }
+
+        JOptionPane.showMessageDialog(this, "Pedido cancelado.");
+
+        menuPrincipalRef.setVisible(true);
+        dispose();
+
+    } catch (Exception ex) {
+        JOptionPane.showMessageDialog(this,
+                "Error al cancelar:\n" + ex.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
     }
+}
 
     private void volverAtras() {
         // regresar sin finalizar: para mesa vuelve a mapa de mesas

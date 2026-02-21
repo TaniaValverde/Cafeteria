@@ -14,10 +14,11 @@ public class Venta {
     private String id;
     private LocalDateTime fechaHora;
     private int mesaNumero;
+    private int codigoPedido; // ✅ NUEVO
     private double taxRate;
 
-    private String estado;     // PENDIENTE | PAGADA
-    private String metodoPago; // EFECTIVO | TARJETA | SINPE | ""
+    private String estado;
+    private String metodoPago;
 
     private final List<LineaVenta> lineas = new ArrayList<>();
 
@@ -27,10 +28,6 @@ public class Venta {
         private final double precioUnitario;
 
         public LineaVenta(Producto producto, int cantidad, double precioUnitario) {
-            if (producto == null) throw new IllegalArgumentException("Product cannot be null.");
-            if (cantidad <= 0) throw new IllegalArgumentException("Quantity must be > 0.");
-            if (precioUnitario < 0) throw new IllegalArgumentException("Unit price cannot be negative.");
-
             this.producto = producto;
             this.cantidad = cantidad;
             this.precioUnitario = precioUnitario;
@@ -42,185 +39,106 @@ public class Venta {
         public double getSubtotal() { return precioUnitario * cantidad; }
     }
 
-    public Venta(String id, LocalDateTime fechaHora, int mesaNumero) {
-        this(id, fechaHora, mesaNumero, DEFAULT_TAX_RATE);
-    }
-
-    public Venta(String id, LocalDateTime fechaHora, int mesaNumero, double taxRate) {
-        setId(id);
-        setFechaHora(fechaHora);
-        setMesaNumero(mesaNumero);
-        setTaxRate(taxRate);
-
+    public Venta(String id, LocalDateTime fechaHora, int mesaNumero, int codigoPedido, double taxRate) {
+        this.id = id;
+        this.fechaHora = fechaHora;
+        this.mesaNumero = mesaNumero;
+        this.codigoPedido = codigoPedido; // ✅
+        this.taxRate = taxRate;
         this.estado = "PENDIENTE";
-        this.metodoPago = ""; // vacío hasta cobrar
+        this.metodoPago = "";
     }
 
     public String getId() { return id; }
     public LocalDateTime getFechaHora() { return fechaHora; }
     public int getMesaNumero() { return mesaNumero; }
+    public int getCodigoPedido() { return codigoPedido; } // ✅
     public double getTaxRate() { return taxRate; }
     public String getEstado() { return estado; }
     public String getMetodoPago() { return metodoPago; }
 
-    public void setEstado(String estado) {
-        if (estado == null || estado.isBlank()) throw new IllegalArgumentException("Estado no puede ser vacío.");
-        this.estado = estado.toUpperCase();
-    }
+    public void setEstado(String estado) { this.estado = estado; }
+    public void setMetodoPago(String metodoPago) { this.metodoPago = metodoPago; }
 
-    public void setMetodoPago(String metodoPago) {
-        if (metodoPago == null) metodoPago = "";
-        this.metodoPago = metodoPago.trim().toUpperCase();
-    }
-
-    public List<LineaVenta> getLineas() {
-        return Collections.unmodifiableList(lineas);
-    }
-
-    public final void setId(String id) {
-        if (id == null || id.trim().isEmpty()) throw new IllegalArgumentException("Sale id cannot be empty.");
-        this.id = id.trim();
-    }
-
-    public final void setFechaHora(LocalDateTime fechaHora) {
-        if (fechaHora == null) throw new IllegalArgumentException("Sale date-time cannot be null.");
-        this.fechaHora = fechaHora;
-    }
-
-    public final void setMesaNumero(int mesaNumero) {
-        if (mesaNumero != PARA_LLEVAR && (mesaNumero < 1 || mesaNumero > 5)) {
-            throw new IllegalArgumentException("Invalid table number. Use 1..5 or 0 for carryout.");
-        }
-        this.mesaNumero = mesaNumero;
-    }
-
-    public final void setTaxRate(double taxRate) {
-        if (taxRate < 0) throw new IllegalArgumentException("Tax rate cannot be negative.");
-        this.taxRate = taxRate;
-    }
-
-    public boolean esParaLlevar() {
-        return mesaNumero == PARA_LLEVAR;
-    }
+    public boolean esParaLlevar() { return mesaNumero == PARA_LLEVAR; }
 
     public void agregarLinea(Producto producto, int cantidad) {
-        if (producto == null) throw new IllegalArgumentException("Product cannot be null.");
-        if (cantidad <= 0) throw new IllegalArgumentException("Quantity must be > 0.");
         lineas.add(new LineaVenta(producto, cantidad, producto.getPrecio()));
     }
 
+    public List<LineaVenta> getLineas() { return lineas; }
+
     public double getSubtotal() {
-        double sum = 0.0;
-        for (LineaVenta lv : lineas) sum += lv.getSubtotal();
-        return sum;
+        return lineas.stream().mapToDouble(LineaVenta::getSubtotal).sum();
     }
 
     public double getImpuesto() { return getSubtotal() * taxRate; }
     public double getTotal() { return getSubtotal() + getImpuesto(); }
 
-    /**
-     * CSV (nuevo):
-     * id,fechaHora,mesaNumero,taxRate,estado,metodoPago,items
-     *
-     * Compatibilidad:
-     * - viejo: id,fechaHora,mesaNumero,taxRate,estado,items
-     */
+    // ✅ CSV actualizado
     public String toCsv() {
         StringBuilder items = new StringBuilder();
         for (int i = 0; i < lineas.size(); i++) {
             LineaVenta lv = lineas.get(i);
             if (i > 0) items.append(";");
-            items.append(escape(lv.getProducto().getCodigo()))
+            items.append(lv.getProducto().getCodigo())
                     .append(":").append(lv.getCantidad())
                     .append(":").append(lv.getPrecioUnitario());
         }
 
         return String.join(",",
-                escape(id),
-                escape(fechaHora.format(DT_FORMAT)),
+                id,
+                fechaHora.format(DT_FORMAT),
                 String.valueOf(mesaNumero),
+                String.valueOf(codigoPedido), // ✅
                 String.valueOf(taxRate),
-                escape(estado),
-                escape(metodoPago),
-                escape(items.toString()));
+                estado,
+                metodoPago,
+                items.toString());
     }
 
     public static Venta fromCsv(String line) {
-        if (line == null || line.trim().isEmpty()) throw new IllegalArgumentException("Invalid CSV line.");
+        String[] parts = line.split(",", -1);
 
-        try {
-            String[] parts = splitCsv(line);
+        String id = parts[0];
+        LocalDateTime dt = LocalDateTime.parse(parts[1], DT_FORMAT);
+        int mesa = Integer.parseInt(parts[2]);
 
-            if (parts.length < 6) throw new IllegalArgumentException("Incomplete sale CSV.");
+        int codigoPedido = 0;
+        double tax;
+        String estado;
+        String metodo;
+        String items;
 
-            String id = unescape(parts[0]);
-            LocalDateTime dt = LocalDateTime.parse(unescape(parts[1]), DT_FORMAT);
-            int mesa = Integer.parseInt(parts[2].trim());
-            double tax = Double.parseDouble(parts[3].trim());
-            String estado = unescape(parts[4]);
-
-            String metodoPago = "";
-            String items;
-
-            if (parts.length >= 7) {
-                metodoPago = unescape(parts[5]);
-                items = unescape(parts[6]);
-            } else {
-                items = unescape(parts[5]); // formato viejo
-            }
-
-            Venta v = new Venta(id, dt, mesa, tax);
-            v.setEstado(estado);
-            v.setMetodoPago(metodoPago);
-
-            if (!items.trim().isEmpty()) {
-                String[] itemParts = items.split(";");
-                for (String it : itemParts) {
-                    if (it.trim().isEmpty()) continue;
-
-                    String[] fields = it.split(":");
-                    if (fields.length != 3) throw new IllegalArgumentException("Invalid item format in sale CSV.");
-
-                    String codigoProd = unescape(fields[0]);
-                    int cantidad = Integer.parseInt(fields[1].trim());
-                    double precioUnit = Double.parseDouble(fields[2].trim());
-
-                    Producto p = new Producto(codigoProd, "N/A", "N/A", precioUnit, 0);
-                    v.lineas.add(new LineaVenta(p, cantidad, precioUnit));
-                }
-            }
-
-            return v;
-
-        } catch (Exception ex) {
-            throw new IllegalArgumentException("Invalid sale CSV format.", ex);
+        if (parts.length >= 8) {
+            codigoPedido = Integer.parseInt(parts[3]);
+            tax = Double.parseDouble(parts[4]);
+            estado = parts[5];
+            metodo = parts[6];
+            items = parts[7];
+        } else {
+            tax = Double.parseDouble(parts[3]);
+            estado = parts[4];
+            metodo = parts[5];
+            items = parts.length > 6 ? parts[6] : "";
         }
-    }
 
-    private static String escape(String s) {
-        return s == null ? "" : s.replace("\\", "\\\\").replace(",", "\\,");
-    }
+        Venta v = new Venta(id, dt, mesa, codigoPedido, tax);
+        v.setEstado(estado);
+        v.setMetodoPago(metodo);
 
-    private static String unescape(String s) {
-        return s == null ? "" : s.replace("\\,", ",").replace("\\\\", "\\").trim();
-    }
-
-    private static String[] splitCsv(String line) {
-        List<String> out = new ArrayList<>();
-        StringBuilder cur = new StringBuilder();
-        boolean esc = false;
-
-        for (int i = 0; i < line.length(); i++) {
-            char c = line.charAt(i);
-            if (esc) { cur.append(c); esc = false; }
-            else if (c == '\\') { cur.append(c); esc = true; }
-            else if (c == ',') { out.add(cur.toString()); cur.setLength(0); }
-            else { cur.append(c); }
+        if (!items.isEmpty()) {
+            String[] itemParts = items.split(";");
+            for (String it : itemParts) {
+                String[] f = it.split(":");
+                Producto p = new Producto(f[0], "N/A", "N/A",
+                        Double.parseDouble(f[2]), 0);
+                v.lineas.add(new LineaVenta(p,
+                        Integer.parseInt(f[1]),
+                        Double.parseDouble(f[2])));
+            }
         }
-        out.add(cur.toString());
-        return out.toArray(new String[0]);
-    }
 
-    @Override public boolean equals(Object o) { return (o instanceof Venta) && id.equals(((Venta)o).id); }
-    @Override public int hashCode() { return Objects.hash(id); }
+        return v;
+    }
 }
