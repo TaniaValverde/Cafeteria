@@ -1,9 +1,11 @@
 package Model;
 
 /**
- * Represents a table in the coffee shop system.
- * A table has a number (1 to 5), a status (FREE or OCCUPIED),
- * and an optional current order.
+ * Represents a table in the cafeteria system.
+ *
+ * This class is part of the Model layer (MVC) and manages the table number,
+ * its current status (FREE or OCCUPIED), and the associated active order.
+ * It enforces business rules such as valid table range and order assignment.
  */
 public class Mesa {
 
@@ -18,9 +20,9 @@ public class Mesa {
     private Pedido pedidoActual;
 
     /**
-     * Creates a new table with the given number.
+     * Creates a table with a number between 1 and 5.
      *
-     * @param numero table number (must be between 1 and 5)
+     * @param numero table number (1–5)
      * @throws IllegalArgumentException if the number is outside the valid range
      */
     public Mesa(int numero) {
@@ -34,56 +36,51 @@ public class Mesa {
         this.pedidoActual = null;
     }
 
-    /** @return the table number */
     public int getNumero() {
         return numero;
     }
 
-    /** @return the current table status */
     public String getEstado() {
         return estado;
     }
 
-    /** @return the current order, or null if the table is free */
     public Pedido getPedidoActual() {
         return pedidoActual;
     }
 
     /**
-     * Indicates whether the table is free.
+     * Indicates whether the table is currently free.
      *
-     * @return true if the table is free, false otherwise
+     * @return true if free, false otherwise
      */
     public boolean estaLibre() {
         return estado.equals(LIBRE);
     }
 
     /**
-     * Assigns an order to the table and marks it as occupied.
+     * Assigns an order to the table and changes its status to occupied.
      *
      * @param pedido order to assign
-     * @throws IllegalArgumentException if the order is null
+     * @throws IllegalArgumentException if the order is null or does not match the table number
      * @throws IllegalStateException if the table is already occupied
      */
     public void asignarPedido(Pedido pedido) {
 
-    if (pedido == null) {
-        throw new IllegalArgumentException("Invalid order.");
+        if (pedido == null) {
+            throw new IllegalArgumentException("Invalid order.");
+        }
+
+        if (pedido.getNumeroMesa() == null || pedido.getNumeroMesa() != this.numero) {
+            throw new IllegalArgumentException("Mesa no coincide con el pedido");
+        }
+
+        if (!estaLibre()) {
+            throw new IllegalStateException("Table is occupied.");
+        }
+
+        pedidoActual = pedido;
+        estado = OCUPADA;
     }
-
-    // 🔥 Validación de negocio faltante
-    if (pedido.getNumeroMesa() == null || pedido.getNumeroMesa() != this.numero) {
-        throw new IllegalArgumentException("Mesa no coincide con el pedido");
-    }
-
-    if (!estaLibre()) {
-        throw new IllegalStateException("Table is occupied.");
-    }
-
-    pedidoActual = pedido;
-    estado = OCUPADA;
-}
-
 
     /**
      * Releases the table and marks it as free.

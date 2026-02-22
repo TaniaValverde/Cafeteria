@@ -5,12 +5,15 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Represents a cafeteria customer.
- *
- * <p>Project requirement: register customers as either "frequent" or "visitor".</p>
+ * Represents a cafeteria customer in the Model layer (MVC). Supports the
+ * project requirement of registering customers as frequent or visitor and
+ * provides CSV serialization for file persistence.
  */
 public class Cliente {
 
+    /**
+     * Customer classification required by the system.
+     */
     public enum TipoCliente {
         FRECUENTE,
         VISITANTE
@@ -22,12 +25,13 @@ public class Cliente {
     private TipoCliente tipo;
 
     /**
-     * Creates a customer instance.
+     * Creates a new customer with basic validation.
      *
-     * @param id customer identifier (non-empty)
-     * @param nombre customer name (non-empty)
-     * @param telefono phone number (nullable → becomes empty string)
+     * @param id customer identifier (non-null, non-blank)
+     * @param nombre customer name (non-null, non-blank)
+     * @param telefono phone number (optional; null becomes empty)
      * @param tipo customer type (non-null)
+     * @throws IllegalArgumentException if id/name is blank or type is null
      */
     public Cliente(String id, String nombre, String telefono, TipoCliente tipo) {
         setId(id);
@@ -36,10 +40,21 @@ public class Cliente {
         setTipo(tipo);
     }
 
-    public String getId() { return id; }
-    public String getNombre() { return nombre; }
-    public String getTelefono() { return telefono; }
-    public TipoCliente getTipo() { return tipo; }
+    public String getId() {
+        return id;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public String getTelefono() {
+        return telefono;
+    }
+
+    public TipoCliente getTipo() {
+        return tipo;
+    }
 
     public final void setId(String id) {
         if (id == null || id.trim().isEmpty()) {
@@ -55,9 +70,6 @@ public class Cliente {
         this.nombre = nombre.trim();
     }
 
-    /**
-     * Phone is optional. If null → becomes empty string.
-     */
     public final void setTelefono(String telefono) {
         this.telefono = (telefono == null) ? "" : telefono.trim();
     }
@@ -70,14 +82,10 @@ public class Cliente {
     }
 
     /**
-     * Serializes the customer into a CSV line.
-     * Format: id,nombre,telefono,tipo
+     * Serializes this customer into one CSV line for persistence. Format:
+     * id,nombre,telefono,tipo (commas and backslashes are escaped).
      *
-     * <p>Escapes:
-     * <ul>
-     *   <li>Backslash "\" is escaped as "\\\\"</li>
-     *   <li>Comma "," is escaped as "\\,"</li>
-     * </ul>
+     * @return CSV representation of the customer
      */
     public String toCsv() {
         return String.join(",",
@@ -90,10 +98,9 @@ public class Cliente {
     /**
      * Parses a CSV line produced by {@link #toCsv()}.
      *
-     * <p>This method supports escaped commas (\,) and escaped backslashes (\\).</p>
-     *
-     * @param line csv line
-     * @return parsed Cliente
+     * @param line CSV line
+     * @return parsed customer
+     * @throws IllegalArgumentException if the line is null/blank or invalid
      */
     public static Cliente fromCsv(String line) {
         if (line == null || line.trim().isEmpty()) {
@@ -117,24 +124,14 @@ public class Cliente {
         }
     }
 
-    /**
-     * Escapes backslashes and commas so the CSV stays one line.
-     */
     private static String escape(String s) {
         return s == null ? "" : s.replace("\\", "\\\\").replace(",", "\\,");
     }
 
-    /**
-     * Unescapes commas and backslashes (reverse of {@link #escapeescape(String)}).
-     */
     private static String unescape(String s) {
         return s == null ? "" : s.replace("\\,", ",").replace("\\\\", "\\").trim();
     }
 
-    /**
-     * Splits a CSV line where commas can be escaped with "\,".
-     * Keeps the backslashes so {@link #unescape(String)} can process them later.
-     */
     private static String[] splitCsvEscaped(String line) {
         List<String> out = new ArrayList<>();
         StringBuilder cur = new StringBuilder();
@@ -167,12 +164,18 @@ public class Cliente {
     }
 
     /**
-     * Customers are considered equal if they share the same id.
+     * Equality is based only on the customer id.
+     *
+     * @param o
      */
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Cliente)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Cliente)) {
+            return false;
+        }
         Cliente cliente = (Cliente) o;
         return id.equals(cliente.id);
     }

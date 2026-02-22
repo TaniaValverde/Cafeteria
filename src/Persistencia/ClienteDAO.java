@@ -9,28 +9,29 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Data Access Object (DAO) for Cliente persistence using a CSV-like text file.
+ * Data Access Object (DAO) for {@link Cliente} persistence using a local text file.
  *
- * <p>Requirement RF-08: store clients in local text/binary files.</p>
+ * This class supports the project persistence requirement by loading and saving
+ * customer records in a simple CSV-like format.
  */
 public class ClienteDAO {
 
     private final Path archivo;
 
     /**
-     * Creates a DAO with a given file path.
+     * Creates a DAO pointing to the given storage file.
      *
-     * @param rutaArchivo file path (e.g. "data/clientes.txt")
+     * @param rutaArchivo file path (e.g., "data/clientes.txt")
      */
     public ClienteDAO(String rutaArchivo) {
         this.archivo = Paths.get(rutaArchivo);
     }
 
     /**
-     * Loads all clients from the file.
+     * Loads all customers from the file.
      *
-     * @return list of clients (never null)
-     * @throws IOException if file operations fail
+     * @return list of customers (never null)
+     * @throws IOException if a file access error occurs
      */
     public List<Cliente> cargar() throws IOException {
         asegurarDirectorio();
@@ -63,10 +64,10 @@ public class ClienteDAO {
     }
 
     /**
-     * Saves the given client list to the file (overwrites).
+     * Saves the given customer list to the file (overwrites existing content).
      *
-     * @param clientes list to save
-     * @throws IOException if file operations fail
+     * @param clientes customers to persist
+     * @throws IOException if a file access error occurs
      */
     public void guardar(List<Cliente> clientes) throws IOException {
         asegurarDirectorio();
@@ -89,6 +90,7 @@ public class ClienteDAO {
         }
     }
 
+    /** Ensures the parent directory of the storage file exists. */
     private void asegurarDirectorio() throws IOException {
         Path parent = archivo.getParent();
         if (parent != null && !Files.exists(parent)) {

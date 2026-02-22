@@ -1,32 +1,62 @@
-
 package Model;
 
 import java.io.Serializable;
 
-// COMENTARIO PARA EL COMPAÑERO QUE HAGA PRODUCTO:
-// Esta clase hereda de Producto. Para que compile sin errores, 
-// la clase Producto debe tener un constructor con estos parámetros:
-// public Producto(String codigo, String nombre, String categoria, double precio, int stock)
-// Además, debe tener getPrecio() y toString() (o al menos no dar error al llamar super.toString()).
-// Cuando termines Producto, solo borra este comentario y prueba.
-
+/**
+ * Represents a food product in the cafeteria system.
+ *
+ * This class extends {@link Producto}, applying inheritance as part of the
+ * object-oriented design required in the MVC architecture. It adds a specific
+ * attribute (calories) to specialize the generic product model.
+ *
+ * Implements {@link Serializable} to support object persistence.
+ */
 public class Comida extends Producto implements Serializable {
 
     private int calorias;
 
+    /**
+     * Creates a food product with a defined calorie value.
+     *
+     * @param codigo product code
+     * @param nombre product name
+     * @param categoria product category
+     * @param precio unit price
+     * @param stock available stock
+     * @param calorias calorie value
+     */
     public Comida(String codigo, String nombre, String categoria, double precio, int stock, int calorias) {
         super(codigo, nombre, categoria, precio, stock);
         this.calorias = calorias;
     }
 
+    /**
+     * Creates a food product with zero calories by default.
+     *
+     * @param codigo product code
+     * @param nombre product name
+     * @param categoria product category
+     * @param precio unit price
+     * @param stock available stock
+     */
     public Comida(String codigo, String nombre, String categoria, double precio, int stock) {
         this(codigo, nombre, categoria, precio, stock, 0);
     }
 
+    /**
+     * Returns the calorie value of the product.
+     *
+     * @return calories
+     */
     public int getCalorias() {
         return calorias;
     }
 
+    /**
+     * Sets the calorie value of the product.
+     *
+     * @param calorias new calorie value
+     */
     public void setCalorias(int calorias) {
         this.calorias = calorias;
     }

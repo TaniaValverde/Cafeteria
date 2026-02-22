@@ -10,19 +10,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Data Access Object (DAO) for Producto persistence using a CSV-like text file.
+ * Data Access Object (DAO) for {@link Producto} persistence using a local text file.
  *
- * <p>
- * Requirement RF-08: store products in local text/binary files.</p>
+ * This class fulfills the project persistence requirement by storing and
+ * retrieving product data in a CSV-like format.
  */
 public class ProductoDAO {
 
     private final Path archivo;
 
     /**
-     * Creates a DAO with a given file path.
+     * Creates a DAO pointing to the specified storage file.
      *
-     * @param rutaArchivo file path (e.g. "data/productos.txt")
+     * @param rutaArchivo file path (e.g., "data/productos.txt")
      */
     public ProductoDAO(String rutaArchivo) {
         this.archivo = Paths.get(rutaArchivo);
@@ -32,7 +32,7 @@ public class ProductoDAO {
      * Loads all products from the file.
      *
      * @return list of products (never null)
-     * @throws IOException if file operations fail
+     * @throws IOException if a file access error occurs
      */
     public List<Producto> cargar() throws IOException {
         asegurarDirectorio();
@@ -50,7 +50,7 @@ public class ProductoDAO {
                     continue;
                 }
 
-                // formato: codigo,categoria,precio,stock
+                // formato: codigo,nombre,categoria,precio,stock
                 String[] p = line.split(",", -1);
                 if (p.length < 5) {
                     continue;
@@ -63,7 +63,6 @@ public class ProductoDAO {
                 int stock = Integer.parseInt(p[4].trim());
 
                 productos.add(new Producto(codigo, nombre, categoria, precio, stock));
-
             }
         }
 
@@ -71,10 +70,10 @@ public class ProductoDAO {
     }
 
     /**
-     * Saves the given product list to the file (overwrites).
+     * Saves the given product list to the file (overwrites existing content).
      *
-     * @param productos list to save
-     * @throws IOException if file operations fail
+     * @param productos products to persist
+     * @throws IOException if a file access error occurs
      */
     public void guardar(List<Producto> productos) throws IOException {
         asegurarDirectorio();
@@ -99,6 +98,7 @@ public class ProductoDAO {
         }
     }
 
+    /** Ensures the parent directory of the storage file exists. */
     private void asegurarDirectorio() throws IOException {
         Path parent = archivo.getParent();
         if (parent != null && !Files.exists(parent)) {

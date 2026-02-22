@@ -7,9 +7,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Represents a sale transaction in the cafeteria system (Model layer - MVC).
+ *
+ * A sale stores its identifier, date/time, service mode (table number or take-away),
+ * payment metadata, customer snapshot data, and the list of sold items. It also
+ * provides CSV serialization/deserialization to support file persistence.
+ */
 public class Venta {
 
+    /** Special table number used to represent take-away service. */
     public static final int PARA_LLEVAR = 0;
+
+    /** Default tax rate (IVA) applied to the sale total. */
     public static final double DEFAULT_TAX_RATE = 0.13;
 
     private static final DateTimeFormatter DT_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
@@ -30,6 +40,9 @@ public class Venta {
 
     private final List<LineaVenta> lineas = new ArrayList<>();
 
+    /**
+     * Represents an item line within a sale (product, quantity, unit price).
+     */
     public static class LineaVenta {
         private final Producto producto;
         private final int cantidad;
@@ -56,17 +69,38 @@ public class Venta {
         public double getSubtotal() { return precioUnitario * cantidad; }
     }
 
-    // ✅ Constructor que pide VentaTest: new Venta("V1", now, 1)
+    /**
+     * Creates a sale with the default tax rate.
+     *
+     * @param id sale identifier (non-blank)
+     * @param fechaHora sale date/time (non-null)
+     * @param mesaNumero table number (1..5) or 0 for take-away
+     */
     public Venta(String id, LocalDateTime fechaHora, int mesaNumero) {
         this(id, fechaHora, mesaNumero, 0, DEFAULT_TAX_RATE);
     }
 
-    // ✅ Constructor que pide VentaTest: new Venta("V1", now, 1, 0.10)
+    /**
+     * Creates a sale with a custom tax rate.
+     *
+     * @param id sale identifier (non-blank)
+     * @param fechaHora sale date/time (non-null)
+     * @param mesaNumero table number (1..5) or 0 for take-away
+     * @param taxRate tax rate (>= 0)
+     */
     public Venta(String id, LocalDateTime fechaHora, int mesaNumero, double taxRate) {
         this(id, fechaHora, mesaNumero, 0, taxRate);
     }
 
-    // ✅ Constructor completo (ya existía en tu ZIP, lo mantenemos)
+    /**
+     * Creates a fully defined sale instance.
+     *
+     * @param id sale identifier (non-blank)
+     * @param fechaHora sale date/time (non-null)
+     * @param mesaNumero table number (1..5) or 0 for take-away
+     * @param codigoPedido associated order code (non-negative)
+     * @param taxRate tax rate (>= 0)
+     */
     public Venta(String id, LocalDateTime fechaHora, int mesaNumero, int codigoPedido, double taxRate) {
         setId(id);
         setFechaHora(fechaHora);
@@ -92,7 +126,6 @@ public class Venta {
     public String getEstado() { return estado; }
     public String getMetodoPago() { return metodoPago; }
 
-    // ✅ getters cliente
     public String getClienteId() { return clienteId; }
     public String getClienteNombre() { return clienteNombre; }
     public String getClienteTipo() { return clienteTipo; }
@@ -129,7 +162,11 @@ public class Venta {
     public void setEstado(String estado) { this.estado = estado; }
     public void setMetodoPago(String metodoPago) { this.metodoPago = metodoPago; }
 
-    // ✅ NUEVO: setCliente (guarda solo datos simples)
+    /**
+     * Stores a snapshot of customer data for persistence (CSV-safe fields only).
+     *
+     * @param c customer instance; if null, customer fields are cleared
+     */
     public void setCliente(Cliente c) {
         if (c == null) {
             this.clienteId = null;
@@ -142,17 +179,28 @@ public class Venta {
         this.clienteTipo = (c.getTipo() != null) ? c.getTipo().name() : null;
     }
 
-    // ✅ opcional: permitir set manual (si quisieras)
     public void setClienteCsv(String id, String nombre, String tipo) {
         this.clienteId = emptyToNull(id);
         this.clienteNombre = emptyToNull(nombre);
         this.clienteTipo = emptyToNull(tipo);
     }
 
+    /**
+     * Indicates whether the sale corresponds to take-away service.
+     *
+     * @return true if take-away, false otherwise
+     */
     public boolean esParaLlevar() {
         return mesaNumero == PARA_LLEVAR;
     }
 
+    /**
+     * Adds a new line item using the product's current unit price.
+     *
+     * @param producto product to add
+     * @param cantidad quantity to add (> 0)
+     * @throws IllegalArgumentException if product is null or quantity is invalid
+     */
     public void agregarLinea(Producto producto, int cantidad) {
         if (producto == null) {
             throw new IllegalArgumentException("Producto no puede ser null.");
@@ -163,7 +211,11 @@ public class Venta {
         lineas.add(new LineaVenta(producto, cantidad, producto.getPrecio()));
     }
 
-    // ✅ VentaTest exige lista INMODIFICABLE
+    /**
+     * Returns an unmodifiable view of the sale line items.
+     *
+     * @return unmodifiable list of line items
+     */
     public List<LineaVenta> getLineas() {
         return Collections.unmodifiableList(lineas);
     }
@@ -180,10 +232,11 @@ public class Venta {
         return getSubtotal() + getImpuesto();
     }
 
-    // ✅ CSV actualizado:
-    // antes: 8 campos
-    // ahora: 11 campos (al final): clienteId, clienteNombre, clienteTipo
-    // IMPORTANTE: esto NO rompe ventas viejas porque fromCsv es retrocompatible.
+    /**
+     * Serializes the sale to a single CSV line for persistence, including its items and customer snapshot fields.
+     *
+     * @return CSV representation of the sale
+     */
     public String toCsv() {
         StringBuilder items = new StringBuilder();
         for (int i = 0; i < lineas.size(); i++) {
@@ -209,6 +262,13 @@ public class Venta {
         );
     }
 
+    /**
+     * Deserializes a sale from a CSV line produced by {@link #toCsv()}.
+     *
+     * @param line CSV line
+     * @return parsed sale instance
+     * @throws IllegalArgumentException if the CSV is empty or invalid
+     */
     public static Venta fromCsv(String line) {
         if (line == null || line.trim().isEmpty()) {
             throw new IllegalArgumentException("CSV de venta vacío.");
@@ -216,7 +276,6 @@ public class Venta {
 
         String[] parts = line.split(",", -1);
 
-        // mínimo deberían existir 4 (y normalmente 8, ahora 11)
         if (parts.length < 4) {
             throw new IllegalArgumentException("CSV de venta incompleto.");
         }
@@ -232,7 +291,6 @@ public class Venta {
             String metodo = "";
             String items = "";
 
-            // Formato "nuevo" / estándar (8 o más)
             if (parts.length >= 8) {
                 codigoPedido = parseIntSafe(parts[3], 0);
                 tax = Double.parseDouble(parts[4]);
@@ -240,7 +298,6 @@ public class Venta {
                 metodo = parts[6];
                 items = parts[7];
             } else {
-                // fallback por compatibilidad (si quedara un formato viejo)
                 tax = Double.parseDouble(parts[3]);
                 if (parts.length >= 5) estado = parts[4];
                 if (parts.length >= 6) metodo = parts[5];
@@ -251,8 +308,6 @@ public class Venta {
             v.setEstado(estado);
             v.setMetodoPago(metodo);
 
-            // ✅ NUEVO: cliente (si existe en CSV)
-            // parts[8]=clienteId, parts[9]=clienteNombre, parts[10]=clienteTipo
             if (parts.length >= 11) {
                 String cId = parts[8];
                 String cNombre = parts[9];
@@ -280,15 +335,14 @@ public class Venta {
             }
 
             return v;
-        } catch (Exception ex) {
-            // importante para VentaDAOTest: línea mala debe fallar -> DAO la ignora
+        } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("CSV de venta inválido.", ex);
         }
     }
 
     private static int parseIntSafe(String s, int def) {
         try { return Integer.parseInt(s); }
-        catch (Exception e) { return def; }
+        catch (NumberFormatException e) { return def; }
     }
 
     private static String safeCsv(String s) {
@@ -301,7 +355,8 @@ public class Venta {
         return t.isEmpty() ? null : t;
     }
 
-    // ✅ VentaDAOTest usa contains(new Venta("V001", now, 1)) -> equals por ID
+    /** Equality is based only on the sale id.
+     * @param o */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

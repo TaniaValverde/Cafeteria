@@ -8,15 +8,24 @@ import Controlador.VentaController;
 import java.io.IOException;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import vista.MenuPrincipal; 
+import javax.swing.UnsupportedLookAndFeelException;
+import vista.MenuPrincipal;
 
 public class App {
 
+    /**
+     * Application entry point.
+     *
+     * Initializes the MVC controllers, sets the system Look & Feel, and launches
+     * the main Swing UI on the Event Dispatch Thread (EDT).
+     *
+     * @param args command-line arguments (not used)
+     */
     public static void main(String[] args) {
 
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ignored) {}
+        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | UnsupportedLookAndFeelException ignored) {}
 
         try {
             // ===== Controllers =====
@@ -26,7 +35,7 @@ public class App {
             VentaController ventaCtrl = new VentaController();
             MesaController mesaCtrl = new MesaController();
 
-            // ===== Lanzar Menú Principal =====
+            // ===== Launch Main Menu =====
             SwingUtilities.invokeLater(() -> {
                 MenuPrincipal menu = new MenuPrincipal(
                         pedidoCtrl,
