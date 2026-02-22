@@ -9,38 +9,69 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Controller for product management (MVC).
+ * Controller responsible for managing products in the system.
  *
- * <p>RF-01: Register, modify, delete and search products.</p>
- * <p>RF-08: Persist products in text/binary files (implemented via ProductoDAO).</p>
+ * <p>
+ * This class implements the product-related business logic following
+ * the MVC pattern. It allows registering, modifying, deleting,
+ * searching, listing and sorting products.
+ * </p>
+ *
+ * <p>
+ * Functional Requirements:
+ * <ul>
+ *   <li>RF-01: Register, modify, delete and search products.</li>
+ *   <li>RF-08: Persist products in text/binary files
+ *       (implemented via {@link ProductoDAO}).</li>
+ * </ul>
+ * </p>
+ *
+ * This controller acts as an intermediary between the model layer
+ * ({@link Producto}) and the persistence layer ({@link ProductoDAO}).
+ *
+ * @author Project Team
  */
 public class ProductoController {
 
+    /**
+     * Data access object used for product persistence.
+     */
     private final ProductoDAO productoDAO;
+
+    /**
+     * In-memory list of products currently loaded in the system.
+     */
     private final List<Producto> productos;
 
     /**
-     * Creates the controller and loads products from storage.
+     * Creates a new {@code ProductoController} and loads products
+     * from persistent storage.
      *
-     * @param rutaArchivo path for products file (e.g. "data/productos.txt")
-     * @throws IOException if loading fails
+     * @param rutaArchivo Path to the products file
+     *                    (e.g. {@code "data/productos.txt"})
+     * @throws IOException If loading products from storage fails
      */
     public ProductoController(String rutaArchivo) throws IOException {
         this.productoDAO = new ProductoDAO(rutaArchivo);
         this.productos = new ArrayList<>(productoDAO.cargar());
     }
 
-    /** @return a copy of the product list */
+    /**
+     * Returns a copy of the current product list.
+     *
+     * @return List containing all registered products
+     */
     public List<Producto> listar() {
         return new ArrayList<>(productos);
     }
 
     /**
-     * Searches a product by its code.
+     * Searches for a product by its unique code.
      *
-     * @param codigo product code
-     * @return found product
-     * @throws IllegalArgumentException if not found or invalid code
+     * @param codigo Product code to search for
+     * @return The matching {@link Producto}
+     * @throws IllegalArgumentException If the code is invalid
+     *                                  or the product does not exist
      */
     public Producto buscarPorCodigo(String codigo) {
         if (codigo == null || codigo.trim().isEmpty()) {
@@ -57,18 +88,27 @@ public class ProductoController {
     }
 
     /**
-     * Adds a new product (code must be unique).
+     * Adds a new product to the system.
+     * <p>
+     * The product code must be unique.
+     * </p>
      *
-     * @param producto product to add
-     * @throws IOException if persistence fails
+     * @param producto Product to be added
+     * @throws IOException If persistence fails
+     * @throws IllegalArgumentException If the product is {@code null}
+     *                                  or the code already exists
      */
     public void agregar(Producto producto) throws IOException {
-        if (producto == null) throw new IllegalArgumentException("Producto no puede ser null.");
+        if (producto == null) {
+            throw new IllegalArgumentException("Producto no puede ser null.");
+        }
 
         // Unique code validation
         for (Producto p : productos) {
             if (p.getCodigo().equalsIgnoreCase(producto.getCodigo())) {
-                throw new IllegalArgumentException("Ya existe un producto con ese código: " + producto.getCodigo());
+                throw new IllegalArgumentException(
+                        "Ya existe un producto con ese código: " + producto.getCodigo()
+                );
             }
         }
 
@@ -77,15 +117,18 @@ public class ProductoController {
     }
 
     /**
-     * Updates an existing product (by code).
+     * Modifies an existing product identified by its code.
      *
-     * @param codigo product code to update
-     * @param nuevaCategoria new category
-     * @param nuevoPrecio new price
-     * @param nuevoStock new stock
-     * @throws IOException if persistence fails
+     * @param codigo Product code
+     * @param nuevaCategoria New category
+     * @param nuevoPrecio New price
+     * @param nuevoStock New stock value
+     * @throws IOException If persistence fails
+     * @throws IllegalArgumentException If the product does not exist
      */
-    public void modificar(String codigo, String nuevaCategoria, double nuevoPrecio, int nuevoStock) throws IOException {
+    public void modificar(String codigo, String nuevaCategoria,
+                          double nuevoPrecio, int nuevoStock) throws IOException {
+
         Producto p = buscarPorCodigo(codigo);
 
         p.setCategoria(nuevaCategoria);
@@ -96,11 +139,13 @@ public class ProductoController {
     }
 
     /**
-     * Updates ONLY the stock of an existing product (by code).
+     * Updates only the stock of an existing product.
      *
-     * @param codigo product code
-     * @param nuevoStock new stock
-     * @throws IOException if persistence fails
+     * @param codigo Product code
+     * @param nuevoStock New stock value
+     * @throws IOException If persistence fails
+     * @throws IllegalArgumentException If the stock is negative
+     *                                  or the product does not exist
      */
     public void actualizarStock(String codigo, int nuevoStock) throws IOException {
         if (nuevoStock < 0) {
@@ -114,10 +159,11 @@ public class ProductoController {
     }
 
     /**
-     * Deletes a product by its code.
+     * Deletes a product identified by its code.
      *
-     * @param codigo product code
-     * @throws IOException if persistence fails
+     * @param codigo Product code
+     * @throws IOException If persistence fails
+     * @throws IllegalArgumentException If the product does not exist
      */
     public void eliminar(String codigo) throws IOException {
         Producto p = buscarPorCodigo(codigo);
@@ -126,23 +172,25 @@ public class ProductoController {
     }
 
     /**
-     * Sorts the internal list by code (ascending).
+     * Sorts the internal product list by product code (ascending).
      */
     public void ordenarPorCodigo() {
-        productos.sort(Comparator.comparing(Producto::getCodigo, String.CASE_INSENSITIVE_ORDER));
+        productos.sort(
+                Comparator.comparing(Producto::getCodigo, String.CASE_INSENSITIVE_ORDER)
+        );
     }
 
     /**
-     * Sorts the internal list by price (ascending).
+     * Sorts the internal product list by price (ascending).
      */
     public void ordenarPorPrecio() {
         productos.sort(Comparator.comparingDouble(Producto::getPrecio));
     }
 
     /**
-     * Saves changes to persistent storage.
+     * Saves the current state of the product list to persistent storage.
      *
-     * @throws IOException if persistence fails
+     * @throws IOException If persistence fails
      */
     public void guardarCambios() throws IOException {
         productoDAO.guardar(productos);
