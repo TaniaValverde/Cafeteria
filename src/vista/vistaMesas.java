@@ -1,5 +1,6 @@
 package vista;
 
+import Controlador.ClienteController;
 import Controlador.MesaController;
 import Controlador.PedidoController;
 import Controlador.ProductoController;
@@ -21,6 +22,7 @@ public class vistaMesas extends JFrame {
     private final ProductoController productoCtrl;
     private final VentaController ventaCtrl;
     private final MesaController mesaCtrl;
+    private final ClienteController clienteCtrl;   // ✅ NUEVO
     private final MenuPrincipal menuPrincipalRef;
 
     private JPanel gridMesas;
@@ -40,12 +42,14 @@ public class vistaMesas extends JFrame {
                       ProductoController productoCtrl,
                       VentaController ventaCtrl,
                       MesaController mesaCtrl,
+                      ClienteController clienteCtrl,   // ✅ NUEVO
                       MenuPrincipal menuPrincipalRef) {
 
         this.pedidoCtrl = pedidoCtrl;
         this.productoCtrl = productoCtrl;
         this.ventaCtrl = ventaCtrl;
         this.mesaCtrl = mesaCtrl;
+        this.clienteCtrl = clienteCtrl;            // ✅ NUEVO
         this.menuPrincipalRef = menuPrincipalRef;
 
         initUI();
@@ -120,6 +124,9 @@ public class vistaMesas extends JFrame {
             gridMesas.add(buildMesaCard(i));
         }
 
+        // (opcional) relleno para que el grid 2x3 no se vea raro
+        gridMesas.add(Box.createGlue());
+
         gridMesas.revalidate();
         gridMesas.repaint();
     }
@@ -163,12 +170,25 @@ public class vistaMesas extends JFrame {
         card.add(numero, BorderLayout.CENTER);
         card.add(estado, BorderLayout.SOUTH);
 
-        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        // (opcional) hover simple
         card.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                card.setBorder(new LineBorder(new Color(0, 0, 0, 25), 3, true));
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                card.setBorder(new LineBorder(SLATE_200, 3, true));
+            }
+
+            @Override
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 abrirPedido(numeroMesa);
             }
         });
+
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         return card;
     }
@@ -194,12 +214,14 @@ public class vistaMesas extends JFrame {
                 }
             }
 
+            // ✅ CAMBIO: ahora vistaPedido requiere clienteCtrl también
             vistaPedido vp = new vistaPedido(
                     pedido,
                     pedidoCtrl,
                     productoCtrl,
                     ventaCtrl,
                     mesaCtrl,
+                    clienteCtrl,           // ✅ NUEVO
                     menuPrincipalRef
             );
 
@@ -220,11 +242,11 @@ public class vistaMesas extends JFrame {
 
             vp.setVisible(true);
 
-            // ✅ NO destruir la ventana (si la destruyes, luego se pierde el estado al recrearla)
+            // ✅ ocultar esta ventana mientras atiendes el pedido
             setVisible(false);
 
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage());
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 

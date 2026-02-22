@@ -42,6 +42,7 @@ public class VentaController {
     }
 
     public Venta finalizarVenta(Cliente cliente, Mesa mesa, boolean paraLlevar) throws IOException {
+        
 
     int numeroMesa = paraLlevar ? Venta.PARA_LLEVAR : mesa.getNumero();
 
@@ -52,6 +53,7 @@ public class VentaController {
             pedidoActual.getCodigoPedido(), // ✅ NUEVO
             Venta.DEFAULT_TAX_RATE
     );
+      venta.setCliente(cliente);
 
     for (Producto p : pedidoActual.getProductos()) {
         int cantidad = pedidoActual.getCantidadDeProducto(p);
@@ -83,15 +85,17 @@ public class VentaController {
         sb.append("FECHA: ").append(venta.getFechaHora().toLocalDate()).append("\n");
         sb.append("HORA: ").append(venta.getFechaHora().toLocalTime()).append("\n");
 
-        if (venta.esParaLlevar()) sb.append("TIPO: PARA LLEVAR\n");
-        else sb.append("MESA: ").append(venta.getMesaNumero()).append("\n");
+        if (venta.getClienteNombre() != null && !venta.getClienteNombre().isBlank()) {
+    sb.append("CLIENTE: ").append(venta.getClienteNombre());
 
-        if (venta.getMetodoPago() != null && !venta.getMetodoPago().isBlank()) {
-            sb.append("PAGO: ").append(venta.getMetodoPago()).append("\n");
-        }
-
-        sb.append("\nPRODUCTO               CANT   SUBT\n");
-        sb.append("----------------------------------\n");
+    if (venta.getClienteId() != null && !venta.getClienteId().isBlank()) {
+        sb.append(" (").append(venta.getClienteId()).append(")");
+    }
+    if (venta.getClienteTipo() != null && !venta.getClienteTipo().isBlank()) {
+        sb.append(" - ").append(venta.getClienteTipo());
+    }
+    sb.append("\n");
+}
 
         try {
             List<Producto> productosReales = productoDAO.cargar();

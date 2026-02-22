@@ -40,10 +40,10 @@ public class MenuPrincipal extends JFrame {
 
     // ===== Constructor MVC (usar desde App.java) =====
     public MenuPrincipal(PedidoController pedidoCtrl,
-            ProductoController productoCtrl,
-            ClienteController clienteCtrl,
-            VentaController ventaCtrl,
-            MesaController mesaCtrl) {
+                         ProductoController productoCtrl,
+                         ClienteController clienteCtrl,
+                         VentaController ventaCtrl,
+                         MesaController mesaCtrl) {
 
         this.pedidoCtrl = pedidoCtrl;
         this.productoCtrl = productoCtrl;
@@ -114,20 +114,20 @@ public class MenuPrincipal extends JFrame {
         }
     }
 
-    // ✅ Constructor REAL: vistaMesas(PedidoController, ProductoController, VentaController, MesaController)
-   private void abrirMesas() {
-    vistaMesas vm = new vistaMesas(
-            pedidoCtrl,
-            productoCtrl,
-            ventaCtrl,
-            mesaCtrl,
-            this // ✅ referencia real del menú principal
-    );
-    vm.setVisible(true);
-    this.setVisible(false); // ✅ para que no queden dos ventanas encima
-}
-   
-    
+    // ✅ AHORA: vistaMesas(..., ClienteController, MenuPrincipal)
+    private void abrirMesas() {
+        vistaMesas vm = new vistaMesas(
+                pedidoCtrl,
+                productoCtrl,
+                ventaCtrl,
+                mesaCtrl,
+                clienteCtrl,   // ✅ NUEVO
+                this
+        );
+        vm.setVisible(true);
+        this.setVisible(false); // ✅ para que no queden dos ventanas encima
+    }
+
     private void abrirParaLlevar() {
 
         int codigo = pedidoCtrl.cantidadPedidos() + 1;
@@ -139,32 +139,32 @@ public class MenuPrincipal extends JFrame {
                 Pedido.PARA_LLEVAR,
                 null
         );
+
+        // ✅ AHORA: vistaPedido(..., ClienteController, MenuPrincipal)
         vistaPedido vp = new vistaPedido(
                 pedido,
                 pedidoCtrl,
                 productoCtrl,
                 ventaCtrl,
                 mesaCtrl,
+                clienteCtrl,   // ✅ NUEVO
                 this
         );
         vp.setVisible(true);
         this.setVisible(false);
-
     }
 
-    // ✅ Tu constructor REAL es: public vistaFactura()
-   private void abrirFacturacion() {
-    try {
-        vistaFactura vf = new vistaFactura(ventaCtrl, mesaCtrl); // ✅ AHORA PASA mesaCtrl
-        vf.setVisible(true);
-    } catch (Exception ex) {
-        ex.printStackTrace();
-        JOptionPane.showMessageDialog(this,
-                "No se pudo abrir Facturación:\n" + ex.getMessage(),
-                "Error", JOptionPane.ERROR_MESSAGE);
+    private void abrirFacturacion() {
+        try {
+            vistaFactura vf = new vistaFactura(ventaCtrl, mesaCtrl);
+            vf.setVisible(true);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "No se pudo abrir Facturación:\n" + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
-}
-
 
     private void abrirInventario() {
         vistaInventario vi = new vistaInventario(productoCtrl);

@@ -1,9 +1,11 @@
 package vista;
 
+import Controlador.ClienteController;
 import Controlador.MesaController;
 import Controlador.PedidoController;
 import Controlador.ProductoController;
 import Controlador.VentaController;
+import Model.Cliente;
 import Model.Mesa;
 import Model.Pedido;
 import Model.Producto;
@@ -28,7 +30,12 @@ public class vistaPedido extends JFrame {
     private final ProductoController productoCtrl;
     private final VentaController ventaCtrl;
     private final MesaController mesaCtrl;
+    private final ClienteController clienteCtrl;          // ✅ NUEVO
     private final MenuPrincipal menuPrincipalRef;
+
+    // ===== Cliente del pedido =====
+    private Cliente clienteSeleccionado = null;           // ✅ NUEVO
+    private JLabel lblCliente;                            // ✅ NUEVO
 
     // ===== Palette =====
     private static final Color BG = new Color(0xF5, 0xF7, 0xFA);
@@ -81,6 +88,7 @@ public class vistaPedido extends JFrame {
                        ProductoController productoCtrl,
                        VentaController ventaCtrl,
                        MesaController mesaCtrl,
+                       ClienteController clienteCtrl,          // ✅ NUEVO
                        MenuPrincipal menuPrincipalRef) {
 
         this.pedido = pedido;
@@ -88,6 +96,7 @@ public class vistaPedido extends JFrame {
         this.productoCtrl = productoCtrl;
         this.ventaCtrl = ventaCtrl;
         this.mesaCtrl = mesaCtrl;
+        this.clienteCtrl = clienteCtrl;                       // ✅ NUEVO
         this.menuPrincipalRef = menuPrincipalRef;
 
         // ✅ CLAVE: sincroniza el pedido con VentaController
@@ -151,6 +160,19 @@ public class vistaPedido extends JFrame {
         right.setOpaque(false);
         right.setLayout(new BoxLayout(right, BoxLayout.X_AXIS));
 
+        // ✅ NUEVO: label + botón cliente
+        lblCliente = new JLabel("Cliente: (sin asignar)");
+        lblCliente.setFont(new Font("SansSerif", Font.BOLD, 12));
+        lblCliente.setForeground(TEXT_MID);
+
+        JButton btnCliente = ghostButton("👤  CLIENTE");
+        btnCliente.addActionListener(e -> seleccionarCliente());
+
+        right.add(lblCliente);
+        right.add(Box.createRigidArea(new Dimension(10, 0)));
+        right.add(btnCliente);
+        right.add(Box.createRigidArea(new Dimension(10, 0)));
+
         JButton btnMenu = ghostButton("▦  MENÚ PRINCIPAL");
         btnMenu.addActionListener(e -> volverAtras());
         right.add(btnMenu);
@@ -158,6 +180,21 @@ public class vistaPedido extends JFrame {
         top.add(left, BorderLayout.WEST);
         top.add(right, BorderLayout.EAST);
         return top;
+    }
+
+    private void seleccionarCliente() {  // ✅ NUEVO
+        vistaDialogo dlg = new vistaDialogo(this, clienteCtrl);
+        dlg.setVisible(true);
+
+        Cliente c = dlg.getClienteSeleccionado();
+        if (c != null) {
+            clienteSeleccionado = c;
+            lblCliente.setText("Cliente: " + c.getNombre());
+        } else {
+            // si eligió visitante o canceló, se queda como estaba (o lo pones a null si quieres)
+            // clienteSeleccionado = null;
+            // lblCliente.setText("Cliente: (sin asignar)");
+        }
     }
 
     private JPanel pill(String text) {
@@ -688,7 +725,8 @@ public class vistaPedido extends JFrame {
                 mesa = mesaCtrl.obtenerMesa(pedido.getNumeroMesa());
             }
 
-            Venta v = ventaCtrl.finalizarVenta(null, mesa, paraLlevar);
+            // ✅ CAMBIO: pasa el cliente seleccionado (o null)
+            Venta v = ventaCtrl.finalizarVenta(clienteSeleccionado, mesa, paraLlevar);
 
             JOptionPane.showMessageDialog(this, "Pedido finalizado. Pase a facturación.");
 
@@ -724,14 +762,21 @@ public class vistaPedido extends JFrame {
     }
 
     private void volverAtras() {
-        if (pedido.getTipoPedido().equals(Pedido.MESA)) {
-            vistaMesas vm = new vistaMesas(pedidoCtrl, productoCtrl, ventaCtrl, mesaCtrl, menuPrincipalRef);
-            vm.setVisible(true);
-        } else {
-            menuPrincipalRef.setVisible(true);
-        }
-        dispose();
+    if (pedido.getTipoPedido().equals(Pedido.MESA)) {
+        vistaMesas vm = new vistaMesas(
+                pedidoCtrl,
+                productoCtrl,
+                ventaCtrl,
+                mesaCtrl,
+                clienteCtrl,          // ✅ ESTE ES EL NUEVO PARÁMETRO
+                menuPrincipalRef
+        );
+        vm.setVisible(true);
+    } else {
+        menuPrincipalRef.setVisible(true);
     }
+    dispose();
+}
 
     // ================= BUTTONS (LAF-proof) =================
     private JButton solidButton(String text, Color bg, Color fg, int fontSize, int pad) {

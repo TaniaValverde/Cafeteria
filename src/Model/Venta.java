@@ -23,6 +23,11 @@ public class Venta {
     private String estado;
     private String metodoPago;
 
+    // ✅ NUEVO: datos de cliente (persisten en CSV)
+    private String clienteId;
+    private String clienteNombre;
+    private String clienteTipo; // FRECUENTE / VISITANTE (o null)
+
     private final List<LineaVenta> lineas = new ArrayList<>();
 
     public static class LineaVenta {
@@ -72,6 +77,11 @@ public class Venta {
 
         this.estado = "PENDIENTE";
         this.metodoPago = "";
+
+        // cliente por defecto
+        this.clienteId = null;
+        this.clienteNombre = null;
+        this.clienteTipo = null;
     }
 
     public String getId() { return id; }
@@ -81,6 +91,11 @@ public class Venta {
     public double getTaxRate() { return taxRate; }
     public String getEstado() { return estado; }
     public String getMetodoPago() { return metodoPago; }
+
+    // ✅ getters cliente
+    public String getClienteId() { return clienteId; }
+    public String getClienteNombre() { return clienteNombre; }
+    public String getClienteTipo() { return clienteTipo; }
 
     public final void setId(String id) {
         if (id == null || id.trim().isEmpty()) {
@@ -114,6 +129,26 @@ public class Venta {
     public void setEstado(String estado) { this.estado = estado; }
     public void setMetodoPago(String metodoPago) { this.metodoPago = metodoPago; }
 
+    // ✅ NUEVO: setCliente (guarda solo datos simples)
+    public void setCliente(Cliente c) {
+        if (c == null) {
+            this.clienteId = null;
+            this.clienteNombre = null;
+            this.clienteTipo = null;
+            return;
+        }
+        this.clienteId = emptyToNull(c.getId());
+        this.clienteNombre = emptyToNull(c.getNombre());
+        this.clienteTipo = (c.getTipo() != null) ? c.getTipo().name() : null;
+    }
+
+    // ✅ opcional: permitir set manual (si quisieras)
+    public void setClienteCsv(String id, String nombre, String tipo) {
+        this.clienteId = emptyToNull(id);
+        this.clienteNombre = emptyToNull(nombre);
+        this.clienteTipo = emptyToNull(tipo);
+    }
+
     public boolean esParaLlevar() {
         return mesaNumero == PARA_LLEVAR;
     }
@@ -145,7 +180,10 @@ public class Venta {
         return getSubtotal() + getImpuesto();
     }
 
-    // ✅ CSV actualizado (tu formato de 8 campos)
+    // ✅ CSV actualizado:
+    // antes: 8 campos
+    // ahora: 11 campos (al final): clienteId, clienteNombre, clienteTipo
+    // IMPORTANTE: esto NO rompe ventas viejas porque fromCsv es retrocompatible.
     public String toCsv() {
         StringBuilder items = new StringBuilder();
         for (int i = 0; i < lineas.size(); i++) {
@@ -157,14 +195,18 @@ public class Venta {
         }
 
         return String.join(",",
-                id,
-                fechaHora.format(DT_FORMAT),
+                safeCsv(id),
+                safeCsv(fechaHora.format(DT_FORMAT)),
                 String.valueOf(mesaNumero),
                 String.valueOf(codigoPedido),
                 String.valueOf(taxRate),
-                estado == null ? "" : estado,
-                metodoPago == null ? "" : metodoPago,
-                items.toString());
+                safeCsv(estado),
+                safeCsv(metodoPago),
+                safeCsv(items.toString()),
+                safeCsv(clienteId),
+                safeCsv(clienteNombre),
+                safeCsv(clienteTipo)
+        );
     }
 
     public static Venta fromCsv(String line) {
@@ -174,7 +216,7 @@ public class Venta {
 
         String[] parts = line.split(",", -1);
 
-        // Para tu formato: mínimo deberían existir 4 (y normalmente 8)
+        // mínimo deberían existir 4 (y normalmente 8, ahora 11)
         if (parts.length < 4) {
             throw new IllegalArgumentException("CSV de venta incompleto.");
         }
@@ -190,6 +232,7 @@ public class Venta {
             String metodo = "";
             String items = "";
 
+            // Formato "nuevo" / estándar (8 o más)
             if (parts.length >= 8) {
                 codigoPedido = parseIntSafe(parts[3], 0);
                 tax = Double.parseDouble(parts[4]);
@@ -207,6 +250,15 @@ public class Venta {
             Venta v = new Venta(id, dt, mesa, codigoPedido, tax);
             v.setEstado(estado);
             v.setMetodoPago(metodo);
+
+            // ✅ NUEVO: cliente (si existe en CSV)
+            // parts[8]=clienteId, parts[9]=clienteNombre, parts[10]=clienteTipo
+            if (parts.length >= 11) {
+                String cId = parts[8];
+                String cNombre = parts[9];
+                String cTipo = parts[10];
+                v.setClienteCsv(cId, cNombre, cTipo);
+            }
 
             if (items != null && !items.isEmpty()) {
                 String[] itemParts = items.split(";");
@@ -237,6 +289,16 @@ public class Venta {
     private static int parseIntSafe(String s, int def) {
         try { return Integer.parseInt(s); }
         catch (Exception e) { return def; }
+    }
+
+    private static String safeCsv(String s) {
+        return (s == null) ? "" : s.trim();
+    }
+
+    private static String emptyToNull(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 
     // ✅ VentaDAOTest usa contains(new Venta("V001", now, 1)) -> equals por ID
