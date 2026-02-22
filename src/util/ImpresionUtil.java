@@ -16,16 +16,16 @@ public class ImpresionUtil {
      *
      * @param area   text area containing the content to print (must not be null)
      * @param parent parent component for dialog context (not directly used)
+     * @return true if the print job was sent, false if the user cancelled
      * @throws IllegalArgumentException if {@code area} is null
-     * @throws Exception if the user cancels the print dialog or printing fails
+     * @throws Exception if printing fails
      */
-    public static void imprimirTexto(JTextArea area, Component parent) throws Exception {
-        if (area == null) throw new IllegalArgumentException("Área de impresión null.");
-
-        boolean ok = area.print();
-
-        if (!ok) {
-            throw new Exception("Impresión cancelada.");
+    public static boolean imprimirTexto(JTextArea area, Component parent) throws Exception {
+        if (area == null) {
+            throw new IllegalArgumentException("Área de impresión null.");
         }
+
+        // Retorna false cuando el usuario cancela.
+        return area.print();
     }
 }

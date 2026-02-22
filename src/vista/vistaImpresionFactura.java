@@ -8,6 +8,7 @@ import java.awt.*;
 public class vistaImpresionFactura extends JDialog {
 
     private final JTextArea area;
+    private boolean impresionConfirmada = false;
 
     public vistaImpresionFactura(Frame owner, String textoFactura) {
         super(owner, "Impresión de factura", true);
@@ -36,11 +37,27 @@ public class vistaImpresionFactura extends JDialog {
         setLocationRelativeTo(owner);
     }
 
+    /** true si imprimió (no canceló). */
+    public boolean isImpresionConfirmada() {
+        return impresionConfirmada;
+    }
+
     private void imprimir() {
         try {
-            ImpresionUtil.imprimirTexto(area, this);
+            boolean ok = ImpresionUtil.imprimirTexto(area, this);
+
+            if (!ok) {
+                // Usuario canceló impresión
+                impresionConfirmada = false;
+                JOptionPane.showMessageDialog(this, "Impresión cancelada. No se realizará el pago.");
+                dispose();
+                return;
+            }
+
+            impresionConfirmada = true;
             JOptionPane.showMessageDialog(this, "Enviado a la impresora ✅");
             dispose();
+
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(
                     this,
