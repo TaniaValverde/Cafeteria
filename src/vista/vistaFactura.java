@@ -47,8 +47,8 @@ public class vistaFactura extends JFrame {
     private static final Color ROW_SEL_BORDER = new Color(0x38BDF8);
 
     // ✅ Formato fecha corto
-    private static final DateTimeFormatter FECHA_CORTA =
-            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter FECHA_CORTA
+            = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     // ✅ CAMBIO: ahora recibe MesaController también
     public vistaFactura(VentaController ventaCtrl, MesaController mesaCtrl) {
@@ -120,20 +120,24 @@ public class vistaFactura extends JFrame {
     // ================= LEFT: TABLA =================
     private JComponent buildLeftTable() {
         modelo = new DefaultTableModel(new String[]{"ID", "Fecha", "Mesa", "Total"}, 0) {
-            public boolean isCellEditable(int row, int column) { return false; }
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
         };
 
         tabla = new JTable(modelo);
         tabla.setRowHeight(32);
         tabla.setFont(new Font("SansSerif", Font.PLAIN, 13));
         tabla.setShowGrid(true);
-        tabla.setGridColor(new Color(0,0,0,20));
+        tabla.setGridColor(new Color(0, 0, 0, 20));
 
         aplicarHeaderNaranjaPlano();
         aplicarEstiloFilas();
 
         tabla.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) seleccionarVenta();
+            if (!e.getValueIsAdjusting()) {
+                seleccionarVenta();
+            }
         });
 
         JScrollPane sp = new JScrollPane(tabla);
@@ -147,7 +151,9 @@ public class vistaFactura extends JFrame {
 
     private void ajustarAnchosTabla() {
         SwingUtilities.invokeLater(() -> {
-            if (tabla == null || tabla.getColumnModel().getColumnCount() < 4) return;
+            if (tabla == null || tabla.getColumnModel().getColumnCount() < 4) {
+                return;
+            }
 
             TableColumn colId = tabla.getColumnModel().getColumn(0);
             TableColumn colFecha = tabla.getColumnModel().getColumn(1);
@@ -302,10 +308,10 @@ public class vistaFactura extends JFrame {
                 String fechaBonita = v.getFechaHora().format(FECHA_CORTA);
 
                 modelo.addRow(new Object[]{
-                        idCorto,
-                        fechaBonita,
-                        v.esParaLlevar() ? "PARA LLEVAR" : "Mesa " + v.getMesaNumero(),
-                        String.format("₡%.2f", v.getTotal())
+                    idCorto,
+                    fechaBonita,
+                    v.esParaLlevar() ? "PARA LLEVAR" : "Mesa " + v.getMesaNumero(),
+                    String.format("₡%.2f", v.getTotal())
                 });
             }
 
@@ -318,7 +324,9 @@ public class vistaFactura extends JFrame {
 
     private void seleccionarVenta() {
         int row = tabla.getSelectedRow();
-        if (row == -1) return;
+        if (row == -1) {
+            return;
+        }
 
         String idCorto = modelo.getValueAt(row, 0).toString();
 
@@ -355,32 +363,40 @@ public class vistaFactura extends JFrame {
 
         int confirm = JOptionPane.showConfirmDialog(
                 this,
-                "¿Confirmar cobro de ₡" + String.format("%.2f", ventaSeleccionada.getTotal()) +
-                        " por " + metodo + "?",
+                "¿Confirmar cobro de ₡" + String.format("%.2f", ventaSeleccionada.getTotal())
+                + " por " + metodo + "?",
                 "Confirmar Cobro",
                 JOptionPane.YES_NO_OPTION
         );
 
-        if (confirm != JOptionPane.YES_OPTION) return;
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
 
         try {
-            // ✅ marca pagada
+            // 1) Generar factura (SIN marcar pagada todavía)
+            String textoFactura = ventaCtrl.generarTextoFactura(ventaSeleccionada, metodo);
+            areaFactura.setText(textoFactura);
+
+            // 2) Intentar imprimir
+            vistaImpresionFactura dlg = new vistaImpresionFactura(this, textoFactura);
+            dlg.setVisible(true);
+
+            // 3) Si canceló impresión -> NO se paga, NO se libera mesa, NO cambia pedido
+            if (!dlg.isImpresionConfirmada()) {
+                return;
+            }
+
+            // 4) Confirmada la impresión => ahora sí se aplica el pago
             ventaCtrl.marcarComoPagada(ventaSeleccionada, metodo);
 
-            // ✅ LIBERA MESA CUANDO SE PAGA
+            // 5) Liberar mesa solo cuando el pago se completó
             if (!ventaSeleccionada.esParaLlevar()) {
                 int n = ventaSeleccionada.getMesaNumero();
                 mesaCtrl.liberarMesa(n);
             }
 
-            String textoFactura = ventaCtrl.generarTextoFactura(ventaSeleccionada);
-areaFactura.setText(textoFactura);
-
-// ✅ Abrir ventana de impresión
-vistaImpresionFactura dlg = new vistaImpresionFactura(this, textoFactura);
-dlg.setVisible(true);
-
-JOptionPane.showMessageDialog(this, "Venta cobrada correctamente ✅");
+            JOptionPane.showMessageDialog(this, "Venta cobrada e impresa correctamente ✅");
 
             ventaSeleccionada = null;
             areaFactura.setText("");
@@ -412,7 +428,7 @@ JOptionPane.showMessageDialog(this, "Venta cobrada correctamente ✅");
         b.setContentAreaFilled(false);
         b.setOpaque(false);
         b.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0,0,0,18), 1, true),
+                new LineBorder(new Color(0, 0, 0, 18), 1, true),
                 new EmptyBorder(pad, 16, pad, 16)
         ));
         b.setFocusPainted(false);
@@ -428,7 +444,7 @@ JOptionPane.showMessageDialog(this, "Venta cobrada correctamente ✅");
         b.setOpaque(true);
         b.setContentAreaFilled(true);
         b.setBorder(new CompoundBorder(
-                new LineBorder(new Color(0,0,0,12), 1, true),
+                new LineBorder(new Color(0, 0, 0, 12), 1, true),
                 new EmptyBorder(8, 12, 8, 12)
         ));
         b.setFocusPainted(false);
