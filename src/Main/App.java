@@ -14,13 +14,13 @@ import vista.MenuPrincipal;
 public class App {
 
     /**
-     * Application entry point.
-     *
-     * Initializes the MVC controllers, sets the system Look & Feel, and launches
-     * the main Swing UI on the Event Dispatch Thread (EDT).
-     *
-     * @param args command-line arguments (not used)
-     */
+ * Application entry point.
+ *
+ * Initializes the MVC controllers, sets the system Look &amp; Feel, and launches
+ * the main Swing UI on the Event Dispatch Thread (EDT).
+ *
+ * @param args command-line arguments (not used)
+ */
     public static void main(String[] args) {
 
         try {
