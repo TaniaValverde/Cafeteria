@@ -6,43 +6,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Controller responsible for managing orders (pedidos).
- * <p>
- * This class handles the creation, storage and retrieval of orders,
- * as well as the assignment of products to each order.
- * </p>
+ * Controller responsible for managing orders (pedidos) in the MVC architecture.
  *
- * It works as an intermediary between the application logic and
- * the {@link Pedido} model, enforcing business rules such as
- * avoiding duplicated orders.
- *
- * @author Project Team
+ * Creates and stores {@link Pedido} instances and delegates product assignment
+ * to the order model while preventing duplicate order codes.
  */
 public class PedidoController {
 
-    /**
-     * List of orders currently managed by the system.
-     */
+    /** Orders currently managed by the system. */
     private final List<Pedido> pedidos;
 
-    /**
-     * Default constructor used in production.
-     * <p>
-     * Initializes an empty list of orders.
-     * </p>
-     */
+    /** Creates an empty controller instance. */
     public PedidoController() {
         this.pedidos = new ArrayList<>();
     }
 
     /**
-     * Constructor used mainly for testing purposes.
-     * <p>
-     * Allows dependency injection of a predefined list of orders.
-     * </p>
+     * Creates a controller using a provided order list (mainly for testing).
      *
-     * @param pedidos List of orders to manage
-     * @throws IllegalArgumentException If the provided list is {@code null}
+     * @param pedidos list of orders to manage (non-null)
+     * @throws IllegalArgumentException if {@code pedidos} is null
      */
     public PedidoController(List<Pedido> pedidos) {
         if (pedidos == null) {
@@ -52,10 +35,10 @@ public class PedidoController {
     }
 
     /**
-     * Searches for an order by its code.
+     * Finds an order by its code.
      *
-     * @param codigoPedido Unique order code
-     * @return The matching {@link Pedido} if found, or {@code null} otherwise
+     * @param codigoPedido order code
+     * @return matching {@link Pedido} or null if not found
      */
     public Pedido buscarPedido(int codigoPedido) {
         for (Pedido p : pedidos) {
@@ -67,13 +50,13 @@ public class PedidoController {
     }
 
     /**
-     * Creates a new order and adds it to the system.
+     * Creates a new order and stores it in the controller.
      *
-     * @param codigoPedido Unique order code
-     * @param tipoPedido Type of order (table or takeaway)
-     * @param numeroMesa Table number associated with the order
-     * @return The newly created {@link Pedido}
-     * @throws IllegalArgumentException If an order with the same code already exists
+     * @param codigoPedido order code (must be unique)
+     * @param tipoPedido order type (table or take-away)
+     * @param numeroMesa table number when applicable
+     * @return created {@link Pedido}
+     * @throws IllegalArgumentException if an order with the same code already exists
      */
     public Pedido crearPedido(int codigoPedido, String tipoPedido, Integer numeroMesa) {
 
@@ -81,7 +64,6 @@ public class PedidoController {
             throw new IllegalArgumentException("El pedido ya Existe");
         }
 
-        // El modelo Pedido ya valida codigo/tipo/mesa/para-llevar
         Pedido pedido = new Pedido(codigoPedido, tipoPedido, numeroMesa);
         pedidos.add(pedido);
         return pedido;
@@ -90,10 +72,10 @@ public class PedidoController {
     /**
      * Adds a product to an existing order.
      *
-     * @param codigoPedido Code of the order
-     * @param producto Product to add
-     * @param cantidad Quantity of the product
-     * @throws IllegalArgumentException If the order does not exist
+     * @param codigoPedido order code
+     * @param producto product to add
+     * @param cantidad quantity to add
+     * @throws IllegalArgumentException if the order does not exist
      */
     public void agregarProductoAPedido(int codigoPedido, Producto producto, int cantidad) {
 
@@ -102,14 +84,13 @@ public class PedidoController {
             throw new IllegalArgumentException("El pedido no Existe");
         }
 
-        // El modelo Pedido valida producto null y cantidad <= 0
         pedidoActual.agregarProducto(producto, cantidad);
     }
 
     /**
-     * Returns the total number of orders currently stored.
+     * Returns the number of orders currently stored.
      *
-     * @return Number of orders
+     * @return order count
      */
     public int cantidadPedidos() {
         return pedidos.size();

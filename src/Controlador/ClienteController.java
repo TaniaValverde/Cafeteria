@@ -9,10 +9,9 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Controller for customer management (MVC).
+ * Controller for customer management in the MVC architecture.
  *
- * <p>RF-02: Register customers as frequent or visitors.</p>
- * <p>RF-08: Persist clients in text/binary files (implemented via ClienteDAO).</p>
+ * Manages CRUD operations for {@link Cliente} and persists data using {@link ClienteDAO}.
  */
 public class ClienteController {
 
@@ -20,27 +19,31 @@ public class ClienteController {
     private final List<Cliente> clientes;
 
     /**
-     * Creates the controller and loads clients from storage.
+     * Creates the controller and loads customers from persistent storage.
      *
-     * @param rutaArchivo path for clients file (e.g. "data/clientes.txt")
-     * @throws IOException if loading fails
+     * @param rutaArchivo path to the customer file (e.g., "data/clientes.txt")
+     * @throws IOException if the file cannot be read
      */
     public ClienteController(String rutaArchivo) throws IOException {
         this.clienteDAO = new ClienteDAO(rutaArchivo);
         this.clientes = new ArrayList<>(clienteDAO.cargar());
     }
 
-    /** @return a copy of the client list */
+    /**
+     * Returns a copy of the current customer list.
+     *
+     * @return list of customers
+     */
     public List<Cliente> listar() {
         return new ArrayList<>(clientes);
     }
 
     /**
-     * Searches a customer by id.
+     * Finds a customer by id.
      *
-     * @param id customer id
-     * @return found customer
-     * @throws IllegalArgumentException if not found or invalid id
+     * @param id customer id (non-blank)
+     * @return matching customer
+     * @throws IllegalArgumentException if the id is invalid or the customer is not found
      */
     public Cliente buscarPorId(String id) {
         if (id == null || id.trim().isEmpty()) {
@@ -59,8 +62,9 @@ public class ClienteController {
     /**
      * Registers a new customer (id must be unique).
      *
-     * @param cliente customer to add
+     * @param cliente customer to register
      * @throws IOException if persistence fails
+     * @throws IllegalArgumentException if {@code cliente} is null or the id already exists
      */
     public void registrar(Cliente cliente) throws IOException {
         if (cliente == null) throw new IllegalArgumentException("Cliente no puede ser null.");
@@ -76,12 +80,12 @@ public class ClienteController {
     }
 
     /**
-     * Updates an existing customer (by id).
+     * Updates an existing customer identified by id.
      *
      * @param id customer id
      * @param nuevoNombre new name
-     * @param nuevoTelefono new phone
-     * @param nuevoTipo new type
+     * @param nuevoTelefono new phone number
+     * @param nuevoTipo new customer type
      * @throws IOException if persistence fails
      */
     public void modificar(String id, String nuevoNombre, String nuevoTelefono, Cliente.TipoCliente nuevoTipo) throws IOException {
@@ -106,15 +110,13 @@ public class ClienteController {
         guardarCambios();
     }
 
-    /**
-     * Sorts customers by name (ascending).
-     */
+    /** Sorts customers by name in ascending order. */
     public void ordenarPorNombre() {
         clientes.sort(Comparator.comparing(Cliente::getNombre, String.CASE_INSENSITIVE_ORDER));
     }
 
     /**
-     * Saves changes to persistent storage.
+     * Persists the current customer list to storage.
      *
      * @throws IOException if persistence fails
      */

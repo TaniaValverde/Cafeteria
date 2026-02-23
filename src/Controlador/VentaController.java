@@ -10,40 +10,26 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Controller responsible for managing sales operations.
+ * Controller for sales operations in the MVC architecture.
  *
- * This class coordinates the complete sales workflow, including
- * order creation, product management, stock updates, sale persistence
- * and invoice text generation.
- *
- * It acts as the intermediary between the model and persistence layers,
- * following the MVC architectural pattern.
- *
- * @author Project Team
+ * Coordinates the sale workflow: order handling, persistence through {@link VentaDAO},
+ * stock-related lookups through {@link ProductoDAO}, and invoice text generation.
  */
 public class VentaController {
 
-    /** Current active order being processed */
+    /** Current active order being processed. */
     private Pedido pedidoActual;
 
-    /** Data access object for sales persistence */
     private final VentaDAO ventaDAO;
-
-    /** Data access object for products */
     private final ProductoDAO productoDAO;
-
-    /** Clock used to obtain the current date and time */
     private final Clock clock;
 
     /**
-     * Creates a VentaController with explicit dependencies.
+     * Creates a controller with injected dependencies (useful for testing).
      *
-     * This constructor allows dependency injection, making
-     * the controller easier to test.
-     *
-     * @param ventaDAO DAO responsible for sales persistence
-     * @param productoDAO DAO responsible for product persistence
-     * @param clock Clock instance used for date and time
+     * @param ventaDAO DAO used for sales persistence
+     * @param productoDAO DAO used to load products for invoice display
+     * @param clock clock used to obtain the current date/time
      */
     public VentaController(VentaDAO ventaDAO, ProductoDAO productoDAO, Clock clock) {
         this.ventaDAO = ventaDAO;
@@ -51,11 +37,7 @@ public class VentaController {
         this.clock = clock;
     }
 
-    /**
-     * Creates a VentaController with default dependencies.
-     *
-     * Uses the system clock and default DAO implementations.
-     */
+    /** Creates a controller with default DAOs and system clock. */
     public VentaController() {
         this(new VentaDAO(),
                 new ProductoDAO("data/productos.txt"),
@@ -63,26 +45,23 @@ public class VentaController {
     }
 
     /**
-     * Starts a new order in the system.
+     * Starts a new active order.
      *
-     * @param codigoPedido Unique identifier of the order
-     * @param tipoPedido Type of order (table or takeaway)
-     * @param numeroMesa Table number if applicable
+     * @param codigoPedido order code
+     * @param tipoPedido order type (table or take-away)
+     * @param numeroMesa table number when applicable
      */
     public void iniciarPedido(int codigoPedido, String tipoPedido, Integer numeroMesa) {
         pedidoActual = new Pedido(codigoPedido, tipoPedido, numeroMesa);
     }
 
     /**
-     * Adds a product to the current order.
+     * Adds a product to the active order.
      *
-     * The stock of the product is reduced according to
-     * the quantity added.
-     *
-     * @param producto Product to be added
-     * @param cantidad Quantity of the product
-     * @throws IllegalStateException If there is no active order
-     * @throws IllegalArgumentException If product is null or quantity is invalid
+     * @param producto product to add
+     * @param cantidad quantity to add
+     * @throws IllegalStateException if there is no active order
+     * @throws IllegalArgumentException if product is null or quantity is invalid
      */
     public void agregarProductoAlPedido(Producto producto, int cantidad) {
         if (pedidoActual == null) {
@@ -102,14 +81,11 @@ public class VentaController {
     /**
      * Finalizes the current sale and persists it.
      *
-     * Creates a {@link Venta} instance, copies all order lines,
-     * stores the sale and clears the active order.
-     *
-     * @param cliente Customer associated with the sale
-     * @param mesa Table associated with the sale
-     * @param paraLlevar Indicates if the order is takeaway
-     * @return The generated sale
-     * @throws IOException If an error occurs while saving the sale
+     * @param cliente customer associated with the sale
+     * @param mesa table associated with the sale (null when take-away)
+     * @param paraLlevar true for take-away orders
+     * @return persisted sale instance
+     * @throws IOException if persistence fails
      */
     public Venta finalizarVenta(Cliente cliente, Mesa mesa, boolean paraLlevar) throws IOException {
 
@@ -134,21 +110,21 @@ public class VentaController {
     }
 
     /**
-     * Retrieves the list of pending sales.
+     * Loads all pending sales.
      *
-     * @return List of pending sales
-     * @throws IOException If an error occurs while loading data
+     * @return list of pending sales
+     * @throws IOException if loading fails
      */
     public List<Venta> obtenerPendientes() throws IOException {
         return ventaDAO.listarPendientes();
     }
 
     /**
-     * Marks a sale as paid and updates its payment method.
+     * Marks a sale as paid and persists the update.
      *
-     * @param venta Sale to update
-     * @param metodoPago Payment method used
-     * @throws IOException If an error occurs while updating the sale
+     * @param venta sale to update
+     * @param metodoPago payment method
+     * @throws IOException if persistence fails
      */
     public void marcarComoPagada(Venta venta, String metodoPago) throws IOException {
         venta.setEstado("PAGADA");
@@ -157,10 +133,10 @@ public class VentaController {
     }
 
     /**
-     * Generates the invoice text for a sale.
+     * Builds the invoice text for a sale.
      *
-     * @param venta Sale to generate the invoice for
-     * @return Invoice text representation
+     * @param venta sale to print
+     * @return invoice text
      */
     public String generarTextoFactura(Venta venta) {
         StringBuilder sb = new StringBuilder();
@@ -218,20 +194,20 @@ public class VentaController {
     /**
      * Removes a pending sale by its order code.
      *
-     * @param codigoPedido Order code to remove
-     * @throws IOException If an error occurs during deletion
+     * @param codigoPedido order code
+     * @throws IOException if persistence fails
      */
     public void eliminarPendientePorCodigoPedido(int codigoPedido) throws IOException {
         ventaDAO.eliminarPendientePorCodigoPedido(codigoPedido);
     }
 
     /**
-     * Removes a product or quantity from the current order.
+     * Removes a quantity of a product from the active order.
      *
-     * @param producto Product to remove
-     * @param cantidad Quantity to remove
-     * @throws IllegalStateException If there is no active order
-     * @throws IllegalArgumentException If product or quantity is invalid
+     * @param producto product to remove
+     * @param cantidad quantity to remove
+     * @throws IllegalStateException if there is no active order or product is not present
+     * @throws IllegalArgumentException if product is null
      */
     public void quitarProductoDelPedido(Producto producto, int cantidad) {
         if (producto == null) {
@@ -259,29 +235,27 @@ public class VentaController {
     /**
      * Returns the current active order.
      *
-     * @return Current order
+     * @return active order (may be null)
      */
     public Pedido getPedidoActual() {
         return pedidoActual;
     }
 
     /**
-     * Sets the current order manually.
+     * Sets the active order manually (mainly for testing or UI integration).
      *
-     * @param pedidoActual Order to set
+     * @param pedidoActual order to set
      */
     public void setPedidoActual(Pedido pedidoActual) {
         this.pedidoActual = pedidoActual;
     }
 
     /**
-     * Generates the invoice text without modifying the sale state.
+     * Builds the invoice text using a payment method preview (without modifying sale state).
      *
-     * Useful for previewing invoices before payment confirmation.
-     *
-     * @param venta Sale to generate invoice for
-     * @param metodoPagoPreview Payment method preview
-     * @return Invoice text representation
+     * @param venta sale to print
+     * @param metodoPagoPreview payment method to display
+     * @return invoice text
      */
     public String generarTextoFactura(Venta venta, String metodoPagoPreview) {
         StringBuilder sb = new StringBuilder();

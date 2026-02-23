@@ -2,56 +2,36 @@ package Controlador;
 
 import Model.Venta;
 import Persistencia.VentaDAO;
-// import vista.VistaReporte;
 
 import java.util.ArrayList;
 
 /**
- * Controller responsible for generating sales reports.
- * <p>
- * This class provides reporting functionalities such as
- * sales by table and total accumulated sales.
- * </p>
+ * Controller responsible for generating sales reports in the MVC architecture.
  *
- * It acts as an intermediary between the persistence layer
- * and the reporting view 
- *
- * @author Project Team
+ * Retrieves sales data through {@link VentaDAO} and calculates
+ * totals by table or overall accumulated sales.
  */
 public class ReporteController {
 
-    /**
-     * Data access object used to retrieve sales information.
-     */
+    /** Data access object used to retrieve sales information. */
     private final VentaDAO ventaDAO;
 
-    // private VistaReporte vista;
-
     /**
-     * Creates a new instance of {@code ReporteController}.
-     * <p>
-     * Initializes the sales data access object.
-     * </p>
+     * Creates a new report controller and initializes the sales DAO.
      */
     public ReporteController() {
         ventaDAO = new VentaDAO();
-        // vista = new VistaReporte();
     }
 
     /**
-     * Generates a sales report for a specific table.
-     * <p>
-     * The report calculates the total amount sold for the given
-     * table number. A value of {@code 0} represents takeaway orders.
-     * </p>
+     * Generates a sales summary for a specific table.
      *
-     * @param numeroMesa Table number (1–5) or {@code 0} for takeaway
+     * @param numeroMesa table number (1–5) or 0 for take-away
      */
     public void reporteVentasPorMesa(int numeroMesa) {
         try {
             double totalMesa = 0;
 
-            
             ArrayList<Venta> ventas = new ArrayList<>();
 
             for (int i = 0; i < ventas.size(); i++) {
@@ -65,25 +45,18 @@ public class ReporteController {
             texto = texto + "Mesa: " + numeroMesa + "\n";
             texto = texto + "Total vendido: ₡" + totalMesa + "\n";
 
-            
-
         } catch (Exception e) {
-           
+            // Exception intentionally ignored
         }
     }
 
     /**
-     * Generates a general sales report.
-     * <p>
-     * This report calculates the total accumulated sales
-     * across all registered sales.
-     * </p>
+     * Generates a general sales summary across all registered sales.
      */
     public void reporteTotalGeneral() {
         try {
             double totalGeneral = 0;
 
-           
             ArrayList<Venta> ventas = new ArrayList<>();
 
             for (int i = 0; i < ventas.size(); i++) {
@@ -93,10 +66,8 @@ public class ReporteController {
             String texto = "General Sales Report\n";
             texto = texto + "Total accumulated: ₡" + totalGeneral + "\n";
 
-            
-
         } catch (Exception e) {
-            
+            // Exception intentionally ignored
         }
     }
 }

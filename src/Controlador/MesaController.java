@@ -4,29 +4,18 @@ import Model.Mesa;
 import Model.Pedido;
 
 /**
- * Controller responsible for managing restaurant tables.
- * <p>
- * This class handles the creation, access and state management of tables,
- * including assigning and releasing orders associated with each table.
- * </p>
+ * Controller responsible for managing restaurant tables in the MVC architecture.
  *
- * It acts as a mediator between {@link Mesa} and {@link Pedido},
- * enforcing business rules related to table availability.
- *
- * @author Project Team
+ * Coordinates table state management and order assignment using {@link Mesa}
+ * and {@link Pedido}, enforcing availability rules.
  */
 public class MesaController {
 
-    /**
-     * Fixed array of tables managed by the system.
-     */
+    /** Fixed array of tables managed by the system (tables 1–5). */
     private final Mesa[] mesas;
 
     /**
-     * Creates a new {@code MesaController}.
-     * <p>
-     * Initializes a fixed set of five tables with numbers from 1 to 5.
-     * </p>
+     * Creates a new controller and initializes five tables (1 to 5).
      */
     public MesaController() {
         mesas = new Mesa[5];
@@ -38,11 +27,11 @@ public class MesaController {
     }
 
     /**
-     * Retrieves a table by its number.
+     * Returns a table by its number.
      *
-     * @param numero Table number to retrieve
-     * @return The corresponding {@link Mesa} instance
-     * @throws IllegalArgumentException If the table number is out of range
+     * @param numero table number (1–5)
+     * @return corresponding {@link Mesa}
+     * @throws IllegalArgumentException if the number is out of range
      */
     public Mesa obtenerMesa(int numero) {
 
@@ -54,10 +43,10 @@ public class MesaController {
     }
 
     /**
-     * Checks whether a table is free.
+     * Indicates whether a table is currently free.
      *
-     * @param numeroMesa Table number to check
-     * @return {@code true} if the table is free, {@code false} otherwise
+     * @param numeroMesa table number
+     * @return true if free, false otherwise
      */
     public boolean estaLibre(int numeroMesa) {
         Mesa mesa = obtenerMesa(numeroMesa);
@@ -65,14 +54,13 @@ public class MesaController {
     }
 
     /**
-     * Releases a table, making it available again.
+     * Releases a table and marks it as available.
      *
-     * @param numeroMesa Table number to release
-     * @throws IllegalStateException If the table is already free
+     * @param numeroMesa table number
+     * @throws IllegalStateException if the table is already free
      */
     public void liberarMesa(int numeroMesa) {
 
-        // reutiliza tu validación central
         Mesa mesa = obtenerMesa(numeroMesa);
 
         if (mesa.estaLibre()) {
@@ -84,15 +72,11 @@ public class MesaController {
 
     /**
      * Assigns an order to a table.
-     * <p>
-     * The table number must match the table assigned in the order.
-     * </p>
      *
-     * @param numeroMesa Table number
-     * @param pedido Order to assign to the table
-     * @throws IllegalArgumentException If the table number is invalid,
-     *                                  the order is null, or the table
-     *                                  does not match the order
+     * @param numeroMesa table number
+     * @param pedido order to assign
+     * @throws IllegalArgumentException if parameters are invalid or
+     *                                  the order does not match the table number
      */
     public void asignarPedido(int numeroMesa, Pedido pedido) {
 
