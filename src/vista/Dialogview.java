@@ -1,4 +1,3 @@
-
 package vista;
 
 import Controlador.ClienteController;
@@ -15,22 +14,30 @@ import java.awt.*;
 import java.io.IOException;
 import java.util.List;
 
-public class vistaDialogo extends JDialog {
+/**
+ * Modal dialog used to select an existing client for an order or sale.
+ *
+ * <p>
+ * This class contains only UI code (Swing components and event handlers) and
+ * delegates business logic to the corresponding controllers.</p>
+ */
+public class Dialogview extends JDialog {
 
     private final ClienteController clienteController;
 
-    // ===== Resultado =====
     private Cliente clienteSeleccionado = null;
 
-    // ===== Tab Frecuente =====
     private JTable tabla;
     private DefaultTableModel modelo;
 
-    // ===== Tab Visitante =====
     private JTextField txtNombreV;
     private JTextField txtTelefonoV;
 
-    public vistaDialogo (JFrame owner, ClienteController clienteController) {
+    /**
+     * Creates the view and initializes its Swing components.
+     */
+
+    public Dialogview(JFrame owner, ClienteController clienteController) {
         super(owner, "Cliente del pedido", true);
         this.clienteController = clienteController;
 
@@ -55,24 +62,26 @@ public class vistaDialogo extends JDialog {
         add(tabs, BorderLayout.CENTER);
     }
 
-    // ==========================
-    // ===== TAB FRECUENTE ======
-    // ==========================
     private JComponent buildTabFrecuente() {
         JPanel p = new JPanel(new BorderLayout(10, 10));
         p.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         modelo = new DefaultTableModel(new String[]{"ID", "Nombre", "Teléfono", "Tipo"}, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
         };
 
         tabla = new JTable(modelo);
         tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        // doble click = seleccionar
         tabla.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
-                if (e.getClickCount() == 2) seleccionarFrecuente();
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    seleccionarFrecuente();
+                }
             }
         });
 
@@ -89,13 +98,11 @@ public class vistaDialogo extends JDialog {
 
         btnSeleccionar.addActionListener(e -> seleccionarFrecuente());
 
-        // visitante: devuelve null (pedido sin cliente)
         btnVisitante.addActionListener(e -> {
             clienteSeleccionado = null;
             dispose();
         });
 
-        // cancelar: cierra sin seleccionar
         btnCancelar.addActionListener(e -> {
             clienteSeleccionado = null;
             dispose();
@@ -110,14 +117,12 @@ public class vistaDialogo extends JDialog {
 
         List<Cliente> lista = clienteController.listar();
         for (Cliente c : lista) {
-            // Si quieres mostrar SOLO FRECUENTES, descomenta:
-            // if (c.getTipo() != Cliente.TipoCliente.FRECUENTE) continue;
 
             modelo.addRow(new Object[]{
-                    c.getId(),
-                    c.getNombre(),
-                    c.getTelefono(),
-                    c.getTipo()
+                c.getId(),
+                c.getNombre(),
+                c.getTelefono(),
+                c.getTipo()
             });
         }
     }
@@ -131,7 +136,6 @@ public class vistaDialogo extends JDialog {
 
         String id = modelo.getValueAt(row, 0).toString();
 
-        // Recuperar el objeto real desde el controller
         for (Cliente c : clienteController.listar()) {
             if (c.getId().equals(id)) {
                 clienteSeleccionado = c;
@@ -142,16 +146,13 @@ public class vistaDialogo extends JDialog {
         dispose();
     }
 
-    // ==========================
-    // ===== TAB VISITANTE ======
-    // ==========================
     private JComponent buildTabVisitante() {
         JPanel p = new JPanel();
         p.setBorder(new EmptyBorder(14, 14, 14, 14));
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
 
-        JLabel info = new JLabel("<html><b>Visitante</b>: ingresa nombre y (opcional) teléfono. " +
-                "Se registrará para que salga en la factura.</html>");
+        JLabel info = new JLabel("<html><b>Visitante</b>: ingresa nombre y (opcional) teléfono. "
+                + "Se registrará para que salga en la factura.</html>");
         info.setAlignmentX(Component.LEFT_ALIGNMENT);
         p.add(info);
         p.add(Box.createRigidArea(new Dimension(0, 14)));
@@ -159,7 +160,6 @@ public class vistaDialogo extends JDialog {
         txtNombreV = new JTextField();
         txtTelefonoV = new JTextField();
 
-        // Filtros (parecidos a tu vistaCliente)
         ((AbstractDocument) txtTelefonoV.getDocument()).setDocumentFilter(new RegexFilter("\\d*"));
         ((AbstractDocument) txtNombreV.getDocument()).setDocumentFilter(new RegexFilter("[\\p{L} ]*"));
 
@@ -213,7 +213,6 @@ public class vistaDialogo extends JDialog {
             return;
         }
 
-        // Tu vistaCliente exige ID numérico, por eso usamos timestamp
         String id = String.valueOf(System.currentTimeMillis());
 
         Cliente nuevo = new Cliente(
@@ -223,11 +222,9 @@ public class vistaDialogo extends JDialog {
                 Cliente.TipoCliente.VISITANTE
         );
 
-        // Intentar guardar el visitante (para que exista en el sistema)
         try {
             clienteController.registrar(nuevo);
         } catch (IOException ex) {
-            // No bloquea el pedido: igual se usa para factura
             JOptionPane.showMessageDialog(this,
                     "No se pudo guardar el visitante, pero se usará en la factura.\n" + ex.getMessage(),
                     "Aviso", JOptionPane.WARNING_MESSAGE);
@@ -240,14 +237,10 @@ public class vistaDialogo extends JDialog {
         dispose();
     }
 
-    // ===== Getter para VistaPedido =====
     public Cliente getClienteSeleccionado() {
         return clienteSeleccionado;
     }
 
-    // =========================
-    // ====== DOCUMENT FILTER ===
-    // =========================
     private static class RegexFilter extends DocumentFilter {
 
         private final String allowedRegex;
@@ -259,7 +252,9 @@ public class vistaDialogo extends JDialog {
         @Override
         public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr)
                 throws BadLocationException {
-            if (string == null) return;
+            if (string == null) {
+                return;
+            }
 
             String current = fb.getDocument().getText(0, fb.getDocument().getLength());
             String next = current.substring(0, offset) + string + current.substring(offset);
@@ -272,7 +267,9 @@ public class vistaDialogo extends JDialog {
         @Override
         public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
                 throws BadLocationException {
-            if (text == null) text = "";
+            if (text == null) {
+                text = "";
+            }
 
             String current = fb.getDocument().getText(0, fb.getDocument().getLength());
             String next = current.substring(0, offset) + text + current.substring(offset + length);

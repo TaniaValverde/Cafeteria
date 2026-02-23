@@ -14,7 +14,14 @@ import java.awt.*;
 import java.io.IOException;
 import java.util.List;
 
-public class vistaCliente extends JFrame {
+/**
+ * Swing view used to manage clients (create, update, delete, and list).
+ *
+ * <p>
+ * This class contains only UI code (Swing components and event handlers) and
+ * delegates business logic to the corresponding controllers.</p>
+ */
+public class Clientview extends JFrame {
 
     private final ClienteController clienteController;
 
@@ -26,7 +33,11 @@ public class vistaCliente extends JFrame {
     private JTable tabla;
     private DefaultTableModel modelo;
 
-    public vistaCliente(ClienteController controller) {
+    /**
+     * Creates the view and initializes its Swing components.
+     */
+
+    public Clientview(ClienteController controller) {
         this.clienteController = controller;
 
         setTitle("Gestión de Clientes");
@@ -42,7 +53,6 @@ public class vistaCliente extends JFrame {
         setLayout(new BorderLayout(10, 10));
         setBackground(Color.WHITE);
 
-        // ==== FORM ====
         JPanel form = new JPanel(new GridLayout(4, 2, 10, 10));
         form.setBorder(new EmptyBorder(15, 15, 15, 15));
 
@@ -51,7 +61,6 @@ public class vistaCliente extends JFrame {
         txtTelefono = new JTextField();
         cmbTipo = new JComboBox<>(Cliente.TipoCliente.values());
 
-        // ✅ Aplicar filtros de entrada (NUM / LETRAS)
         applyInputFilters();
 
         form.add(new JLabel("ID:"));
@@ -65,7 +74,6 @@ public class vistaCliente extends JFrame {
 
         add(form, BorderLayout.NORTH);
 
-        // ==== TABLE ====
         modelo = new DefaultTableModel(new String[]{"ID", "Nombre", "Teléfono", "Tipo"}, 0) {
             public boolean isCellEditable(int r, int c) {
                 return false;
@@ -75,7 +83,6 @@ public class vistaCliente extends JFrame {
         tabla = new JTable(modelo);
         add(new JScrollPane(tabla), BorderLayout.CENTER);
 
-        // ==== BUTTONS ====
         JPanel botones = new JPanel();
 
         JButton btnAgregar = new JButton("Agregar");
@@ -92,7 +99,6 @@ public class vistaCliente extends JFrame {
 
         add(botones, BorderLayout.SOUTH);
 
-        // ==== EVENTS ====
         btnAgregar.addActionListener(e -> agregar());
         btnModificar.addActionListener(e -> modificar());
         btnEliminar.addActionListener(e -> eliminar());
@@ -111,19 +117,13 @@ public class vistaCliente extends JFrame {
         });
     }
 
-    // =========================
-    // ====== INPUT FILTERS =====
-    // =========================
     private void applyInputFilters() {
-        // ID: solo números (permite vacío mientras escribe)
         ((AbstractDocument) txtId.getDocument())
                 .setDocumentFilter(new RegexFilter("\\d*"));
 
-        // Teléfono: solo números
         ((AbstractDocument) txtTelefono.getDocument())
                 .setDocumentFilter(new RegexFilter("\\d*"));
 
-        // Nombre: solo letras y espacios (incluye tildes/ñ)
         ((AbstractDocument) txtNombre.getDocument())
                 .setDocumentFilter(new RegexFilter("[\\p{L} ]*"));
     }
@@ -192,10 +192,10 @@ public class vistaCliente extends JFrame {
         List<Cliente> lista = clienteController.listar();
         for (Cliente c : lista) {
             modelo.addRow(new Object[]{
-                    c.getId(),
-                    c.getNombre(),
-                    c.getTelefono(),
-                    c.getTipo()
+                c.getId(),
+                c.getNombre(),
+                c.getTelefono(),
+                c.getTipo()
             });
         }
     }
@@ -225,9 +225,6 @@ public class vistaCliente extends JFrame {
         });
     }
 
-    // =========================
-    // ====== DOCUMENT FILTER ===
-    // =========================
     private static class RegexFilter extends DocumentFilter {
 
         private final String allowedRegex;
@@ -239,7 +236,9 @@ public class vistaCliente extends JFrame {
         @Override
         public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr)
                 throws BadLocationException {
-            if (string == null) return;
+            if (string == null) {
+                return;
+            }
 
             String current = fb.getDocument().getText(0, fb.getDocument().getLength());
             String next = current.substring(0, offset) + string + current.substring(offset);
@@ -252,7 +251,9 @@ public class vistaCliente extends JFrame {
         @Override
         public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
                 throws BadLocationException {
-            if (text == null) text = "";
+            if (text == null) {
+                text = "";
+            }
 
             String current = fb.getDocument().getText(0, fb.getDocument().getLength());
             String next = current.substring(0, offset) + text + current.substring(offset + length);

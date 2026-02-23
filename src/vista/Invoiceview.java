@@ -3,7 +3,7 @@ package vista;
 import Controlador.MesaController;
 import Controlador.VentaController;
 import Model.Venta;
-import vista.vistaImpresionFactura;
+import vista.InvoiceImpressionview;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -17,10 +17,17 @@ import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-public class vistaFactura extends JFrame {
+/**
+ * View that builds and displays an invoice for a completed sale.
+ *
+ * <p>
+ * This class contains only UI code (Swing components and event handlers) and
+ * delegates business logic to the corresponding controllers.</p>
+ */
+public class Invoiceview extends JFrame {
 
     private final VentaController ventaCtrl;
-    private final MesaController mesaCtrl; // ✅ NUEVO
+    private final MesaController mesaCtrl;
 
     private JTable tabla;
     private DefaultTableModel modelo;
@@ -31,7 +38,6 @@ public class vistaFactura extends JFrame {
 
     private Venta ventaSeleccionada;
 
-    // ===== Palette =====
     private static final Color BG = new Color(0xF5, 0xF7, 0xFA);
     private static final Color CARD = Color.WHITE;
     private static final Color BORDER = new Color(0xE5, 0xE7, 0xEB);
@@ -41,17 +47,18 @@ public class vistaFactura extends JFrame {
     private static final Color PRIMARY = new Color(0xEE, 0x9D, 0x2B);
     private static final Color NAVY = new Color(0x0B, 0x12, 0x22);
 
-    // ✅ Colores tabla
     private static final Color ROW_ALT = new Color(0xF8, 0xFA, 0xFC);
     private static final Color ROW_SEL = new Color(0xE0, 0xF2, 0xFE);
     private static final Color ROW_SEL_BORDER = new Color(0x38BDF8);
 
-    // ✅ Formato fecha corto
     private static final DateTimeFormatter FECHA_CORTA
             = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    // ✅ CAMBIO: ahora recibe MesaController también
-    public vistaFactura(VentaController ventaCtrl, MesaController mesaCtrl) {
+    /**
+     * Creates the view and initializes its Swing components.
+     */
+
+    public Invoiceview(VentaController ventaCtrl, MesaController mesaCtrl) {
         this.ventaCtrl = ventaCtrl;
         this.mesaCtrl = mesaCtrl;
 
@@ -83,7 +90,6 @@ public class vistaFactura extends JFrame {
         setContentPane(root);
     }
 
-    // ================= TOP BAR =================
     private JComponent buildTopBar() {
         JPanel top = new JPanel(new BorderLayout(12, 12));
         top.setBackground(CARD);
@@ -105,7 +111,6 @@ public class vistaFactura extends JFrame {
         return top;
     }
 
-    // ================= BODY =================
     private JComponent buildBody() {
         JPanel body = new JPanel(new BorderLayout(14, 14));
         body.setOpaque(false);
@@ -117,7 +122,6 @@ public class vistaFactura extends JFrame {
         return body;
     }
 
-    // ================= LEFT: TABLA =================
     private JComponent buildLeftTable() {
         modelo = new DefaultTableModel(new String[]{"ID", "Fecha", "Mesa", "Total"}, 0) {
             public boolean isCellEditable(int row, int column) {
@@ -236,7 +240,6 @@ public class vistaFactura extends JFrame {
         }
     }
 
-    // ================= RIGHT: FACTURA + FOOTER =================
     private JComponent buildRightPanel() {
         JPanel right = new JPanel(new BorderLayout(12, 12));
         right.setOpaque(false);
@@ -293,7 +296,6 @@ public class vistaFactura extends JFrame {
         return footer;
     }
 
-    // ================= DATA =================
     private void cargarPendientes() {
         try {
             modelo.setRowCount(0);
@@ -374,23 +376,18 @@ public class vistaFactura extends JFrame {
         }
 
         try {
-            // 1) Generar factura (SIN marcar pagada todavía)
             String textoFactura = ventaCtrl.generarTextoFactura(ventaSeleccionada, metodo);
             areaFactura.setText(textoFactura);
 
-            // 2) Intentar imprimir
-            vistaImpresionFactura dlg = new vistaImpresionFactura(this, textoFactura);
+            InvoiceImpressionview dlg = new InvoiceImpressionview(this, textoFactura);
             dlg.setVisible(true);
 
-            // 3) Si canceló impresión -> NO se paga, NO se libera mesa, NO cambia pedido
             if (!dlg.isImpresionConfirmada()) {
                 return;
             }
 
-            // 4) Confirmada la impresión => ahora sí se aplica el pago
             ventaCtrl.marcarComoPagada(ventaSeleccionada, metodo);
 
-            // 5) Liberar mesa solo cuando el pago se completó
             if (!ventaSeleccionada.esParaLlevar()) {
                 int n = ventaSeleccionada.getMesaNumero();
                 mesaCtrl.liberarMesa(n);
@@ -410,7 +407,6 @@ public class vistaFactura extends JFrame {
         }
     }
 
-    // ================= BUTTONS =================
     private JButton solidButton(String text, Color bg, Color fg, int fontSize, int pad) {
         JButton b = new JButton(text) {
             @Override

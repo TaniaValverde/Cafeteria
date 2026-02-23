@@ -16,20 +16,26 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
-public class MenuPrincipal extends JFrame {
+/**
+ * Main application window that provides navigation to the cafeteria system
+ * modules.
+ *
+ * <p>
+ * This class contains only UI code (Swing components and event handlers) and
+ * delegates business logic to the corresponding controllers.</p>
+ */
+public class Menu extends JFrame {
 
-    // ===== Controllers =====
     private final PedidoController pedidoCtrl;
     private final ProductoController productoCtrl;
     private final ClienteController clienteCtrl;
     private final VentaController ventaCtrl;
     private final MesaController mesaCtrl;
 
-    // Paleta inspirada en tu HTML
-    private static final Color PRIMARY = new Color(0x3C, 0xE6, 0x19);          // #3ce619
-    private static final Color BG_LIGHT = new Color(0xFD, 0xFB, 0xF7);         // #fdfbf7
-    private static final Color CAFE_BROWN = new Color(0x4A, 0x37, 0x28);       // #4a3728
-    private static final Color CAFE_CREAM = new Color(0xF3, 0xEE, 0xE7);       // #f3eee7
+    private static final Color PRIMARY = new Color(0x3C, 0xE6, 0x19);
+    private static final Color BG_LIGHT = new Color(0xFD, 0xFB, 0xF7);
+    private static final Color CAFE_BROWN = new Color(0x4A, 0x37, 0x28);
+    private static final Color CAFE_CREAM = new Color(0xF3, 0xEE, 0xE7);
     private static final Color BORDER_SOFT = new Color(0, 0, 0, 18);
 
     private final JLabel lblFechaHora = new JLabel();
@@ -38,12 +44,15 @@ public class MenuPrincipal extends JFrame {
 
     private Timer reloj;
 
-    // ===== Constructor MVC (usar desde App.java) =====
-    public MenuPrincipal(PedidoController pedidoCtrl,
-                         ProductoController productoCtrl,
-                         ClienteController clienteCtrl,
-                         VentaController ventaCtrl,
-                         MesaController mesaCtrl) {
+    /**
+     * Creates the view and initializes its Swing components.
+     */
+
+    public Menu(PedidoController pedidoCtrl,
+            ProductoController productoCtrl,
+            ClienteController clienteCtrl,
+            VentaController ventaCtrl,
+            MesaController mesaCtrl) {
 
         this.pedidoCtrl = pedidoCtrl;
         this.productoCtrl = productoCtrl;
@@ -89,12 +98,9 @@ public class MenuPrincipal extends JFrame {
         lblFechaHora.setText(now.format(fmt));
     }
 
-    // ===========================
-    // ====== ABRIR VISTAS =======
-    // ===========================
     private void abrirProductos() {
         try {
-            vistaProducto v = new vistaProducto(productoCtrl);
+            Productview v = new Productview(productoCtrl);
             v.setVisible(true);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
@@ -105,7 +111,7 @@ public class MenuPrincipal extends JFrame {
 
     private void abrirClientes() {
         try {
-            vistaCliente v = new vistaCliente(clienteCtrl);
+            Clientview v = new Clientview(clienteCtrl);
             v.setVisible(true);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
@@ -114,18 +120,17 @@ public class MenuPrincipal extends JFrame {
         }
     }
 
-    // ✅ AHORA: vistaMesas(..., ClienteController, MenuPrincipal)
     private void abrirMesas() {
-        vistaMesas vm = new vistaMesas(
+        viewTables vm = new viewTables(
                 pedidoCtrl,
                 productoCtrl,
                 ventaCtrl,
                 mesaCtrl,
-                clienteCtrl,   // ✅ NUEVO
+                clienteCtrl,
                 this
         );
         vm.setVisible(true);
-        this.setVisible(false); // ✅ para que no queden dos ventanas encima
+        this.setVisible(false);
     }
 
     private void abrirParaLlevar() {
@@ -140,14 +145,13 @@ public class MenuPrincipal extends JFrame {
                 null
         );
 
-        // ✅ AHORA: vistaPedido(..., ClienteController, MenuPrincipal)
-        vistaPedido vp = new vistaPedido(
+        viewOrder vp = new viewOrder(
                 pedido,
                 pedidoCtrl,
                 productoCtrl,
                 ventaCtrl,
                 mesaCtrl,
-                clienteCtrl,   // ✅ NUEVO
+                clienteCtrl,
                 this
         );
         vp.setVisible(true);
@@ -156,7 +160,7 @@ public class MenuPrincipal extends JFrame {
 
     private void abrirFacturacion() {
         try {
-            vistaFactura vf = new vistaFactura(ventaCtrl, mesaCtrl);
+            Invoiceview vf = new Invoiceview(ventaCtrl, mesaCtrl);
             vf.setVisible(true);
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -167,17 +171,14 @@ public class MenuPrincipal extends JFrame {
     }
 
     private void abrirInventario() {
-        vistaInventario vi = new vistaInventario(productoCtrl);
+        Inventoryview vi = new Inventoryview(productoCtrl);
         vi.setVisible(true);
     }
 
     private void abrirReportes() {
-        new vistaReporte().setVisible(true);
+        new viewReport().setVisible(true);
     }
 
-    // ===========================
-    // ====== UI DEL MENÚ ========
-    // ===========================
     private JComponent buildHeader() {
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(new Color(255, 255, 255, 220));

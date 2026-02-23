@@ -16,18 +16,24 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-public class vistaMesas extends JFrame {
+/**
+ * View for managing tables and opening new orders for a selected table.
+ *
+ * <p>
+ * This class contains only UI code (Swing components and event handlers) and
+ * delegates business logic to the corresponding controllers.</p>
+ */
+public class viewTables extends JFrame {
 
     private final PedidoController pedidoCtrl;
     private final ProductoController productoCtrl;
     private final VentaController ventaCtrl;
     private final MesaController mesaCtrl;
-    private final ClienteController clienteCtrl;   // ✅ NUEVO
-    private final MenuPrincipal menuPrincipalRef;
+    private final ClienteController clienteCtrl;
+    private final Menu menuPrincipalRef;
 
     private JPanel gridMesas;
 
-    // ===== Palette =====
     private static final Color PRIMARY = Color.decode("#ee9d2b");
     private static final Color WHITE = Color.WHITE;
     private static final Color SLATE_100 = Color.decode("#f1f5f9");
@@ -38,27 +44,32 @@ public class vistaMesas extends JFrame {
     private static final Color RED_500 = Color.decode("#ef4444");
     private static final Color GREEN_500 = Color.decode("#10b981");
 
-    public vistaMesas(PedidoController pedidoCtrl,
-                      ProductoController productoCtrl,
-                      VentaController ventaCtrl,
-                      MesaController mesaCtrl,
-                      ClienteController clienteCtrl,   // ✅ NUEVO
-                      MenuPrincipal menuPrincipalRef) {
+    /**
+     * Creates the view and initializes its Swing components.
+     */
+
+    public viewTables(PedidoController pedidoCtrl,
+            ProductoController productoCtrl,
+            VentaController ventaCtrl,
+            MesaController mesaCtrl,
+            ClienteController clienteCtrl,
+            Menu menuPrincipalRef) {
 
         this.pedidoCtrl = pedidoCtrl;
         this.productoCtrl = productoCtrl;
         this.ventaCtrl = ventaCtrl;
         this.mesaCtrl = mesaCtrl;
-        this.clienteCtrl = clienteCtrl;            // ✅ NUEVO
+        this.clienteCtrl = clienteCtrl;
         this.menuPrincipalRef = menuPrincipalRef;
 
         initUI();
 
-        // ✅ refresca siempre que la ventana vuelve al frente
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowActivated(WindowEvent e) {
-                if (gridMesas != null) recargarMesas();
+                if (gridMesas != null) {
+                    recargarMesas();
+                }
             }
         });
     }
@@ -124,7 +135,6 @@ public class vistaMesas extends JFrame {
             gridMesas.add(buildMesaCard(i));
         }
 
-        // (opcional) relleno para que el grid 2x3 no se vea raro
         gridMesas.add(Box.createGlue());
 
         gridMesas.revalidate();
@@ -170,7 +180,6 @@ public class vistaMesas extends JFrame {
         card.add(numero, BorderLayout.CENTER);
         card.add(estado, BorderLayout.SOUTH);
 
-        // (opcional) hover simple
         card.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent e) {
@@ -199,7 +208,9 @@ public class vistaMesas extends JFrame {
 
             if (mesaCtrl.estaLibre(numeroMesa)) {
                 int codigo = pedidoCtrl.cantidadPedidos() + 1;
-                while (pedidoCtrl.buscarPedido(codigo) != null) codigo++;
+                while (pedidoCtrl.buscarPedido(codigo) != null) {
+                    codigo++;
+                }
 
                 pedido = pedidoCtrl.crearPedido(codigo, Pedido.MESA, numeroMesa);
                 mesaCtrl.asignarPedido(numeroMesa, pedido);
@@ -214,35 +225,32 @@ public class vistaMesas extends JFrame {
                 }
             }
 
-            // ✅ CAMBIO: ahora vistaPedido requiere clienteCtrl también
-            vistaPedido vp = new vistaPedido(
+            viewOrder vp = new viewOrder(
                     pedido,
                     pedidoCtrl,
                     productoCtrl,
                     ventaCtrl,
                     mesaCtrl,
-                    clienteCtrl,           // ✅ NUEVO
+                    clienteCtrl,
                     menuPrincipalRef
             );
 
-            // ✅ al cerrar el pedido, vuelves al mapa y refresca
             vp.addWindowListener(new WindowAdapter() {
                 @Override
                 public void windowClosed(WindowEvent e) {
-                    vistaMesas.this.setVisible(true);
+                    viewTables.this.setVisible(true);
                     recargarMesas();
                 }
 
                 @Override
                 public void windowClosing(WindowEvent e) {
-                    vistaMesas.this.setVisible(true);
+                    viewTables.this.setVisible(true);
                     recargarMesas();
                 }
             });
 
             vp.setVisible(true);
 
-            // ✅ ocultar esta ventana mientras atiendes el pedido
             setVisible(false);
 
         } catch (Exception ex) {

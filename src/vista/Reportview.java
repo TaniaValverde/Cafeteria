@@ -3,13 +3,24 @@ package vista;
 import javax.swing.*;
 import java.awt.*;
 
-public class vistaReporte extends JFrame {
+/**
+ * Reporting view for generating and displaying sales reports.
+ *
+ * <p>
+ * This class contains only UI code (Swing components and event handlers) and
+ * delegates business logic to the corresponding controllers.</p>
+ */
+public class Reportview extends JFrame {
 
-    private JComboBox<String> comboTipoVenta; // NUEVO
+    private JComboBox<String> comboTipoVenta;
     private JTextField txtMesa;
     private JTextArea areaReporte;
 
-    public vistaReporte() {
+    /**
+     * Creates the view and initializes its Swing components.
+     */
+
+    public Reportview() {
         setTitle("Reportes de Ventas - Cafetería UCR");
         setSize(900, 650);
         setLocationRelativeTo(null);
@@ -61,19 +72,17 @@ public class vistaReporte extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.gridx = 0;
 
-        // Tipo de venta
         gbc.gridy = 0;
         filtros.add(new JLabel("Tipo de Venta:"), gbc);
 
         gbc.gridy++;
         comboTipoVenta = new JComboBox<>(new String[]{
-                "Todas",
-                "En mesa",
-                "Para llevar"
+            "Todas",
+            "En mesa",
+            "Para llevar"
         });
         filtros.add(comboTipoVenta, gbc);
 
-        // Número de mesa
         gbc.gridy++;
         filtros.add(new JLabel("Número de Mesa:"), gbc);
 
@@ -81,12 +90,13 @@ public class vistaReporte extends JFrame {
         txtMesa = new JTextField();
         filtros.add(txtMesa, gbc);
 
-        // UX: si elige "Para llevar", no tiene sentido digitar mesa
         comboTipoVenta.addActionListener(e -> {
             String tipoVenta = comboTipoVenta.getSelectedItem().toString();
             boolean habilitarMesa = !tipoVenta.equals("Para llevar");
             txtMesa.setEnabled(habilitarMesa);
-            if (!habilitarMesa) txtMesa.setText("");
+            if (!habilitarMesa) {
+                txtMesa.setText("");
+            }
         });
 
         return filtros;
@@ -99,16 +109,16 @@ public class vistaReporte extends JFrame {
         areaReporte.setMargin(new Insets(10, 10, 10, 10));
 
         areaReporte.setText(
-                "============================================================\n" +
-                "        HISTORIAL DE VENTAS - CAFETERÍA UCR\n" +
-                "                  SEDE DEL SUR\n" +
-                "============================================================\n\n" +
-                "FECHA REPORTE: --/--/----\n\n" +
-                "ID VENTA   FECHA     HORA   TIPO       MESA   MONTO TOTAL\n" +
-                "------------------------------------------------------------\n\n" +
-                "RESUMEN DEL DÍA:\n" +
-                "TOTAL VENTAS:    0\n" +
-                "TOTAL RECAUDADO: ₡ 0.00\n"
+                "============================================================\n"
+                + "        HISTORIAL DE VENTAS - CAFETERÍA UCR\n"
+                + "                  SEDE DEL SUR\n"
+                + "============================================================\n\n"
+                + "FECHA REPORTE: --/--/----\n\n"
+                + "ID VENTA   FECHA     HORA   TIPO       MESA   MONTO TOTAL\n"
+                + "------------------------------------------------------------\n\n"
+                + "RESUMEN DEL DÍA:\n"
+                + "TOTAL VENTAS:    0\n"
+                + "TOTAL RECAUDADO: ₡ 0.00\n"
         );
 
         JScrollPane scroll = new JScrollPane(areaReporte);
@@ -149,7 +159,7 @@ public class vistaReporte extends JFrame {
             Persistencia.VentaDAO ventaDAO = new Persistencia.VentaDAO();
             java.util.List<Model.Venta> ventas = ventaDAO.cargar();
 
-            String tipoVenta = comboTipoVenta.getSelectedItem().toString();     // "Todas" / "En mesa" / "Para llevar"
+            String tipoVenta = comboTipoVenta.getSelectedItem().toString();
             String mesaTxt = txtMesa.getText().trim();
 
             Integer mesaFiltro = null;
@@ -186,24 +196,26 @@ public class vistaReporte extends JFrame {
             int totalLlevar = 0;
             double recLlevar = 0;
 
-            // ordena por fecha ascendente (opcional)
             ventas.sort(java.util.Comparator.comparing(Model.Venta::getFechaHora));
 
             for (Model.Venta v : ventas) {
                 boolean esLlevar = v.esParaLlevar();
                 String tipo = esLlevar ? "LLEVAR" : "MESA";
 
-                // Filtro por tipo de venta
-                if (tipoVenta.equals("En mesa") && esLlevar) continue;
-                if (tipoVenta.equals("Para llevar") && !esLlevar) continue;
+                if (tipoVenta.equals("En mesa") && esLlevar) {
+                    continue;
+                }
+                if (tipoVenta.equals("Para llevar") && !esLlevar) {
+                    continue;
+                }
 
-                // Filtro por número de mesa (solo aplica a ventas en mesa)
                 if (mesaFiltro != null) {
                     if (esLlevar) {
-                        // si están filtrando por mesa, no tiene sentido mostrar para llevar
                         continue;
                     }
-                    if (v.getMesaNumero() != mesaFiltro) continue;
+                    if (v.getMesaNumero() != mesaFiltro) {
+                        continue;
+                    }
                 }
 
                 totalVentas++;
@@ -229,7 +241,6 @@ public class vistaReporte extends JFrame {
                         estado.toUpperCase(),
                         v.getTotal()));
 
-                // Mostrar método de pago si existe
                 if (v.getMetodoPago() != null && !v.getMetodoPago().isBlank()) {
                     sb.append(String.format("   Método de pago: %s%n", v.getMetodoPago()));
                 }
@@ -257,7 +268,9 @@ public class vistaReporte extends JFrame {
     }
 
     private String formatearFechaHora(java.time.LocalDateTime dt) {
-        if (dt == null) return "N/A";
+        if (dt == null) {
+            return "N/A";
+        }
         java.time.format.DateTimeFormatter f = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
         return dt.format(f);
     }

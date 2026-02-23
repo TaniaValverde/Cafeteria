@@ -9,7 +9,7 @@ import java.io.IOException;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
-import vista.MenuPrincipal;
+import vista.Menu;
 
 public class App {
 
@@ -37,7 +37,7 @@ public class App {
 
             // ===== Launch Main Menu =====
             SwingUtilities.invokeLater(() -> {
-                MenuPrincipal menu = new MenuPrincipal(
+                Menu menu = new Menu(
                         pedidoCtrl,
                         productoCtrl,
                         clienteCtrl,

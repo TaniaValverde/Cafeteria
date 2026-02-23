@@ -5,12 +5,23 @@ import util.ImpresionUtil;
 import javax.swing.*;
 import java.awt.*;
 
-public class vistaImpresionFactura extends JDialog {
+/**
+ * Printable invoice view intended for basic ticket-style printing.
+ *
+ * <p>
+ * This class contains only UI code (Swing components and event handlers) and
+ * delegates business logic to the corresponding controllers.</p>
+ */
+public class InvoiceImpressionview extends JDialog {
 
     private final JTextArea area;
     private boolean impresionConfirmada = false;
 
-    public vistaImpresionFactura(Frame owner, String textoFactura) {
+    /**
+     * Creates the view and initializes its Swing components.
+     */
+
+    public InvoiceImpressionview(Frame owner, String textoFactura) {
         super(owner, "Impresión de factura", true);
 
         area = new JTextArea(textoFactura);
@@ -37,7 +48,9 @@ public class vistaImpresionFactura extends JDialog {
         setLocationRelativeTo(owner);
     }
 
-    /** true si imprimió (no canceló). */
+    /**
+     * true si imprimió (no canceló).
+     */
     public boolean isImpresionConfirmada() {
         return impresionConfirmada;
     }
@@ -47,7 +60,6 @@ public class vistaImpresionFactura extends JDialog {
             boolean ok = ImpresionUtil.imprimirTexto(area, this);
 
             if (!ok) {
-                // Usuario canceló impresión
                 impresionConfirmada = false;
                 JOptionPane.showMessageDialog(this, "Impresión cancelada. No se realizará el pago.");
                 dispose();

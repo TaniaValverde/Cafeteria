@@ -18,15 +18,20 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 
-// ✅ Para forzar que el botón respete colores (Nimbus/Windows LAF)
 import javax.swing.plaf.basic.BasicButtonUI;
 
-public class vistaProducto extends JFrame {
+/**
+ * Product management view for creating, editing, deleting, and listing
+ * products.
+ *
+ * <p>
+ * This class contains only UI code (Swing components and event handlers) and
+ * delegates business logic to the corresponding controllers.</p>
+ */
+public class Productview extends JFrame {
 
-    // ===== Controller =====
     private final ProductoController productoController;
 
-    // ===== UI Fields =====
     private JTextField txtCodigo;
     private JTextField txtNombre;
     private JComboBox<String> cmbCategoria;
@@ -41,28 +46,29 @@ public class vistaProducto extends JFrame {
     private JTable tabla;
     private DefaultTableModel modelo;
 
-    // Footer labels
     private JLabel lblRegistros;
     private JLabel lblUltimaMod;
     private JLabel lblEstado;
 
-    // ===== Palette (existing) =====
-    private static final Color PRIMARY = new Color(0x3C, 0xE6, 0x19);      // #3ce619
-    private static final Color BG_LIGHT = new Color(0xF6, 0xF8, 0xF6);     // #f6f8f6
+    private static final Color PRIMARY = new Color(0x3C, 0xE6, 0x19);
+    private static final Color BG_LIGHT = new Color(0xF6, 0xF8, 0xF6);
     private static final Color CARD_BG = new Color(0xF8, 0xFA, 0xF8);
     private static final Color BORDER = new Color(0xE5, 0xE7, 0xEB);
-    private static final Color TEXT_DARK = new Color(0x0F, 0x17, 0x2A);    // slate-900-ish
-    private static final Color TEXT_MID = new Color(0x64, 0x74, 0x8B);     // slate-500-ish
-    private static final Color DARK_BTN = new Color(0x1F, 0x29, 0x37);     // slate-800-ish
-    private static final Color DANGER = new Color(0xDC, 0x26, 0x26);       // red-600
+    private static final Color TEXT_DARK = new Color(0x0F, 0x17, 0x2A);
+    private static final Color TEXT_MID = new Color(0x64, 0x74, 0x8B);
+    private static final Color DARK_BTN = new Color(0x1F, 0x29, 0x37);
+    private static final Color DANGER = new Color(0xDC, 0x26, 0x26);
 
-    // ===== Vista Pedido palette =====
-    private static final Color ORANGE_PRIMARY = new Color(230, 149, 36);   // naranja principal
-    private static final Color NAVY_DARK = new Color(10, 25, 47);          // azul oscuro panel
-    private static final Color RED_CANCEL = new Color(220, 53, 69);        // rojo cancelar
-    private static final Color GRAY_SOFT_BG = new Color(240, 240, 240);    // secundario gris
+    private static final Color ORANGE_PRIMARY = new Color(230, 149, 36);
+    private static final Color NAVY_DARK = new Color(10, 25, 47);
+    private static final Color RED_CANCEL = new Color(220, 53, 69);
+    private static final Color GRAY_SOFT_BG = new Color(240, 240, 240);
 
-    public vistaProducto(ProductoController productoController) {
+    /**
+     * Creates the view and initializes its Swing components.
+     */
+
+    public Productview(ProductoController productoController) {
         this.productoController = productoController;
 
         setTitle("Gestión de Productos");
@@ -73,7 +79,6 @@ public class vistaProducto extends JFrame {
 
         setContentPane(buildRoot());
 
-        // ✅ Aplicar filtros de entrada una vez creados los campos
         applyInputFilters();
 
         wireEvents();
@@ -81,13 +86,9 @@ public class vistaProducto extends JFrame {
         recargarTabla();
         actualizarFooter();
 
-        // ✅ En modo inicial (agregar): stock sí se puede escribir
         txtStock.setEnabled(true);
     }
 
-    // =========================
-    // ===== BUILD ROOT UI =====
-    // =========================
     private JComponent buildRoot() {
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(BG_LIGHT);
@@ -116,7 +117,6 @@ public class vistaProducto extends JFrame {
                 new EmptyBorder(18, 18, 18, 18)
         ));
 
-        // Left: icon + titles
         JPanel left = new JPanel();
         left.setOpaque(false);
         left.setLayout(new BoxLayout(left, BoxLayout.X_AXIS));
@@ -153,7 +153,6 @@ public class vistaProducto extends JFrame {
 
         left.add(titles);
 
-        // Right: status pill
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         right.setOpaque(false);
 
@@ -217,24 +216,20 @@ public class vistaProducto extends JFrame {
         c.fill = GridBagConstraints.HORIZONTAL;
         c.gridy = 0;
 
-        // Código
         c.gridx = 0;
         c.weightx = 0.9;
         grid.add(fieldGroup("Código (txtCodigo)", txtCodigo = input("Solo números. Ej: 1001")), c);
 
-        // Nombre
         c.gridx = 1;
         c.weightx = 2.5;
         grid.add(fieldGroup("Nombre (txtNombre)", txtNombre = input("Café Americano Grande")), c);
 
-        // Categoría
         c.gridx = 2;
         c.weightx = 1.2;
         cmbCategoria = new JComboBox<>(new String[]{"BEBIDA", "COMIDA"});
         styleCombo(cmbCategoria);
         grid.add(fieldGroup("Categoría (cmbCategoria)", cmbCategoria), c);
 
-        // Precio + Stock
         c.gridx = 3;
         c.weightx = 1.8;
         JPanel precioStock = new JPanel(new GridLayout(1, 2, 10, 0));
@@ -260,7 +255,6 @@ public class vistaProducto extends JFrame {
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         left.setOpaque(false);
 
-        // ✅ Botones con colores tipo Vista Pedido
         btnAgregar = primaryButton("➕ Agregar");
         btnModificar = darkButton("✏ Modificar");
         btnEliminar = dangerButton("🗑 Eliminar");
@@ -269,7 +263,6 @@ public class vistaProducto extends JFrame {
         left.add(btnModificar);
         left.add(btnEliminar);
 
-        // ✅ Eliminados: Limpiar / Recargar (se deja el panel derecho vacío)
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         right.setOpaque(false);
 
@@ -286,7 +279,6 @@ public class vistaProducto extends JFrame {
                 new EmptyBorder(0, 0, 0, 0)
         ));
 
-        // ✅ Modelo mantiene Stock, pero NO se verá en la tabla
         modelo = new DefaultTableModel(new String[]{"Código", "Nombre del Producto", "Categoría", "Precio", "Stock"}, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
@@ -302,12 +294,10 @@ public class vistaProducto extends JFrame {
         tabla.getTableHeader().setBackground(new Color(0xF8, 0xFA, 0xFC));
         tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        // Align numeric to right (precio)
         DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
         rightRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
         tabla.getColumnModel().getColumn(3).setCellRenderer(rightRenderer);
 
-        // ✅ OCULTAR columna Stock en la vista (pero queda en el modelo)
         tabla.removeColumn(tabla.getColumnModel().getColumn(4));
 
         JScrollPane sp = new JScrollPane(tabla);
@@ -354,30 +344,20 @@ public class vistaProducto extends JFrame {
         return footer;
     }
 
-    // =========================
-    // ====== INPUT FILTERS =====
-    // =========================
     private void applyInputFilters() {
-        // Código: solo números
         ((AbstractDocument) txtCodigo.getDocument())
                 .setDocumentFilter(new RegexFilter("\\d*"));
 
-        // Stock: solo números
         ((AbstractDocument) txtStock.getDocument())
                 .setDocumentFilter(new RegexFilter("\\d*"));
 
-        // Precio: números con opcional decimal ('.' o ',') y hasta 2 decimales
         ((AbstractDocument) txtPrecio.getDocument())
                 .setDocumentFilter(new RegexFilter("\\d*([\\.,]\\d{0,2})?"));
 
-        // Nombre: solo letras y espacios (incluye tildes/ñ). Permite vacío.
         ((AbstractDocument) txtNombre.getDocument())
                 .setDocumentFilter(new RegexFilter("[\\p{L} ]*"));
     }
 
-    // =========================
-    // ====== WIRE EVENTS ======
-    // =========================
     private void wireEvents() {
         btnMenu.addActionListener(e -> volverAlMenu());
 
@@ -392,9 +372,6 @@ public class vistaProducto extends JFrame {
         });
     }
 
-    // =========================
-    // ===== CRUD ACTIONS ======
-    // =========================
     private void onAgregar() {
         try {
             DatosForm d = leerFormulario(true);
@@ -427,7 +404,6 @@ public class vistaProducto extends JFrame {
         try {
             DatosForm d = leerFormulario(false);
 
-            // ✅ Mantener stock actual (aquí NO se edita stock)
             int stockActual = productoController.buscarPorCodigo(d.codigo).getStock();
 
             productoController.modificar(d.codigo, d.categoria, d.precio, stockActual);
@@ -459,7 +435,6 @@ public class vistaProducto extends JFrame {
             return;
         }
 
-        // OJO: la tabla oculta Stock, pero el modelo sigue igual
         String codigo = String.valueOf(modelo.getValueAt(row, 0));
 
         int op = JOptionPane.showConfirmDialog(this,
@@ -467,7 +442,9 @@ public class vistaProducto extends JFrame {
                 "Confirmar",
                 JOptionPane.YES_NO_OPTION);
 
-        if (op != JOptionPane.YES_OPTION) return;
+        if (op != JOptionPane.YES_OPTION) {
+            return;
+        }
 
         try {
             productoController.eliminar(codigo);
@@ -484,20 +461,17 @@ public class vistaProducto extends JFrame {
         }
     }
 
-    // =========================
-    // ===== TABLE HELPERS =====
-    // =========================
     private void recargarTabla() {
         modelo.setRowCount(0);
 
         List<Producto> lista = productoController.listar();
         for (Producto p : lista) {
             modelo.addRow(new Object[]{
-                    p.getCodigo(),
-                    p.getNombre(),
-                    p.getCategoria(),
-                    p.getPrecio(),
-                    p.getStock() // ✅ se guarda en el modelo, aunque no se vea
+                p.getCodigo(),
+                p.getNombre(),
+                p.getCategoria(),
+                p.getPrecio(),
+                p.getStock()
             });
         }
 
@@ -506,21 +480,20 @@ public class vistaProducto extends JFrame {
 
     private void cargarSeleccionEnFormulario() {
         int row = tabla.getSelectedRow();
-        if (row < 0) return;
+        if (row < 0) {
+            return;
+        }
 
         txtCodigo.setText(String.valueOf(modelo.getValueAt(row, 0)));
         txtNombre.setText(String.valueOf(modelo.getValueAt(row, 1)));
         cmbCategoria.setSelectedItem(String.valueOf(modelo.getValueAt(row, 2)));
         txtPrecio.setText(String.valueOf(modelo.getValueAt(row, 3)));
 
-        // ✅ NO mostrar stock al seleccionar (solo inventario)
         txtStock.setText("");
 
-        // Código y nombre readonly cuando ya existe
         txtCodigo.setEnabled(false);
         txtNombre.setEnabled(false);
 
-        // ✅ Stock NO editable en modificar
         txtStock.setEnabled(false);
     }
 
@@ -534,15 +507,11 @@ public class vistaProducto extends JFrame {
         txtCodigo.setEnabled(true);
         txtNombre.setEnabled(true);
 
-        // ✅ En modo agregar sí se permite escribir stock
         txtStock.setEnabled(true);
 
         tabla.clearSelection();
     }
 
-    // =========================
-    // ===== FORM PARSING ======
-    // =========================
     private DatosForm leerFormulario(boolean esAgregar) {
         String codigo = txtCodigo.getText().trim();
         String nombre = txtNombre.getText().trim();
@@ -551,8 +520,12 @@ public class vistaProducto extends JFrame {
         String sPrecio = txtPrecio.getText().trim().replace(',', '.');
         String sStock = txtStock.getText().trim();
 
-        if (codigo.isEmpty()) throw new IllegalArgumentException("El código es obligatorio.");
-        if (esAgregar && nombre.isEmpty()) throw new IllegalArgumentException("El nombre es obligatorio.");
+        if (codigo.isEmpty()) {
+            throw new IllegalArgumentException("El código es obligatorio.");
+        }
+        if (esAgregar && nombre.isEmpty()) {
+            throw new IllegalArgumentException("El nombre es obligatorio.");
+        }
 
         double precio;
         try {
@@ -560,17 +533,20 @@ public class vistaProducto extends JFrame {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Precio inválido. Ej: 2.50");
         }
-        if (precio < 0) throw new IllegalArgumentException("El precio no puede ser negativo.");
+        if (precio < 0) {
+            throw new IllegalArgumentException("El precio no puede ser negativo.");
+        }
 
         int stock = 0;
         if (esAgregar) {
-            // ✅ Solo al agregar se lee y valida el stock
             try {
                 stock = Integer.parseInt(sStock);
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Stock inválido. Ej: 50");
             }
-            if (stock < 0) throw new IllegalArgumentException("El stock no puede ser negativo.");
+            if (stock < 0) {
+                throw new IllegalArgumentException("El stock no puede ser negativo.");
+            }
         }
 
         return new DatosForm(codigo, nombre, categoria, precio, stock);
@@ -591,9 +567,6 @@ public class vistaProducto extends JFrame {
         JOptionPane.showMessageDialog(this, msg, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    // =========================
-    // ===== SMALL UI UTILS =====
-    // =========================
     private JTextField input(String placeholder) {
         JTextField t = new JTextField();
         t.setFont(new Font("SansSerif", Font.PLAIN, 14));
@@ -639,10 +612,6 @@ public class vistaProducto extends JFrame {
         return g;
     }
 
-    // =========================
-    // ===== BUTTON STYLES =====
-    // =========================
-    // ✅ Fuerza el pintado para que se vean igual en Nimbus/Windows
     private void forceButtonPaint(JButton b) {
         b.setUI(new BasicButtonUI());
         b.setOpaque(true);
@@ -652,7 +621,6 @@ public class vistaProducto extends JFrame {
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
-    // Vista Pedido: naranja sólido + texto blanco
     private JButton primaryButton(String text) {
         JButton b = new JButton(text);
         b.setFont(new Font("SansSerif", Font.BOLD, 14));
@@ -666,7 +634,6 @@ public class vistaProducto extends JFrame {
         return b;
     }
 
-    // Vista Pedido: azul oscuro + texto blanco
     private JButton darkButton(String text) {
         JButton b = new JButton(text);
         b.setFont(new Font("SansSerif", Font.BOLD, 14));
@@ -680,7 +647,6 @@ public class vistaProducto extends JFrame {
         return b;
     }
 
-    // Vista Pedido (Cancelar): fondo azul oscuro + borde rojo + texto rojo
     private JButton dangerButton(String text) {
         JButton b = new JButton(text);
         b.setFont(new Font("SansSerif", Font.BOLD, 14));
@@ -694,7 +660,6 @@ public class vistaProducto extends JFrame {
         return b;
     }
 
-    // Secundario (gris claro) - usado para Menú Principal
     private JButton ghostButton(String text) {
         JButton b = new JButton(text);
         b.setFont(new Font("SansSerif", Font.BOLD, 14));
@@ -708,8 +673,8 @@ public class vistaProducto extends JFrame {
         return b;
     }
 
-    // ===== small record holder =====
     private static class DatosForm {
+
         final String codigo;
         final String nombre;
         final String categoria;
@@ -752,7 +717,9 @@ public class vistaProducto extends JFrame {
         @Override
         public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr)
                 throws BadLocationException {
-            if (string == null) return;
+            if (string == null) {
+                return;
+            }
 
             String current = fb.getDocument().getText(0, fb.getDocument().getLength());
             String next = current.substring(0, offset) + string + current.substring(offset);
@@ -764,7 +731,9 @@ public class vistaProducto extends JFrame {
         @Override
         public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
                 throws BadLocationException {
-            if (text == null) text = "";
+            if (text == null) {
+                text = "";
+            }
 
             String current = fb.getDocument().getText(0, fb.getDocument().getLength());
             String next = current.substring(0, offset) + text + current.substring(offset + length);

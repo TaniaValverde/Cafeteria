@@ -12,7 +12,15 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 
-public class vistaInventario extends JFrame {
+/**
+ * Inventory management view for listing products and updating stock
+ * information.
+ *
+ * <p>
+ * This class contains only UI code (Swing components and event handlers) and
+ * delegates business logic to the corresponding controllers.</p>
+ */
+public class Inventoryview extends JFrame {
 
     private final ProductoController productoController;
 
@@ -25,7 +33,11 @@ public class vistaInventario extends JFrame {
     private final JButton btnSumar;
     private final JButton btnRestar;
 
-    public vistaInventario(ProductoController productoController) {
+    /**
+     * Creates the view and initializes its Swing components.
+     */
+
+    public Inventoryview(ProductoController productoController) {
         this.productoController = productoController;
 
         setTitle("Inventario - Control de Stock");
@@ -35,7 +47,6 @@ public class vistaInventario extends JFrame {
 
         Font f = new Font("SansSerif", Font.PLAIN, 14);
 
-        // ===== Top Bar =====
         JPanel top = new JPanel(new BorderLayout(10, 10));
         top.setBorder(new EmptyBorder(12, 12, 12, 12));
 
@@ -68,12 +79,10 @@ public class vistaInventario extends JFrame {
         top.add(titulo, BorderLayout.WEST);
         top.add(buscador, BorderLayout.EAST);
 
-        // ===== Tabla =====
         String[] cols = {"Código", "Nombre", "Categoría", "Precio", "Stock"};
         modelo = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
-                // Solo Stock editable
                 return col == 4;
             }
         };
@@ -86,7 +95,6 @@ public class vistaInventario extends JFrame {
 
         JScrollPane scroll = new JScrollPane(tabla);
 
-        // ===== Bottom Bar =====
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         bottom.setBorder(new EmptyBorder(8, 12, 12, 12));
 
@@ -116,7 +124,6 @@ public class vistaInventario extends JFrame {
         bottom.add(btnGuardar);
         bottom.add(btnMenu);
 
-        // ===== Layout =====
         JPanel root = new JPanel(new BorderLayout());
         root.add(top, BorderLayout.NORTH);
         root.add(scroll, BorderLayout.CENTER);
@@ -124,7 +131,6 @@ public class vistaInventario extends JFrame {
 
         setContentPane(root);
 
-        // Inicial
         cargarTabla();
     }
 
@@ -134,11 +140,11 @@ public class vistaInventario extends JFrame {
         List<Producto> productos = productoController.listar();
         for (Producto p : productos) {
             Object[] row = {
-                    p.getCodigo(),
-                    p.getNombre(),
-                    p.getCategoria(),
-                    p.getPrecio(),
-                    p.getStock()
+                p.getCodigo(),
+                p.getNombre(),
+                p.getCategoria(),
+                p.getPrecio(),
+                p.getStock()
             };
             modelo.addRow(row);
         }
@@ -161,11 +167,11 @@ public class vistaInventario extends JFrame {
 
             if (cod.contains(q) || nom.contains(q)) {
                 Object[] row = {
-                        p.getCodigo(),
-                        p.getNombre(),
-                        p.getCategoria(),
-                        p.getPrecio(),
-                        p.getStock()
+                    p.getCodigo(),
+                    p.getNombre(),
+                    p.getCategoria(),
+                    p.getPrecio(),
+                    p.getStock()
                 };
                 modelo.addRow(row);
             }
@@ -224,7 +230,6 @@ public class vistaInventario extends JFrame {
                     throw new IllegalArgumentException("Stock negativo en producto " + codigo);
                 }
 
-                // ✅ SOLO actualiza stock (no toca categoría/precio)
                 productoController.actualizarStock(codigo, stock);
             }
 
