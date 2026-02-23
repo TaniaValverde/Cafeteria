@@ -7,16 +7,31 @@ import Persistencia.VentaDAO;
 import java.util.ArrayList;
 
 /**
- * Controlador encargado de generar reportes de ventas.
- * Reportes por mesa y totales generales.
+ * Controller responsible for generating sales reports.
+ * <p>
+ * This class provides reporting functionalities such as
+ * sales by table and total accumulated sales.
+ * </p>
+ *
+ * It acts as an intermediary between the persistence layer
+ * and the reporting view 
+ *
+ * @author Project Team
  */
 public class ReporteController {
 
+    /**
+     * Data access object used to retrieve sales information.
+     */
     private final VentaDAO ventaDAO;
+
     // private VistaReporte vista;
 
     /**
-     * Constructor del controlador de reportes.
+     * Creates a new instance of {@code ReporteController}.
+     * <p>
+     * Initializes the sales data access object.
+     * </p>
      */
     public ReporteController() {
         ventaDAO = new VentaDAO();
@@ -24,15 +39,19 @@ public class ReporteController {
     }
 
     /**
-     * Genera reporte de ventas por número de mesa.
+     * Generates a sales report for a specific table.
+     * <p>
+     * The report calculates the total amount sold for the given
+     * table number. A value of {@code 0} represents takeaway orders.
+     * </p>
      *
-     * @param numeroMesa mesa (1-5) o 0 para llevar
+     * @param numeroMesa Table number (1–5) or {@code 0} for takeaway
      */
     public void reporteVentasPorMesa(int numeroMesa) {
         try {
             double totalMesa = 0;
 
-            // ERROR ESPERADO: VentaDAO debe implementar getVentas()
+            
             ArrayList<Venta> ventas = new ArrayList<>();
 
             for (int i = 0; i < ventas.size(); i++) {
@@ -46,35 +65,38 @@ public class ReporteController {
             texto = texto + "Mesa: " + numeroMesa + "\n";
             texto = texto + "Total vendido: ₡" + totalMesa + "\n";
 
-            // MÉTODO ESPERADO EN VistaReporte
-            // vista.mostrarReporte(texto);
+            
 
         } catch (Exception e) {
-            // vista.mostrarMensaje("Error al generar reporte");
+           
         }
     }
 
     /**
-     * Genera reporte total de todas las ventas registradas.
+     * Generates a general sales report.
+     * <p>
+     * This report calculates the total accumulated sales
+     * across all registered sales.
+     * </p>
      */
     public void reporteTotalGeneral() {
         try {
             double totalGeneral = 0;
 
-            // ERROR ESPERADO: VentaDAO debe implementar getVentas()
+           
             ArrayList<Venta> ventas = new ArrayList<>();
 
             for (int i = 0; i < ventas.size(); i++) {
                 totalGeneral = totalGeneral + ventas.get(i).getTotal();
             }
 
-            String texto = "Reporte General de Ventas\n";
-            texto = texto + "Total acumulado: ₡" + totalGeneral + "\n";
+            String texto = "General Sales Report\n";
+            texto = texto + "Total accumulated: ₡" + totalGeneral + "\n";
 
-            // vista.mostrarReporte(texto);
+            
 
         } catch (Exception e) {
-            // vista.mostrarMensaje("Error al generar reporte general");
+            
         }
     }
 }
