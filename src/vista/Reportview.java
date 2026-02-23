@@ -156,8 +156,8 @@ public class Reportview extends JFrame {
 
     private void generarReporte() {
         try {
-            Persistencia.VentaDAO ventaDAO = new Persistencia.VentaDAO();
-            java.util.List<Model.Venta> ventas = ventaDAO.cargar();
+            Persistencia.SaleDAO ventaDAO = new Persistencia.SaleDAO();
+            java.util.List<Model.Sale> ventas = ventaDAO.cargar();
 
             String tipoVenta = comboTipoVenta.getSelectedItem().toString();
             String mesaTxt = txtMesa.getText().trim();
@@ -196,9 +196,9 @@ public class Reportview extends JFrame {
             int totalLlevar = 0;
             double recLlevar = 0;
 
-            ventas.sort(java.util.Comparator.comparing(Model.Venta::getFechaHora));
+            ventas.sort(java.util.Comparator.comparing(Model.Sale::getFechaHora));
 
-            for (Model.Venta v : ventas) {
+            for (Model.Sale v : ventas) {
                 boolean esLlevar = v.esParaLlevar();
                 String tipo = esLlevar ? "LLEVAR" : "MESA";
 

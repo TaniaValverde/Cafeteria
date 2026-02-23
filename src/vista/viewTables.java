@@ -1,12 +1,12 @@
 package vista;
 
-import Controlador.ClienteController;
-import Controlador.MesaController;
-import Controlador.PedidoController;
-import Controlador.ProductoController;
-import Controlador.VentaController;
-import Model.Mesa;
-import Model.Pedido;
+import Controlador.ClientController;
+import Controlador.TableController;
+import Controlador.OrderController;
+import Controlador.ProductController;
+import Controlador.SaleController;
+import Model.Table;
+import Model.Order;
 
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
@@ -25,11 +25,11 @@ import java.awt.event.WindowEvent;
  */
 public class viewTables extends JFrame {
 
-    private final PedidoController pedidoCtrl;
-    private final ProductoController productoCtrl;
-    private final VentaController ventaCtrl;
-    private final MesaController mesaCtrl;
-    private final ClienteController clienteCtrl;
+    private final OrderController pedidoCtrl;
+    private final ProductController productoCtrl;
+    private final SaleController ventaCtrl;
+    private final TableController mesaCtrl;
+    private final ClientController clienteCtrl;
     private final Menu menuPrincipalRef;
 
     private JPanel gridMesas;
@@ -48,11 +48,11 @@ public class viewTables extends JFrame {
      * Creates the view and initializes its Swing components.
      */
 
-    public viewTables(PedidoController pedidoCtrl,
-            ProductoController productoCtrl,
-            VentaController ventaCtrl,
-            MesaController mesaCtrl,
-            ClienteController clienteCtrl,
+    public viewTables(OrderController pedidoCtrl,
+            ProductController productoCtrl,
+            SaleController ventaCtrl,
+            TableController mesaCtrl,
+            ClientController clienteCtrl,
             Menu menuPrincipalRef) {
 
         this.pedidoCtrl = pedidoCtrl;
@@ -161,8 +161,8 @@ public class viewTables extends JFrame {
             textoEstado = "LIBRE";
             colorEstado = GREEN_500;
         } else {
-            Mesa mesa = mesaCtrl.obtenerMesa(numeroMesa);
-            Pedido p = mesa.getPedidoActual();
+            Table mesa = mesaCtrl.obtenerMesa(numeroMesa);
+            Order p = mesa.getPedidoActual();
 
             if (p != null) {
                 textoEstado = "OCUPADA • ORDEN #" + p.getCodigoPedido();
@@ -204,7 +204,7 @@ public class viewTables extends JFrame {
 
     private void abrirPedido(int numeroMesa) {
         try {
-            Pedido pedido;
+            Order pedido;
 
             if (mesaCtrl.estaLibre(numeroMesa)) {
                 int codigo = pedidoCtrl.cantidadPedidos() + 1;
@@ -212,11 +212,11 @@ public class viewTables extends JFrame {
                     codigo++;
                 }
 
-                pedido = pedidoCtrl.crearPedido(codigo, Pedido.MESA, numeroMesa);
+                pedido = pedidoCtrl.crearPedido(codigo, Order.MESA, numeroMesa);
                 mesaCtrl.asignarPedido(numeroMesa, pedido);
 
             } else {
-                Mesa mesa = mesaCtrl.obtenerMesa(numeroMesa);
+                Table mesa = mesaCtrl.obtenerMesa(numeroMesa);
                 pedido = mesa.getPedidoActual();
 
                 if (pedido == null) {

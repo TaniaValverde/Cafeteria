@@ -1,15 +1,15 @@
 package vista;
 
-import Controlador.ClienteController;
-import Controlador.MesaController;
-import Controlador.PedidoController;
-import Controlador.ProductoController;
-import Controlador.VentaController;
-import Model.Cliente;
-import Model.Mesa;
-import Model.Pedido;
-import Model.Producto;
-import Model.Venta;
+import Controlador.ClientController;
+import Controlador.TableController;
+import Controlador.OrderController;
+import Controlador.ProductController;
+import Controlador.SaleController;
+import Model.Client;
+import Model.Table;
+import Model.Order;
+import Model.Product;
+import Model.Sale;
 
 import javax.swing.*;
 import javax.swing.border.*;
@@ -30,15 +30,15 @@ import java.util.Locale;
  */
 public class viewOrder extends JFrame {
 
-    private final Pedido pedido;
-    private final PedidoController pedidoCtrl;
-    private final ProductoController productoCtrl;
-    private final VentaController ventaCtrl;
-    private final MesaController mesaCtrl;
-    private final ClienteController clienteCtrl;
+    private final Order pedido;
+    private final OrderController pedidoCtrl;
+    private final ProductController productoCtrl;
+    private final SaleController ventaCtrl;
+    private final TableController mesaCtrl;
+    private final ClientController clienteCtrl;
     private final Menu menuPrincipalRef;
 
-    private Cliente clienteSeleccionado = null;
+    private Client clienteSeleccionado = null;
     private JLabel lblCliente;
 
     private static final Color BG = new Color(0xF5, 0xF7, 0xFA);
@@ -67,10 +67,10 @@ public class viewOrder extends JFrame {
     }
 
     private JTextField txtBuscar;
-    private DefaultListModel<Producto> productosModel;
-    private JList<Producto> listaProductos;
+    private DefaultListModel<Product> productosModel;
+    private JList<Product> listaProductos;
 
-    private Producto productoSeleccionado;
+    private Product productoSeleccionado;
     private int cantidadSeleccionada = 1;
 
     private JLabel lblProdNombre;
@@ -87,12 +87,12 @@ public class viewOrder extends JFrame {
      * Creates the view and initializes its Swing components.
      */
 
-    public viewOrder(Pedido pedido,
-            PedidoController pedidoCtrl,
-            ProductoController productoCtrl,
-            VentaController ventaCtrl,
-            MesaController mesaCtrl,
-            ClienteController clienteCtrl,
+    public viewOrder(Order pedido,
+            OrderController pedidoCtrl,
+            ProductController productoCtrl,
+            SaleController ventaCtrl,
+            TableController mesaCtrl,
+            ClientController clienteCtrl,
             Menu menuPrincipalRef) {
 
         this.pedido = pedido;
@@ -152,7 +152,7 @@ public class viewOrder extends JFrame {
         left.add(order);
         left.add(Box.createRigidArea(new Dimension(12, 0)));
 
-        String pillTxt = pedido.getTipoPedido().equals(Pedido.MESA)
+        String pillTxt = pedido.getTipoPedido().equals(Order.MESA)
                 ? ("MESA " + pedido.getNumeroMesa())
                 : "PARA LLEVAR";
 
@@ -187,7 +187,7 @@ public class viewOrder extends JFrame {
         Dialogview dlg = new Dialogview(this, clienteCtrl);
         dlg.setVisible(true);
 
-        Cliente c = dlg.getClienteSeleccionado();
+        Client c = dlg.getClienteSeleccionado();
         if (c != null) {
             clienteSeleccionado = c;
             lblCliente.setText("Cliente: " + c.getNombre());
@@ -517,7 +517,7 @@ public class viewOrder extends JFrame {
         return b;
     }
 
-    private JComponent summaryItemEditable(Producto p, int cant) {
+    private JComponent summaryItemEditable(Product p, int cant) {
         JPanel row = new JPanel(new BorderLayout(10, 0));
         row.setBackground(new Color(0xF8, 0xFA, 0xFC));
         row.setBorder(new CompoundBorder(
@@ -607,7 +607,7 @@ public class viewOrder extends JFrame {
         return row;
     }
 
-    private void cambiarCantidadProductoEnPedido(Producto p, int delta) throws Exception {
+    private void cambiarCantidadProductoEnPedido(Product p, int delta) throws Exception {
         int actual = pedido.getCantidadDeProducto(p);
         int nuevo = actual + delta;
 
@@ -626,7 +626,7 @@ public class viewOrder extends JFrame {
         refrescarResumen();
     }
 
-    private void eliminarProductoDelPedido(Producto p) throws Exception {
+    private void eliminarProductoDelPedido(Product p) throws Exception {
         int cant = pedido.getCantidadDeProducto(p);
         if (cant <= 0) {
             return;
@@ -636,8 +636,8 @@ public class viewOrder extends JFrame {
 
     private void cargarProductosInicial() {
         productosModel.clear();
-        List<Producto> lista = productoCtrl.listar();
-        for (Producto p : lista) {
+        List<Product> lista = productoCtrl.listar();
+        for (Product p : lista) {
             productosModel.addElement(p);
         }
 
@@ -650,7 +650,7 @@ public class viewOrder extends JFrame {
         String query = (q == null) ? "" : q.trim().toLowerCase();
         productosModel.clear();
 
-        for (Producto p : productoCtrl.listar()) {
+        for (Product p : productoCtrl.listar()) {
             String nombre = (p.getNombre() == null) ? "" : p.getNombre().toLowerCase();
             if (nombre.contains(query)) {
                 productosModel.addElement(p);
@@ -665,7 +665,7 @@ public class viewOrder extends JFrame {
         }
     }
 
-    private void actualizarCardProducto(Producto p) {
+    private void actualizarCardProducto(Product p) {
         if (p == null) {
             lblProdNombre.setText("Selecciona un producto…");
             lblProdPrecio.setText(money(0));
@@ -706,7 +706,7 @@ public class viewOrder extends JFrame {
 
         double total = 0.0;
 
-        for (Producto p : pedido.getProductos()) {
+        for (Product p : pedido.getProductos()) {
             int cant = pedido.getCantidadDeProducto(p);
             double sub = p.getPrecio() * cant;
             total += sub;
@@ -723,14 +723,14 @@ public class viewOrder extends JFrame {
 
     private void onFinalizar() {
         try {
-            boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
+            boolean paraLlevar = pedido.getTipoPedido().equals(Order.PARA_LLEVAR);
 
-            Mesa mesa = null;
+            Table mesa = null;
             if (!paraLlevar) {
                 mesa = mesaCtrl.obtenerMesa(pedido.getNumeroMesa());
             }
 
-            Venta v = ventaCtrl.finalizarVenta(clienteSeleccionado, mesa, paraLlevar);
+            Sale v = ventaCtrl.finalizarVenta(clienteSeleccionado, mesa, paraLlevar);
 
             JOptionPane.showMessageDialog(this, "Pedido finalizado. Pase a facturación.");
 
@@ -746,7 +746,7 @@ public class viewOrder extends JFrame {
         try {
             ventaCtrl.eliminarPendientePorCodigoPedido(pedido.getCodigoPedido());
 
-            boolean paraLlevar = pedido.getTipoPedido().equals(Pedido.PARA_LLEVAR);
+            boolean paraLlevar = pedido.getTipoPedido().equals(Order.PARA_LLEVAR);
 
             if (!paraLlevar) {
                 mesaCtrl.liberarMesa(pedido.getNumeroMesa());
@@ -766,7 +766,7 @@ public class viewOrder extends JFrame {
     }
 
     private void volverAtras() {
-        if (pedido.getTipoPedido().equals(Pedido.MESA)) {
+        if (pedido.getTipoPedido().equals(Order.MESA)) {
             viewTables vm = new viewTables(
                     pedidoCtrl,
                     productoCtrl,

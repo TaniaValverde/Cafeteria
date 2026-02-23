@@ -1,12 +1,12 @@
 package vista;
 
-import Controlador.ClienteController;
-import Controlador.MesaController;
-import Controlador.PedidoController;
-import Controlador.ProductoController;
-import Controlador.VentaController;
+import Controlador.ClientController;
+import Controlador.TableController;
+import Controlador.OrderController;
+import Controlador.ProductController;
+import Controlador.SaleController;
 
-import Model.Pedido;
+import Model.Order;
 
 import java.awt.*;
 import java.time.LocalDateTime;
@@ -26,11 +26,11 @@ import javax.swing.border.LineBorder;
  */
 public class Menu extends JFrame {
 
-    private final PedidoController pedidoCtrl;
-    private final ProductoController productoCtrl;
-    private final ClienteController clienteCtrl;
-    private final VentaController ventaCtrl;
-    private final MesaController mesaCtrl;
+    private final OrderController pedidoCtrl;
+    private final ProductController productoCtrl;
+    private final ClientController clienteCtrl;
+    private final SaleController ventaCtrl;
+    private final TableController mesaCtrl;
 
     private static final Color PRIMARY = new Color(0x3C, 0xE6, 0x19);
     private static final Color BG_LIGHT = new Color(0xFD, 0xFB, 0xF7);
@@ -46,13 +46,18 @@ public class Menu extends JFrame {
 
     /**
      * Creates the view and initializes its Swing components.
+     * @param pedidoCtrl
+     * @param productoCtrl
+     * @param clienteCtrl
+     * @param ventaCtrl
+     * @param mesaCtrl
      */
 
-    public Menu(PedidoController pedidoCtrl,
-            ProductoController productoCtrl,
-            ClienteController clienteCtrl,
-            VentaController ventaCtrl,
-            MesaController mesaCtrl) {
+    public Menu(OrderController pedidoCtrl,
+            ProductController productoCtrl,
+            ClientController clienteCtrl,
+            SaleController ventaCtrl,
+            TableController mesaCtrl) {
 
         this.pedidoCtrl = pedidoCtrl;
         this.productoCtrl = productoCtrl;
@@ -139,9 +144,8 @@ public class Menu extends JFrame {
         while (pedidoCtrl.buscarPedido(codigo) != null) {
             codigo++;
         }
-        Pedido pedido = pedidoCtrl.crearPedido(
-                codigo,
-                Pedido.PARA_LLEVAR,
+        Order pedido = pedidoCtrl.crearPedido(codigo,
+                Order.PARA_LLEVAR,
                 null
         );
 
@@ -176,7 +180,7 @@ public class Menu extends JFrame {
     }
 
     private void abrirReportes() {
-        new viewReport().setVisible(true);
+        new Reportview().setVisible(true);
     }
 
     private JComponent buildHeader() {

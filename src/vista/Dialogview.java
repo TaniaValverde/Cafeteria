@@ -1,7 +1,7 @@
 package vista;
 
-import Controlador.ClienteController;
-import Model.Cliente;
+import Controlador.ClientController;
+import Model.Client;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -23,9 +23,9 @@ import java.util.List;
  */
 public class Dialogview extends JDialog {
 
-    private final ClienteController clienteController;
+    private final ClientController clienteController;
 
-    private Cliente clienteSeleccionado = null;
+    private Client clienteSeleccionado = null;
 
     private JTable tabla;
     private DefaultTableModel modelo;
@@ -37,7 +37,7 @@ public class Dialogview extends JDialog {
      * Creates the view and initializes its Swing components.
      */
 
-    public Dialogview(JFrame owner, ClienteController clienteController) {
+    public Dialogview(JFrame owner, ClientController clienteController) {
         super(owner, "Cliente del pedido", true);
         this.clienteController = clienteController;
 
@@ -115,8 +115,8 @@ public class Dialogview extends JDialog {
     private void cargarTabla() {
         modelo.setRowCount(0);
 
-        List<Cliente> lista = clienteController.listar();
-        for (Cliente c : lista) {
+        List<Client> lista = clienteController.listar();
+        for (Client c : lista) {
 
             modelo.addRow(new Object[]{
                 c.getId(),
@@ -136,7 +136,7 @@ public class Dialogview extends JDialog {
 
         String id = modelo.getValueAt(row, 0).toString();
 
-        for (Cliente c : clienteController.listar()) {
+        for (Client c : clienteController.listar()) {
             if (c.getId().equals(id)) {
                 clienteSeleccionado = c;
                 break;
@@ -215,11 +215,11 @@ public class Dialogview extends JDialog {
 
         String id = String.valueOf(System.currentTimeMillis());
 
-        Cliente nuevo = new Cliente(
+        Client nuevo = new Client(
                 id,
                 nombre,
                 tel,
-                Cliente.TipoCliente.VISITANTE
+                Client.TipoCliente.VISITANTE
         );
 
         try {
@@ -237,7 +237,7 @@ public class Dialogview extends JDialog {
         dispose();
     }
 
-    public Cliente getClienteSeleccionado() {
+    public Client getClienteSeleccionado() {
         return clienteSeleccionado;
     }
 

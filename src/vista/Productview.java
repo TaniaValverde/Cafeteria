@@ -1,7 +1,7 @@
 package vista;
 
-import Controlador.ProductoController;
-import Model.Producto;
+import Controlador.ProductController;
+import Model.Product;
 
 import java.awt.*;
 import java.io.IOException;
@@ -30,7 +30,7 @@ import javax.swing.plaf.basic.BasicButtonUI;
  */
 public class Productview extends JFrame {
 
-    private final ProductoController productoController;
+    private final ProductController productoController;
 
     private JTextField txtCodigo;
     private JTextField txtNombre;
@@ -68,7 +68,7 @@ public class Productview extends JFrame {
      * Creates the view and initializes its Swing components.
      */
 
-    public Productview(ProductoController productoController) {
+    public Productview(ProductController productoController) {
         this.productoController = productoController;
 
         setTitle("Gestión de Productos");
@@ -376,7 +376,7 @@ public class Productview extends JFrame {
         try {
             DatosForm d = leerFormulario(true);
 
-            Producto nuevo = new Producto(d.codigo, d.nombre, d.categoria, d.precio, d.stock);
+            Product nuevo = new Product(d.codigo, d.nombre, d.categoria, d.precio, d.stock);
             productoController.agregar(nuevo);
 
             recargarTabla();
@@ -464,8 +464,8 @@ public class Productview extends JFrame {
     private void recargarTabla() {
         modelo.setRowCount(0);
 
-        List<Producto> lista = productoController.listar();
-        for (Producto p : lista) {
+        List<Product> lista = productoController.listar();
+        for (Product p : lista) {
             modelo.addRow(new Object[]{
                 p.getCodigo(),
                 p.getNombre(),

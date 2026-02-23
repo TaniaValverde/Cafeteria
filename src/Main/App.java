@@ -1,10 +1,10 @@
 package Main;
 
-import Controlador.ClienteController;
-import Controlador.MesaController;
-import Controlador.PedidoController;
-import Controlador.ProductoController;
-import Controlador.VentaController;
+import Controlador.ClientController;
+import Controlador.TableController;
+import Controlador.OrderController;
+import Controlador.ProductController;
+import Controlador.SaleController;
 import java.io.IOException;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -29,11 +29,11 @@ public class App {
 
         try {
             // ===== Controllers =====
-            ProductoController productoCtrl = new ProductoController("data/productos.txt");
-            ClienteController clienteCtrl = new ClienteController("data/clientes.txt");
-            PedidoController pedidoCtrl = new PedidoController();
-            VentaController ventaCtrl = new VentaController();
-            MesaController mesaCtrl = new MesaController();
+            ProductController productoCtrl = new ProductController("data/productos.txt");
+            ClientController clienteCtrl = new ClientController("data/clientes.txt");
+            OrderController pedidoCtrl = new OrderController();
+            SaleController ventaCtrl = new SaleController();
+            TableController mesaCtrl = new TableController();
 
             // ===== Launch Main Menu =====
             SwingUtilities.invokeLater(() -> {

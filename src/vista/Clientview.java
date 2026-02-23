@@ -1,7 +1,7 @@
 package vista;
 
-import Controlador.ClienteController;
-import Model.Cliente;
+import Controlador.ClientController;
+import Model.Client;
 
 import javax.swing.*;
 import javax.swing.border.*;
@@ -23,12 +23,12 @@ import java.util.List;
  */
 public class Clientview extends JFrame {
 
-    private final ClienteController clienteController;
+    private final ClientController clienteController;
 
     private JTextField txtId;
     private JTextField txtNombre;
     private JTextField txtTelefono;
-    private JComboBox<Cliente.TipoCliente> cmbTipo;
+    private JComboBox<Client.TipoCliente> cmbTipo;
 
     private JTable tabla;
     private DefaultTableModel modelo;
@@ -37,7 +37,7 @@ public class Clientview extends JFrame {
      * Creates the view and initializes its Swing components.
      */
 
-    public Clientview(ClienteController controller) {
+    public Clientview(ClientController controller) {
         this.clienteController = controller;
 
         setTitle("Gestión de Clientes");
@@ -59,7 +59,7 @@ public class Clientview extends JFrame {
         txtId = new JTextField();
         txtNombre = new JTextField();
         txtTelefono = new JTextField();
-        cmbTipo = new JComboBox<>(Cliente.TipoCliente.values());
+        cmbTipo = new JComboBox<>(Client.TipoCliente.values());
 
         applyInputFilters();
 
@@ -130,11 +130,11 @@ public class Clientview extends JFrame {
 
     private void agregar() {
         try {
-            Cliente c = new Cliente(
+            Client c = new Client(
                     txtId.getText().trim(),
                     txtNombre.getText().trim(),
                     txtTelefono.getText().trim(),
-                    (Cliente.TipoCliente) cmbTipo.getSelectedItem()
+                    (Client.TipoCliente) cmbTipo.getSelectedItem()
             );
 
             clienteController.registrar(c);
@@ -152,11 +152,10 @@ public class Clientview extends JFrame {
 
     private void modificar() {
         try {
-            clienteController.modificar(
-                    txtId.getText().trim(),
+            clienteController.modificar(txtId.getText().trim(),
                     txtNombre.getText().trim(),
                     txtTelefono.getText().trim(),
-                    (Cliente.TipoCliente) cmbTipo.getSelectedItem()
+                    (Client.TipoCliente) cmbTipo.getSelectedItem()
             );
 
             recargarTabla();
@@ -189,8 +188,8 @@ public class Clientview extends JFrame {
     private void recargarTabla() {
         modelo.setRowCount(0);
 
-        List<Cliente> lista = clienteController.listar();
-        for (Cliente c : lista) {
+        List<Client> lista = clienteController.listar();
+        for (Client c : lista) {
             modelo.addRow(new Object[]{
                 c.getId(),
                 c.getNombre(),

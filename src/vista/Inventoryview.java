@@ -1,7 +1,7 @@
 package vista;
 
-import Controlador.ProductoController;
-import Model.Producto;
+import Controlador.ProductController;
+import Model.Product;
 
 import java.awt.BorderLayout;
 import java.awt.Font;
@@ -22,7 +22,7 @@ import javax.swing.table.DefaultTableModel;
  */
 public class Inventoryview extends JFrame {
 
-    private final ProductoController productoController;
+    private final ProductController productoController;
 
     private final JTextField txtBuscar;
     private final JTable tabla;
@@ -37,7 +37,7 @@ public class Inventoryview extends JFrame {
      * Creates the view and initializes its Swing components.
      */
 
-    public Inventoryview(ProductoController productoController) {
+    public Inventoryview(ProductController productoController) {
         this.productoController = productoController;
 
         setTitle("Inventario - Control de Stock");
@@ -137,8 +137,8 @@ public class Inventoryview extends JFrame {
     private void cargarTabla() {
         modelo.setRowCount(0);
 
-        List<Producto> productos = productoController.listar();
-        for (Producto p : productos) {
+        List<Product> productos = productoController.listar();
+        for (Product p : productos) {
             Object[] row = {
                 p.getCodigo(),
                 p.getNombre(),
@@ -159,9 +159,9 @@ public class Inventoryview extends JFrame {
         }
 
         modelo.setRowCount(0);
-        List<Producto> productos = productoController.listar();
+        List<Product> productos = productoController.listar();
 
-        for (Producto p : productos) {
+        for (Product p : productos) {
             String cod = p.getCodigo().toLowerCase();
             String nom = p.getNombre().toLowerCase();
 

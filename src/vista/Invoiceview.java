@@ -1,8 +1,8 @@
 package vista;
 
-import Controlador.MesaController;
-import Controlador.VentaController;
-import Model.Venta;
+import Controlador.TableController;
+import Controlador.SaleController;
+import Model.Sale;
 import vista.InvoiceImpressionview;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
@@ -26,8 +26,8 @@ import java.util.List;
  */
 public class Invoiceview extends JFrame {
 
-    private final VentaController ventaCtrl;
-    private final MesaController mesaCtrl;
+    private final SaleController ventaCtrl;
+    private final TableController mesaCtrl;
 
     private JTable tabla;
     private DefaultTableModel modelo;
@@ -36,7 +36,7 @@ public class Invoiceview extends JFrame {
     private JLabel lblTotal;
     private JComboBox<String> cmbMetodoPago;
 
-    private Venta ventaSeleccionada;
+    private Sale ventaSeleccionada;
 
     private static final Color BG = new Color(0xF5, 0xF7, 0xFA);
     private static final Color CARD = Color.WHITE;
@@ -58,7 +58,7 @@ public class Invoiceview extends JFrame {
      * Creates the view and initializes its Swing components.
      */
 
-    public Invoiceview(VentaController ventaCtrl, MesaController mesaCtrl) {
+    public Invoiceview(SaleController ventaCtrl, TableController mesaCtrl) {
         this.ventaCtrl = ventaCtrl;
         this.mesaCtrl = mesaCtrl;
 
@@ -299,9 +299,9 @@ public class Invoiceview extends JFrame {
     private void cargarPendientes() {
         try {
             modelo.setRowCount(0);
-            List<Venta> pendientes = ventaCtrl.obtenerPendientes();
+            List<Sale> pendientes = ventaCtrl.obtenerPendientes();
 
-            for (Venta v : pendientes) {
+            for (Sale v : pendientes) {
                 String idCorto = v.getId();
                 if (idCorto.length() > 6) {
                     idCorto = idCorto.substring(idCorto.length() - 6);
@@ -335,7 +335,7 @@ public class Invoiceview extends JFrame {
         try {
             ventaSeleccionada = null;
 
-            for (Venta v : ventaCtrl.obtenerPendientes()) {
+            for (Sale v : ventaCtrl.obtenerPendientes()) {
                 String id = v.getId();
                 if (id != null && id.endsWith(idCorto)) {
                     ventaSeleccionada = v;
