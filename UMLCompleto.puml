@@ -1,0 +1,13 @@
+@startuml
+class Controlador.ClientController
+class Controlador.OrderController
+class Controlador.ProductController
+class Controlador.SaleController
+class Controlador.TableController
+class Main.App
+class java.io.IOException
+class javax.swing.SwingUtilities
+class javax.swing.UIManager
+class javax.swing.UnsupportedLookAndFeelException
+class vista.Menu
+@enduml

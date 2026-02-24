@@ -1,0 +1,25 @@
+@startuml
+class Model.Client
+class Model.Drink
+class Model.Food
+class Model.Invoice
+class Model.Order
+class Model.Product
+class Model.Sale
+class Model.Table
+class java.io.IOException
+class java.time.LocalDateTime
+class java.time.format.DateTimeFormatter
+class java.util.ArrayList
+class java.util.Collections
+class java.util.List
+class java.util.Objects
+interface Interfases.Imprimible
+interface Interfases.Persistible
+interface java.io.Serializable
+Model.Drink --|> Model.Product
+Model.Food --|> Model.Product
+Model.Food --|> java.io.Serializable
+Model.Invoice --|> Interfases.Imprimible
+Model.Invoice --|> Interfases.Persistible
+@enduml
