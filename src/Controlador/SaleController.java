@@ -99,6 +99,10 @@ public class SaleController {
                 Sale.DEFAULT_TAX_RATE
         );
 
+        // ✅ Guardar snapshot del cliente en la venta
+        venta.setCliente(cliente);
+
+        // ✅ Agregar líneas desde el pedido actual
         for (Product p : pedidoActual.getProductos()) {
             int cantidad = pedidoActual.getCantidadDeProducto(p);
             venta.agregarLinea(p, cantidad);
@@ -133,62 +137,13 @@ public class SaleController {
     }
 
     /**
-     * Builds the invoice text for a sale.
+     * Builds the invoice text for a sale (FULL ticket).
      *
-     * @param venta sale to print
-     * @return invoice text
+     * ✅ Ahora este método imprime TODO reutilizando el método completo.
      */
     public String generarTextoFactura(Sale venta) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("CAFETERÍA UCR - SEDE DEL SUR\n");
-        sb.append("----------------------------------\n");
-        sb.append("ID: ").append(venta.getId()).append("\n");
-        sb.append("FECHA: ").append(venta.getFechaHora().toLocalDate()).append("\n");
-        sb.append("HORA: ").append(venta.getFechaHora().toLocalTime()).append("\n");
-
-        if (venta.esParaLlevar()) {
-            sb.append("TIPO: PARA LLEVAR\n");
-        } else {
-            sb.append("MESA: ").append(venta.getMesaNumero()).append("\n");
-        }
-
-        if (venta.getMetodoPago() != null && !venta.getMetodoPago().isBlank()) {
-            sb.append("PAGO: ").append(venta.getMetodoPago()).append("\n");
-        }
-
-        sb.append("\nPRODUCTO               CANT   SUBT\n");
-        sb.append("----------------------------------\n");
-
-        try {
-            List<Product> productosReales = productoDAO.cargar();
-
-            for (Sale.LineaVenta lv : venta.getLineas()) {
-                String codigo = lv.getProducto().getCodigo();
-                String nombre = codigo;
-
-                for (Product p : productosReales) {
-                    if (p.getCodigo().equals(codigo)) {
-                        nombre = p.getNombre();
-                        break;
-                    }
-                }
-
-                sb.append(String.format("%-20s %3d   ₡%.2f\n",
-                        nombre, lv.getCantidad(), lv.getSubtotal()));
-            }
-
-        } catch (IOException e) {
-            sb.append("Error cargando nombres de productos\n");
-        }
-
-        sb.append("\n----------------------------------\n");
-        sb.append(String.format("SUBTOTAL: ₡%.2f\n", venta.getSubtotal()));
-        sb.append(String.format("IMPUESTO: ₡%.2f\n", venta.getImpuesto()));
-        sb.append(String.format("TOTAL: ₡%.2f\n", venta.getTotal()));
-        sb.append("\n¡Gracias por su visita!");
-
-        return sb.toString();
+        // Usa el método completo, mostrando el método de pago guardado si existe
+        return generarTextoFactura(venta, venta.getMetodoPago());
     }
 
     /**
@@ -253,6 +208,8 @@ public class SaleController {
     /**
      * Builds the invoice text using a payment method preview (without modifying sale state).
      *
+     * ✅ Ahora también incluye CLIENTE.
+     *
      * @param venta sale to print
      * @param metodoPagoPreview payment method to display
      * @return invoice text
@@ -265,6 +222,11 @@ public class SaleController {
         sb.append("ID: ").append(venta.getId()).append("\n");
         sb.append("FECHA: ").append(venta.getFechaHora().toLocalDate()).append("\n");
         sb.append("HORA: ").append(venta.getFechaHora().toLocalTime()).append("\n");
+
+        // ✅ CLIENTE
+        if (venta.getClienteNombre() != null && !venta.getClienteNombre().isBlank()) {
+            sb.append("CLIENTE: ").append(venta.getClienteNombre()).append("\n");
+        }
 
         if (venta.esParaLlevar()) {
             sb.append("TIPO: PARA LLEVAR\n");

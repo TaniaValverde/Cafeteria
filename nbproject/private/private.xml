@@ -5,23 +5,27 @@
         <group>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Model/Drink.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/vista/Reportview.java</file>
-            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Controlador/OrderController.java</file>
+            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/vista/InvoiceImpressionview.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Main/App.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Controlador/ProductController.java</file>
+            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/test/testControlador/SaleControllerTest.java</file>
+            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Model/Invoice.java</file>
+            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Persistencia/SaleDAO.java</file>
+            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Model/Sale.java</file>
+            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Persistencia/ClientDAO.java</file>
+            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Controlador/TableController.java</file>
+            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Controlador/OrderController.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Model/Client.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Model/Order.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Model/Table.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Controlador/ClientController.java</file>
-            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Model/Invoice.java</file>
+            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/vista/viewOrder.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Model/Product.java</file>
-            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Persistencia/SaleDAO.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/test/testPersistencia/SaleDAOTest.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/vista/Menu.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/util/ImpresionUtil.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Controlador/SaleController.java</file>
-            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Model/Sale.java</file>
-            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Persistencia/ClientDAO.java</file>
-            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Controlador/TableController.java</file>
+            <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/vista/Invoiceview.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Controlador/ReportController.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Persistencia/ProductDAO.java</file>
             <file>file:/C:/Users/Valzu01/Documents/NetBeansProjects/cafeteria/src/Model/Food.java</file>
