@@ -2,30 +2,26 @@ package util;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.print.PrinterException;
 
-/**
- * Utility class for handling text printing through the system print dialog.
- *
- * This class centralizes printing logic for Swing components, allowing
- * compatibility with standard and thermal printers configured in the OS.
- */
 public class ImpresionUtil {
 
-    /**
-     * Prints the content of a {@link JTextArea} using the default system print dialog.
-     *
-     * @param area   text area containing the content to print (must not be null)
-     * @param parent parent component for dialog context (not directly used)
-     * @return true if the print job was sent, false if the user cancelled
-     * @throws IllegalArgumentException if {@code area} is null
-     * @throws Exception if printing fails
-     */
-    public static boolean imprimirTexto(JTextArea area, Component parent) throws Exception {
+    public static boolean imprimirTexto(JTextArea area, Component parent) throws PrinterException {
         if (area == null) {
             throw new IllegalArgumentException("Área de impresión null.");
         }
 
-        // Retorna false cuando el usuario cancela.
-        return area.print();
+        // MUY IMPORTANTE: asegura que tenga tamaño antes de imprimir (evita páginas en blanco)
+        area.setSize(area.getPreferredSize());
+
+        // Fuerza diálogo de impresión y diálogo de progreso (más confiable que area.print() pelado)
+        return area.print(
+                null,   // header
+                null,   // footer
+                true,   // showPrintDialog
+                null,   // PrintService (null = default)
+                null,   // PrintRequestAttributeSet
+                true    // interactive (muestra progreso/cancelar)
+        );
     }
 }

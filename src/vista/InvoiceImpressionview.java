@@ -22,7 +22,7 @@ public class InvoiceImpressionview extends JDialog {
 
         // Área tipo ticket
         area = new JTextArea(textoFactura == null ? "" : textoFactura);
-        area.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        area.setFont(new Font("Monospaced", Font.PLAIN, 6));
         area.setEditable(false);
         area.setLineWrap(false);
         area.setWrapStyleWord(false);
