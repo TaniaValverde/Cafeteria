@@ -4,13 +4,17 @@ import Controlador.ClientController;
 import Model.Client;
 
 import javax.swing.*;
-import javax.swing.border.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DocumentFilter;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.util.List;
 
@@ -33,10 +37,13 @@ public class Clientview extends JFrame {
     private JTable tabla;
     private DefaultTableModel modelo;
 
+    // Para evitar abrir OSK muchas veces
+    private boolean tecladoAbierto = false;
+
     /**
      * Creates the view and initializes its Swing components.
+     * @param controller controller for clients
      */
-
     public Clientview(ClientController controller) {
         this.clienteController = controller;
 
@@ -45,9 +52,69 @@ public class Clientview extends JFrame {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
+        // Cerrar teclado al cerrar la ventana (X)
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                cerrarTecladoWindows();
+            }
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+                cerrarTecladoWindows();
+            }
+        });
+
         buildUI();
         recargarTabla();
     }
+
+    // ======= Teclado flotante (Windows) =======
+
+    private static boolean isWindows() {
+        return System.getProperty("os.name").toLowerCase().contains("win");
+    }
+
+    private void abrirTecladoWindows() {
+        if (!isWindows()) return;
+
+        // Si ya se intentó abrir, no lo hagas cada vez que cambia el foco
+        if (tecladoAbierto) return;
+
+        try {
+            // Teclado en pantalla clásico (flotante)
+            new ProcessBuilder("cmd", "/c", "start", "", "osk").start();
+            tecladoAbierto = true;
+        } catch (Exception ignored) { }
+    }
+
+    private void cerrarTecladoWindows() {
+        if (!isWindows()) return;
+
+        try {
+            // Cierra el proceso del teclado en pantalla
+            new ProcessBuilder("cmd", "/c", "taskkill", "/IM", "osk.exe", "/F").start();
+        } catch (Exception ignored) { }
+        tecladoAbierto = false;
+    }
+
+    private void instalarTecladoEnCampos() {
+        FocusAdapter fa = new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                abrirTecladoWindows();
+            }
+        };
+
+        txtId.addFocusListener(fa);
+        txtNombre.addFocusListener(fa);
+        txtTelefono.addFocusListener(fa);
+
+        // Si quieres que al abrir el combo también salga el teclado (opcional):
+        // cmbTipo.getEditor().getEditorComponent().addFocusListener(fa);
+    }
+
+    // =========================================
 
     private void buildUI() {
         setLayout(new BorderLayout(10, 10));
@@ -63,6 +130,9 @@ public class Clientview extends JFrame {
 
         applyInputFilters();
 
+        // Instala el evento que abre el teclado al entrar a los campos
+        instalarTecladoEnCampos();
+
         form.add(new JLabel("ID:"));
         form.add(txtId);
         form.add(new JLabel("Nombre:"));
@@ -75,6 +145,7 @@ public class Clientview extends JFrame {
         add(form, BorderLayout.NORTH);
 
         modelo = new DefaultTableModel(new String[]{"ID", "Nombre", "Teléfono", "Tipo"}, 0) {
+            @Override
             public boolean isCellEditable(int r, int c) {
                 return false;
             }
@@ -152,7 +223,8 @@ public class Clientview extends JFrame {
 
     private void modificar() {
         try {
-            clienteController.modificar(txtId.getText().trim(),
+            clienteController.modificar(
+                    txtId.getText().trim(),
                     txtNombre.getText().trim(),
                     txtTelefono.getText().trim(),
                     (Client.TipoCliente) cmbTipo.getSelectedItem()
@@ -180,7 +252,7 @@ public class Clientview extends JFrame {
 
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception ex) {
+        } catch (HeadlessException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Validación", JOptionPane.WARNING_MESSAGE);
         }
     }
@@ -191,10 +263,10 @@ public class Clientview extends JFrame {
         List<Client> lista = clienteController.listar();
         for (Client c : lista) {
             modelo.addRow(new Object[]{
-                c.getId(),
-                c.getNombre(),
-                c.getTelefono(),
-                c.getTipo()
+                    c.getId(),
+                    c.getNombre(),
+                    c.getTelefono(),
+                    c.getTipo()
             });
         }
     }
@@ -209,6 +281,9 @@ public class Clientview extends JFrame {
     }
 
     private void volverAlMenu() {
+        // Cierra el teclado al salir de esta ventana
+        cerrarTecladoWindows();
+
         dispose();
 
         SwingUtilities.invokeLater(() -> {
@@ -235,9 +310,7 @@ public class Clientview extends JFrame {
         @Override
         public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr)
                 throws BadLocationException {
-            if (string == null) {
-                return;
-            }
+            if (string == null) return;
 
             String current = fb.getDocument().getText(0, fb.getDocument().getLength());
             String next = current.substring(0, offset) + string + current.substring(offset);
@@ -250,9 +323,7 @@ public class Clientview extends JFrame {
         @Override
         public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
                 throws BadLocationException {
-            if (text == null) {
-                text = "";
-            }
+            if (text == null) text = "";
 
             String current = fb.getDocument().getText(0, fb.getDocument().getLength());
             String next = current.substring(0, offset) + text + current.substring(offset + length);

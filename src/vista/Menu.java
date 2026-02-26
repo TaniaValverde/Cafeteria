@@ -19,10 +19,6 @@ import javax.swing.border.LineBorder;
 /**
  * Main application window that provides navigation to the cafeteria system
  * modules.
- *
- * <p>
- * This class contains only UI code (Swing components and event handlers) and
- * delegates business logic to the corresponding controllers.</p>
  */
 public class Menu extends JFrame {
 
@@ -44,20 +40,16 @@ public class Menu extends JFrame {
 
     private Timer reloj;
 
-    /**
-     * Creates the view and initializes its Swing components.
-     * @param pedidoCtrl
-     * @param productoCtrl
-     * @param clienteCtrl
-     * @param ventaCtrl
-     * @param mesaCtrl
-     */
+    // Fuente para emojis (fix principal)
+    private final Font emojiFont44 = getBestEmojiFont(44);
+    private final Font emojiFont26 = getBestEmojiFont(26);
+    private final Font emojiFont16 = getBestEmojiFont(16);
 
     public Menu(OrderController pedidoCtrl,
-            ProductController productoCtrl,
-            ClientController clienteCtrl,
-            SaleController ventaCtrl,
-            TableController mesaCtrl) {
+                ProductController productoCtrl,
+                ClientController clienteCtrl,
+                SaleController ventaCtrl,
+                TableController mesaCtrl) {
 
         this.pedidoCtrl = pedidoCtrl;
         this.productoCtrl = productoCtrl;
@@ -90,6 +82,32 @@ public class Menu extends JFrame {
         root.add(buildMain(), BorderLayout.CENTER);
         root.add(buildFooter(), BorderLayout.SOUTH);
     }
+
+    // ========= FIX: elegir fuente de emoji =========
+    private static Font getBestEmojiFont(int size) {
+        String[] candidates = {
+                "Segoe UI Emoji",     // Windows (mejor)
+                "Segoe UI Symbol",    // Windows fallback
+                "Noto Color Emoji",   // Linux
+                "Apple Color Emoji"   // macOS
+        };
+
+        for (String name : candidates) {
+            Font f = new Font(name, Font.PLAIN, size);
+            if (isFontAvailable(name)) return f;
+        }
+        // fallback final (aunque puede no tener emojis)
+        return new Font("Dialog", Font.PLAIN, size);
+    }
+
+    private static boolean isFontAvailable(String fontName) {
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        for (String f : ge.getAvailableFontFamilyNames()) {
+            if (f.equalsIgnoreCase(fontName)) return true;
+        }
+        return false;
+    }
+    // ===============================================
 
     private void iniciarReloj() {
         reloj = new Timer(1000, e -> actualizarFechaHora());
@@ -139,7 +157,6 @@ public class Menu extends JFrame {
     }
 
     private void abrirParaLlevar() {
-
         int codigo = pedidoCtrl.cantidadPedidos() + 1;
         while (pedidoCtrl.buscarPedido(codigo) != null) {
             codigo++;
@@ -200,7 +217,7 @@ public class Menu extends JFrame {
         logo.setBorder(new LineBorder(new Color(0, 0, 0, 0), 1, true));
         JLabel icon = new JLabel("🍽");
         icon.setForeground(Color.WHITE);
-        icon.setFont(new Font("SansSerif", Font.PLAIN, 26));
+        icon.setFont(emojiFont26); // FIX
         logo.add(icon);
 
         left.add(logo);
@@ -252,7 +269,7 @@ public class Menu extends JFrame {
         ));
         userPill.setLayout(new BoxLayout(userPill, BoxLayout.X_AXIS));
         JLabel userIcon = new JLabel("👤");
-        userIcon.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        userIcon.setFont(emojiFont16); // FIX
         JLabel userText = new JLabel(" " + lblUsuario.getText());
         userText.setForeground(CAFE_BROWN);
         userText.setFont(new Font("SansSerif", Font.BOLD, 12));
@@ -305,9 +322,9 @@ public class Menu extends JFrame {
 
         gridWrap.add(cardButton("📦", "Gestión de Productos", "Administrar menú y precios", this::abrirProductos));
         gridWrap.add(cardButton("👥", "Gestión de Clientes", "Base de datos de clientes", this::abrirClientes));
-        gridWrap.add(cardButton("🪑", "Gestión de Mesas", "Mapa de salón y estados", this::abrirMesas));
+        gridWrap.add(cardButton("🪑", "Gestión de Mesas", "Mapa de salón y estados", this::abrirMesas));      // <- ya se verá
         gridWrap.add(cardButton("🛍", "Pedidos para Llevar", "Órdenes rápidas express", this::abrirParaLlevar));
-        gridWrap.add(cardButton("🧾", "Facturación", "Caja y procesar pagos", this::abrirFacturacion));
+        gridWrap.add(cardButton("🧾", "Facturación", "Caja y procesar pagos", this::abrirFacturacion));      // <- ya se verá
         gridWrap.add(cardButton("📦", "Inventario", "Control de insumos", this::abrirInventario));
         gridWrap.add(cardButton("📊", "Reportes", "Estadísticas y cierres", this::abrirReportes));
         gridWrap.add(cardButton("🚪", "Salir", "Cerrar sesión segura", this::salir, true));
@@ -331,6 +348,7 @@ public class Menu extends JFrame {
 
         JLabel cal = new JLabel("📅 ");
         cal.setForeground(new Color(255, 255, 255, 200));
+        cal.setFont(emojiFont16); // FIX
 
         left.add(cal);
         left.add(lblFechaHora);
@@ -392,7 +410,7 @@ public class Menu extends JFrame {
 
         JLabel icon = new JLabel(emoji, SwingConstants.CENTER);
         icon.setAlignmentX(Component.CENTER_ALIGNMENT);
-        icon.setFont(new Font("SansSerif", Font.PLAIN, 44));
+        icon.setFont(emojiFont44); // ✅ FIX: fuente emoji real
 
         JPanel iconBox = new JPanel(new GridBagLayout());
         iconBox.setOpaque(true);
